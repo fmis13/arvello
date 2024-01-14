@@ -22,20 +22,26 @@
     <table class="table table-striped table-sm">
       <thead>
         <tr>
-          <th scope="col">#</th>
+          <th scope="col">Naslov</th>
+          <th scope="col">Opis</th>
+          <th scope="col">Količina</th>
+          <th scope="col">Iznos</th>
         </tr>
       </thead>
       <tbody>
 
+        {% for product in products %}
       <tr>
-        <td></td>
+        <td>{{product.title}}</td>
+        <td>{{product.description}}</td>
+        <td>{{product.quantity}}</td>
+        <td>{{product.price}} {{product.currency}}</td>
+
       </tr>
+        {% endfor %}
 
       </tbody>
     </table>
-
-
-
   </div>
   <body>
     <footer> <a href="{% url 'admin:arvelloapp_product_changelist' %}" style="color: white;">Jedino administrator može brisati usluge i proizvode, klikom ovdje.</a> </footer>
