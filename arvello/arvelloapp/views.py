@@ -36,8 +36,8 @@ def invoice_status(request, pk):
     return render(request, 'invoice_status.html', {'invoice': invoice})
 
 def products(request):
-    # Your code here
-    return render(request, 'products.html')
+    products = Product.objects.all()
+    return render(request, 'products.html', {'product': products})
 
 def create_invoice(request):
     if request.method == 'POST':
