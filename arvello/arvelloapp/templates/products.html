@@ -10,8 +10,9 @@
     <h1 class="h2">Products</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
       <div class="btn-group me-2">
+        {% comment %}
         <button type="button" class="btn btn-sm btn-outline-secondary">Print</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button> {% endcomment %}
       </div>
     </div>
   </div>
@@ -30,7 +31,7 @@
       </thead>
       <tbody>
 
-        {% for product in products %}
+        {% for product in product %}
       <tr>
         <td>{{product.title}}</td>
         <td>{{product.description}}</td>
