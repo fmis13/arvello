@@ -1,0 +1,100 @@
+{% load static %}
+{% load crispy_forms_tags %}
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Arvello Invoice Generator">
+    <meta name="author" content="Arvello">
+    <title>Arvello</title>
+
+    <link rel="canonical" href="">
+
+
+
+    <!-- Bootstrap core CSS -->
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <!-- Custom styles for this template -->
+    <link href="{% static 'css/signin.css' %}" rel="stylesheet">
+
+    <style>
+      body {
+      background-image: url('/static/img/bg/bg.jpg');
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-size: 100% 100%;
+      }
+      .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+      }
+
+      @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      }
+      button {
+      margin-left: 73.5%;
+      }
+      h1 {
+      font-size: 3.5em;
+    }
+      
+    </style>
+
+
+
+  </head>
+  <body class="text-center">
+
+<main class="form-signin">
+
+
+  <form action="#" method="post">
+    <img class="mb-4" src="{% static '/img/FS_Arvello_nobg_Final.png' %}" alt="" width="230" height="115">
+    <h1 class="h3 mb-3 fw-normal">Prijava</h1>
+
+    {% csrf_token %}
+
+
+    {% if messages %}
+    {% for message in messages %}
+
+    {% if message.tags == 'error' %}
+    <div class="alert alert-danger">
+    {{message}}
+    </div>
+    {% else %}
+    <div class="alert alert-{{message.tags}}">
+    {{message}}
+    </div>
+    {% endif %}
+
+    {% endfor %}
+    {% endif %}
+
+
+
+
+    <div class="form-floating">
+      {{form.username}}
+      <label for="floatingInput">Korisničko ime</label>
+    </div>
+    <div class="form-floating">
+      {{form.password}}
+      <label for="floatingPassword">Zaporka</label>
+    </div>
+
+
+    <button class="w-35 btn btn-lg btn-primary" type="submit">Dalje ></button>
+    <p class="mt-5 mb-3 text-muted">&copy; 2024 Arvello</p>
+  </form>
+</main>
+  </body>
+</html>
