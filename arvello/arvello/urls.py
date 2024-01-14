@@ -1,0 +1,40 @@
+"""
+URL configuration for arvello project.
+
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/4.2/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
+
+from django.urls import path
+from arvelloapp.views import *
+from arvelloapp import views
+from django.contrib import admin
+from django.contrib.auth import views as auth_views
+
+urlpatterns = [
+    path('', login, name='login'),
+    path('invoices/', views.invoices, name='invoices'),
+    path('invoices/<int:pk>/', views.invoice_detail, name='invoice_detail'),
+    path('invoices/<int:pk>/status/', views.invoice_status, name='invoice_status'),
+    path('invoice/export/<int:invoice_id>/', views.export_invoice_to_pdf, name='invoice_export'),
+    path('login/', login, name='login'),
+    path('admin/', admin.site.urls),
+    path('logout/', auth_views.logout_then_login, name='logout'),
+    path('products/', views.products, name='products'),
+    path('clients/', views.clients, name='clients'),
+    path('create_invoice/', views.create_invoice, name='create_invoice'),
+]
+
+admin.site.site_header = "Arvello backend administracija"
+admin.site.site_title = "Arvello backend"
+admin.site.index_title = "Dobrodošli u Arvello backend"

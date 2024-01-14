@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% include 'invoice_form.html' %}
+
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Računi</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <div class="btn-group me-2">
+        {% comment %} <button type="button" class="btn btn-sm btn-outline-secondary">Print</button> {% endcomment %}
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" href='{% url 'create_invoice' %}'>Izradi račun</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-striped table-sm">
+      <thead>
+        <tr>
+          <th scope="col">Naslov</th>
+          <th scope="col">Klijent</th>
+          <th scope="col">Broj računa</th>
+          <th scope="col">Dospijeće</th>
+          <th scope="col">Rok</th>
+          <th scope="col">Status</th>
+          <th scope="col">Bilješke</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        {% for invoice in invoices %}
+      <tr>
+        <td>{{invoice.title}}</td>
+        <td>{{invoice.client}}</td>
+        <td>{{invoice.number}}</td>
+        <td>{{invoice.dueDate}}</td>
+        <td>{{invoice.paymentTerms}}</td>
+        <td>{{invoice.status}}</td>
+        <td>{{invoice.notes}}</td>
+
+      </tr>
+        {% endfor %}
+
+      </tbody>
+    </table>
+  </div>
+  <footer> <a href="{% url 'admin:arvelloapp_invoice_changelist' %}" style="color: white;">Jedino administrator može brisati račune, klikom ovdje.</a> </footer>
+</main>
+{% endblock %}
