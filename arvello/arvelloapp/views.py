@@ -1,6 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, FileResponse
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
@@ -24,18 +26,12 @@ def anonymous_required(function=None, redirect_url=None):
        return actual_decorator(function)
    return actual_decorator
 
+@login_required
 def invoices(request):
     invoices = Invoice.objects.all()
     return render(request, 'invoices.html', {'invoices': invoices})
 
-def invoice_detail(request, pk):
-    invoice = get_object_or_404(Invoice, pk=pk)
-    return render(request, 'invoice_detail.html', {'invoice': invoice})
-
-def invoice_status(request, pk):
-    invoice = get_object_or_404(Invoice, pk=pk)
-    return render(request, 'invoice_status.html', {'invoice': invoice})
-
+@login_required
 def products(request):
     context = {}
     products = Product.objects.all()
@@ -62,6 +58,7 @@ def products(request):
 
     return render(request, 'products.html', {'form': form}, context)
 
+@login_required
 def invoices(request):
     context = {}
     invoices = Invoice.objects.all()
@@ -141,27 +138,22 @@ def login(request):
 
     return render(request, 'login.html', context)
 
+@login_required
 def invoice_pdf(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
-
-    # Create a file-like buffer to receive PDF data.
+    pdfmetrics.registerFont(TTFont('OpenSansLight', 'static/OpenSans-Light.ttf'))
     buffer = BytesIO()
-
-    # Create the PDF object, using the buffer as its "file."
     p = canvas.Canvas(buffer)
-
-    p.drawString(100, 750, f"Invoice ID: {invoice.id}")
-    # Add more details here...
+# All of this is temporary, will be replaced with a template
+    p.drawString(100, 750, f"Interni identifikator računa: {invoice.id}")
+    p.drawString(100, 850, f"Invoice ID: {invoice.id}")
     p.showPage()
     p.save()
-
-    # Get the value of the BytesIO buffer and write it to the response.
     pdf = buffer.getvalue()
     buffer.close()
 
     response = FileResponse(BytesIO(pdf), content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="invoice.pdf"'
-
     return response
 
 @login_required
