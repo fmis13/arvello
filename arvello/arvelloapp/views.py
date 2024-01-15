@@ -1,11 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, FileResponse
 from reportlab.pdfgen import canvas
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.models import User, auth
+from io import BytesIO
 from .forms import *
 from .models import *
 
@@ -140,19 +141,27 @@ def login(request):
 
     return render(request, 'login.html', context)
 
-def export_invoice_to_pdf(request, invoice_id):
-    # Finish!
-    invoice = Invoice.objects.get(id=invoice_id)
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_id}.pdf"'
-    p = canvas.Canvas(response)
+def invoice_pdf(request, pk):
+    invoice = get_object_or_404(Invoice, pk=pk)
 
-    # Add content to the PDF document!
-    p.drawString(100, 750, f'Invoice Title: {invoice.title}')
-    p.drawString(100, 700, f'Invoice Status: {invoice.status}')
-    # Add other invoice details!
+    # Create a file-like buffer to receive PDF data.
+    buffer = BytesIO()
+
+    # Create the PDF object, using the buffer as its "file."
+    p = canvas.Canvas(buffer)
+
+    p.drawString(100, 750, f"Invoice ID: {invoice.id}")
+    # Add more details here...
     p.showPage()
     p.save()
+
+    # Get the value of the BytesIO buffer and write it to the response.
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    response = FileResponse(BytesIO(pdf), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="invoice.pdf"'
+
     return response
 
 @login_required
