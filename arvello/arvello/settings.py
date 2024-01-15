@@ -33,6 +33,7 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+    'wkhtmltopdf',
     'crispy_forms',
     'arvelloapp',
     'django.contrib.admin',
