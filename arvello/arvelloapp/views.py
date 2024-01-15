@@ -141,20 +141,10 @@ def login(request):
 @login_required
 def invoice_pdf(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
-    pdfmetrics.registerFont(TTFont('OpenSansLight', 'static/OpenSans-Light.ttf'))
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer)
-# All of this is temporary, will be replaced with a template
-    p.drawString(100, 750, f"Interni identifikator računa: {invoice.id}")
-    p.drawString(100, 850, f"Invoice ID: {invoice.id}")
-    p.showPage()
-    p.save()
-    pdf = buffer.getvalue()
-    buffer.close()
+    product = invoice.product
+    client = invoice.client
+    return render(request, 'invoice_export_view.html', {'invoice': invoice, 'product': product, 'client': client})
 
-    response = FileResponse(BytesIO(pdf), content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="invoice.pdf"'
-    return response
 
 @login_required
 def logout(request):

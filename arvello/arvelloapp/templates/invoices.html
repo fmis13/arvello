@@ -26,7 +26,7 @@
           <th scope="col">Broj računa</th>
           <th scope="col">Dospijeće</th>
           <th scope="col">Rok</th>
-          <th scope="col">Status</th>
+          {#<th scope="col">Status</th>#}
           <th scope="col">Bilješke</th>
         </tr>
       </thead>
@@ -35,11 +35,11 @@
         {% for invoice in invoices %}
       <tr>
         <td>{{invoice.title}}</td>
-        <td>{{invoice.client}}</td>
+        <td>{{invoice.client.clientName}}</td>
         <td>{{invoice.number}}</td>
         <td>{{invoice.dueDate}}</td>
         <td>{{invoice.paymentTerms}}</td>
-        <td>{{invoice.status}}</td>
+        {#<td>{{invoice.status}}</td>#}
         <td>{{invoice.notes}}</td>
 
       </tr>

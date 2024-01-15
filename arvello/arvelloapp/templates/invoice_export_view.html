@@ -1,0 +1,51 @@
+{% load static %}
+{% load crispy_forms_tags %}
+
+<!doctype html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+
+<body>
+    <div style="display: flex; align-items: center; justify-content: center;">
+        <img class="mb-4" src="{% static '/img/FS_Arvello_nobg_Final.png' %}" alt="" width="230" height="115">
+        <p style="margin-left: 20px;">Mišković d.o.o.
+            <br>Ulica grada Vukovara 269D
+            <br>10000 Zagreb
+            <br>OIB: 12345678901
+            <br>IBAN: HR1234567890123456789
+            <br>Telefon: 01 1234 567
+            <br>E-mail: frano@miskovic.eu.org
+        </p> 
+        <div style="margin-left: 20px; padding: 10px; border: 1px solid black; border-radius: 10px;">
+            <p>{{client.clientName}}
+                <br>{{client.addressLine1}}
+                <br>{{client.province}}
+                <br>{{client.VATID}}
+            </p>
+        </div>
+    </div>
+        <h1 style="text-align: center;">Račun {{invoice.number}}</h1>
+
+    <div class="table-responsive" style="justify-content: center; display: flex; align-items: center;">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th scope="col">Naslov</th>
+              <th scope="col">Količina</th>
+              <th scope="col">Iznos</th>
+            </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>{{product.title}}</td>
+            <td>{{product.quantity}}</td>
+            <td>{{product.price}} {{product.currency}}</td>
+          </tr>
+    
+          </tbody>
+        </table>
+      </div>
+</body>
