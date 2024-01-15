@@ -6,6 +6,16 @@
 <head>
     <meta charset="UTF-8">
     <title>Document</title>
+    <style>
+        @font-face {
+            font-family: 'OpenSansLight';
+            src: url("{% static 'OpenSans-Light.ttf' %}");
+        }
+        body {
+            font-family: 'OpenSansLight';
+            font-size: 85%;
+        }
+    </style>
 </head>
 
 <body>
@@ -28,6 +38,7 @@
         </div>
     </div>
         <h1 style="text-align: center;">Račun {{invoice.number}}</h1>
+        <p style="text-align: center;">Datum dospijeća: {{invoice.dueDate}}</p>
 
     <div class="table-responsive" style="justify-content: center; display: flex; align-items: center;">
         <table class="table table-striped table-sm">
@@ -48,4 +59,20 @@
           </tbody>
         </table>
       </div>
+
+      <table class="right-align-table" border="1" style="margin-left: auto; margin-right: 0;">
+        <tr>
+          <th>Cijena bez poreza</th>
+          <th>{{product.price}} {{product.currency}}</th>
+        </tr>
+        <tr>
+          <td>Porez</td>
+          <td>25%</td>
+        </tr>
+        <tr>
+          <td>Ukupno</td>
+          <td>{{product.price_with_vat}} {{product.currency}}</td>
+        </tr>
+      </table>
+      <a>Molimo Vas da iznos uplatite na naš račun do naznačenog roka.</a>
 </body>

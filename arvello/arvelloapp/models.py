@@ -131,6 +131,8 @@ class Product(models.Model):
     date_created = models.DateTimeField(blank=True, null=True)
     last_updated = models.DateTimeField(blank=True, null=True)
 
+    def price_with_vat(self):
+        return round(self.price * 1.25, 2)
 
     def __str__(self):
         return '{} {}'.format(self.title, self.uniqueId)

@@ -28,6 +28,7 @@
           <th scope="col">Rok</th>
           {#<th scope="col">Status</th>#}
           <th scope="col">Bilješke</th>
+          <th scope="col">Preuzimanje</th>
         </tr>
       </thead>
       <tbody>
@@ -41,6 +42,7 @@
         <td>{{invoice.paymentTerms}}</td>
         {#<td>{{invoice.status}}</td>#}
         <td>{{invoice.notes}}</td>
+        <td><a href="{% url 'invoice_pdf' invoice.id %}"><button type="button" class="btn"><img src="{% static 'img/download.svg' %}" alt="Download icon" width="16" height="16"></button></a></td>
 
       </tr>
         {% endfor %}
