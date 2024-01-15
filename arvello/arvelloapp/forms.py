@@ -39,10 +39,14 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = ['title', 'description', 'quantity', 'price', 'currency']
+        labels = {
+            'title': 'Naziv proizvoda', 'description': 'Opis proizvoda',
+            'quantity': 'Količina', 'price': 'Cijena', 'currency': 'Valuta',
+        }
 
 
 class InvoiceForm(forms.ModelForm):
-    dueDate = forms.DateField(required = True, label='Invoice Due', widget=DateInput(attrs={'class': 'form-control'}),)
+    dueDate = forms.DateField(required = True, label='Datum dospijeća', widget=DateInput(attrs={'class': 'form-control'}),)
     class Meta:
         model = Invoice
         fields = ['title', 'number', 'dueDate', 'paymentTerms', 'status', 'notes', 'client', 'product']
