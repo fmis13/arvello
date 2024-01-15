@@ -36,21 +36,55 @@ def invoice_status(request, pk):
     return render(request, 'invoice_status.html', {'invoice': invoice})
 
 def products(request):
+    context = {}
     products = Product.objects.all()
-    return render(request, 'products.html', {'product': products})
+    product = Product.objects.all()
+    context['product'] = products
 
-def create_invoice(request):
+    if request.method == 'GET':
+        form = ProductForm()
+        context['form'] = form
+        return render(request, 'products.html', context)
+
     if request.method == 'POST':
-        form = InvoiceForm(request.POST)
+        form = ProductForm(request.POST, request.FILES)
+        
         if form.is_valid():
-            client = get_object_or_404(Client, pk=request.POST.get('client'))
-            invoice = form.save(commit=False)
-            invoice.save()
-            return HttpResponseRedirect('/invoices/')
+            form.save()
+            messages.success(request, 'Nadoan je novi proizvod/usluga')
+            return redirect('products')
+        else:
+            messages.error(request, 'Problem pri obradi zahtjeva')
+            return redirect('products')
+    else:
+        form = ProductForm()
+
+    return render(request, 'products.html', {'form': form}, context)
+
+def invoices(request):
+    context = {}
+    invoices = Invoice.objects.all()
+    context['invoices'] = invoices
+
+    if request.method == 'GET':
+        form = InvoiceForm()
+        context['form'] = form
+        return render(request, 'invoices.html', context)
+
+    if request.method == 'POST':
+        form = InvoiceForm(request.POST, request.FILES)
+        
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Nadoan je novi račun')
+            return redirect('invoices')
+        else:
+            messages.error(request, 'Problem pri obradi zahtjeva')
+            return redirect('invoices')
     else:
         form = InvoiceForm()
 
-    return render(request, 'invoice_form.html', {'form': form})
+    return render(request, 'invoices.html', {'form': form}, context)
 
 
 @login_required
