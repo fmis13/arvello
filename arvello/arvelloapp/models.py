@@ -122,9 +122,10 @@ class Product(models.Model):
 
     title = models.CharField(null=True, blank=True, max_length=100)
     description = models.TextField(null=True, blank=True)
-    quantity = models.FloatField(null=True, blank=True)
+    quantity = models.FloatField(null=True, blank=True) #FloatField jer se može dogoditi da klijent želi naručiti 1.5 proizvoda, ili se može prodavati npr. jabuke po kilogramu
     price = models.FloatField(null=True, blank=True)
     currency = models.CharField(choices=CURRENCY, default='€', max_length=100)
+    taxPercent = models.FloatField(null=True, blank=True, default=25)
 
     uniqueId = models.CharField(null=True, blank=True, max_length=100)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
@@ -132,8 +133,8 @@ class Product(models.Model):
     last_updated = models.DateTimeField(blank=True, null=True)
 
     def price_with_vat(self):
-        return round(self.price * 1.25, 2)
-
+        return round(self.price * (1+(self.taxPercent/100)), 2)
+    
     def __str__(self):
         return '{} {}'.format(self.title, self.uniqueId)
 
@@ -156,23 +157,9 @@ class Product(models.Model):
 
 
 class Invoice(models.Model):
-    TERMS = [
-    ('14 dana', '14 dana'),
-    ('30 dana', '30 dana'),
-    ('60 dana', '60 dana'),
-    ]
-
-    STATUS = [
-    ('Još nije plaćeno', 'Još nije plaćeno'),
-    ('Dospijeće isteklo', 'Dospijeće isteklo'),
-    ('Plaćeno', 'Plaćeno'),
-    ]
-
     title = models.CharField(null=True, blank=True, max_length=100)
     number = models.CharField(null=True, blank=True, max_length=100)
     dueDate = models.DateField(null=True, blank=True)
-    paymentTerms = models.CharField(choices=TERMS, default='30 dana', max_length=100)
-    status = models.CharField(choices=STATUS, default='Još nije plaćeno', max_length=100)
     notes = models.TextField(null=True, blank=True)
     client = models.ForeignKey(Client, blank=True, null=True, on_delete=models.SET_NULL)
     product = models.ForeignKey(Product, blank=True, null=True, on_delete=models.SET_NULL)
@@ -181,6 +168,8 @@ class Invoice(models.Model):
     date_created = models.DateTimeField(blank=True, null=True)
     last_updated = models.DateTimeField(blank=True, null=True)
 
+    def poziv_na_broj(self):
+        return "HR 00 " + self.number.replace('/', '-')
 
     def __str__(self):
         return '{} {}'.format(self.title, self.uniqueId)

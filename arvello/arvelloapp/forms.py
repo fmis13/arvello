@@ -38,10 +38,10 @@ class ClientForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['title', 'description', 'quantity', 'price', 'currency']
+        fields = ['title', 'description', 'quantity', 'price', 'taxPercent', 'currency']
         labels = {
             'title': 'Naziv proizvoda', 'description': 'Opis proizvoda',
-            'quantity': 'Količina', 'price': 'Cijena', 'currency': 'Valuta',
+            'quantity': 'Količina', 'price': 'Cijena', 'currency': 'Valuta', 'taxPercent': 'Porez (%)',
         }
 
 
@@ -49,12 +49,13 @@ class InvoiceForm(forms.ModelForm):
     dueDate = forms.DateField(required = True, label='Datum dospijeća', widget=DateInput(attrs={'class': 'form-control'}),)
     class Meta:
         model = Invoice
-        fields = ['title', 'number', 'dueDate', 'paymentTerms', 'status', 'notes', 'client', 'product']
+        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'product']
         labels = {
             'title': 'Naslov', 'number': 'Broj računa',
-            'dueDate': 'Datum dospijeća', 'paymentTerms': 'Dogovor o dospijeću',
-            'status': 'Status', 'notes': 'Napomene', 'client': 'Klijent', 'product': 'Proizvod',
+            'dueDate': 'Datum dospijeća', 'notes': 'Napomene',
+            'client': 'Klijent', 'product': 'Proizvod',
         }
+
 
 class SettingsForm(forms.ModelForm):
     class Meta:
