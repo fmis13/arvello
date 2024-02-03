@@ -1,7 +1,7 @@
 # <center>**Arvello**</center>
 
 A simple invoice creator for Croatian small businesses.
-This program is written to adapt the Croatian language. Further adding of other 
+This program is written to adapt the Croatian language. Further adding of other functionality is imminent. 
 
 ## Table of Contents
 
