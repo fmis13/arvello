@@ -24,7 +24,9 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('', login, name='login'),
     path('invoices/', views.invoices, name='invoices'),
+    path('offers/', views.offers, name='offers'),
     path('invoice_pdf/<int:pk>/', invoice_pdf, name='invoice_pdf'),
+    path('offer_pdf/<int:pk>/', offer_pdf, name='offer_pdf'),
     path('login/', login, name='login'),
     path('admin/', admin.site.urls),
     path('logout/', auth_views.logout_then_login, name='logout'),

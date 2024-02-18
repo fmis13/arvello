@@ -37,8 +37,8 @@
             </p>
         </div>
     </div>
-        <h1 style="text-align: center;">Račun {{invoice.number}}</h1>
-        <p style="text-align: center;">Datum dospijeća: {{invoice.dueDate}}</p>
+        <h1 style="text-align: center;">Ponuda {{offer.number}}</h1>
+        <p style="text-align: center;">Datum isteka ponude: {{offer.dueDate}}</p>
 
     <div class="table-responsive" style="justify-content: center; display: flex; align-items: center;">
         <table class="table table-striped table-sm">
@@ -75,6 +75,7 @@
         </tr>
       </table>
       <div style="display: flex; justify-content: space-between;">
-        <div>Molimo Vas da iznos uplatite na naš račun do naznačenog roka.</div>
-        <div>Poziv na broj: {{invoice.poziv_na_broj}}<br>Hvala!</div>
+        <div>Molimo Vas da iznos uplatite na naš račun do naznačenog roka, ukoliko se slažete s ponudom.<br>Hvala!</div>
+        <div style="white-space: nowrap;">Poziv na broj:&nbsp;{{offer.poziv_na_broj}}</div>
       </div>
+</body>

@@ -65,8 +65,20 @@
     </div>
   </div>
   
-  
+
 </header>
+
+{% if messages %}
+<ul class="messages">
+  {% for message in messages %}
+  <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>
+      {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}Greška: {% endif %}
+      {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}Uspjeh: {% endif %}
+      {{ message }}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
 
 <div class="container-fluid">
   <div class="row">
@@ -98,7 +110,12 @@
               Klijenti
             </a>
           </li>
-
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'offers' %}">
+              <span data-feather="users"></span>
+              Ponude
+            </a>
+          </li>
         </ul>
         
 
