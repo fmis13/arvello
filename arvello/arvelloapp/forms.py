@@ -50,6 +50,17 @@ class InvoiceForm(forms.ModelForm):
             'client': 'Klijent', 'product': 'Proizvod',
         }
 
+class OfferForm(forms.ModelForm):
+    dueDate = forms.DateField(required = True, label='Datum dospijeća', widget=DateInput(attrs={'class': 'form-control'}),)
+    class Meta:
+        model = Offer
+        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'product']
+        labels = {
+            'title': 'Naslov', 'number': 'Broj računa',
+            'dueDate': 'Datum dospijeća', 'notes': 'Napomene',
+            'client': 'Klijent', 'product': 'Proizvod',
+        }
+
 class SettingsForm(forms.ModelForm):
     class Meta:
         model = Settings

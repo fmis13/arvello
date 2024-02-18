@@ -2,16 +2,14 @@ from django.db import models
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from uuid import uuid4
-from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.urls import reverse
 from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
 
 def validate_phone_number(value):
     if not all(char.isdigit() or char == '+' for char in value):
         raise ValidationError(
-            _('Telefonski broj može sadržavati samo brojeve i znak +.'),
+            ('Telefonski broj može sadržavati samo brojeve i znak +.'),
             params={'value': value},
         )
 
@@ -122,7 +120,7 @@ class Product(models.Model):
 
     title = models.CharField(null=True, blank=True, max_length=100)
     description = models.TextField(null=True, blank=True)
-    quantity = models.FloatField(null=True, blank=True) #FloatField jer se može dogoditi da klijent želi naručiti 1.5 proizvoda, ili se može prodavati npr. jabuke po kilogramu
+    quantity = models.FloatField(null=True, blank=True) #FloatField jer se može dogoditi da klijent želi naručiti 1.5 proizvoda (kruh), ili se može prodavati npr. jabuke po kilogramu
     price = models.FloatField(null=True, blank=True)
     currency = models.CharField(choices=CURRENCY, default='€', max_length=100)
     taxPercent = models.FloatField(null=True, blank=True, default=25)
@@ -156,7 +154,7 @@ class Product(models.Model):
         super(Product, self).save(*args, **kwargs)
 
 
-class Invoice(models.Model):
+class Offer(models.Model):
     title = models.CharField(null=True, blank=True, max_length=100)
     number = models.CharField(null=True, blank=True, max_length=100)
     dueDate = models.DateField(null=True, blank=True)
@@ -174,10 +172,35 @@ class Invoice(models.Model):
     def __str__(self):
         return '{} {}'.format(self.title, self.uniqueId)
 
+    def save(self, *args, **kwargs):
+        if self.date_created is None:
+            self.date_created = timezone.localtime(timezone.now())
+        if self.uniqueId is None:
+            self.uniqueId = str(uuid4()).split('-')[4]
+            self.slug = slugify('{} {}'.format(self.title, self.uniqueId))
 
-    def get_absolute_url(self):
-        return reverse('invoice-detail', kwargs={'slug': self.slug})
+        self.slug = slugify('{} {}'.format(self.title, self.uniqueId))
+        self.last_updated = timezone.localtime(timezone.now())
 
+        super(Offer, self).save(*args, **kwargs)
+
+class Invoice(models.Model):
+    title = models.CharField(null=True, blank=True, max_length=100)
+    number = models.CharField(null=True, blank=True, max_length=100)
+    dueDate = models.DateField(null=True, blank=True)
+    notes = models.TextField(null=True, blank=True)
+    client = models.ForeignKey(Client, blank=True, null=True, on_delete=models.SET_NULL)
+    product = models.ForeignKey(Product, blank=True, null=True, on_delete=models.SET_NULL)
+    uniqueId = models.CharField(null=True, blank=True, max_length=100)
+    slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
+    date_created = models.DateTimeField(blank=True, null=True)
+    last_updated = models.DateTimeField(blank=True, null=True)
+
+    def poziv_na_broj(self):
+        return "HR 00 " + self.number.replace('/', '-')
+
+    def __str__(self):
+        return '{} {}'.format(self.title, self.uniqueId)
 
     def save(self, *args, **kwargs):
         if self.date_created is None:

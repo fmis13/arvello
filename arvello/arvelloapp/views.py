@@ -74,7 +74,7 @@ def invoices(request):
         
         if form.is_valid():
             form.save()
-            messages.success(request, 'Nadoan je novi račun')
+            messages.success(request, 'Nadodan je novi račun')
             return redirect('invoices')
         else:
             messages.error(request, 'Problem pri obradi zahtjeva')
@@ -83,6 +83,32 @@ def invoices(request):
         form = InvoiceForm()
 
     return render(request, 'invoices.html', {'form': form}, context)
+
+@login_required
+def offers(request):
+    context = {}
+    offers = Offer.objects.all()
+    context['offers'] = offers
+
+    if request.method == 'GET':
+        form = OfferForm()
+        context['form'] = form
+        return render(request, 'offers.html', context)
+
+    if request.method == 'POST':
+        form = OfferForm(request.POST, request.FILES)
+        
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Nadodana je nova ponuda')
+            return redirect('offers')
+        else:
+            messages.error(request, 'Problem pri obradi zahtjeva')
+            return redirect('offers')
+    else:
+        form = OfferForm()
+
+    return render(request, 'offers.html', {'form': form}, context)
 
 
 @login_required
@@ -144,6 +170,12 @@ def invoice_pdf(request, pk):
     product = invoice.product
     client = invoice.client
     return render(request, 'invoice_export_view.html', {'invoice': invoice, 'product': product, 'client': client})
+
+def offer_pdf(request, pk):
+    offer = get_object_or_404(Offer, pk=pk)
+    product = offer.product
+    client = offer.client
+    return render(request, 'offer_export_view.html', {'offer': offer, 'product': product, 'client': client})
 
 
 @login_required

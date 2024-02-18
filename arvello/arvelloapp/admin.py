@@ -6,4 +6,5 @@ from .models import *
 admin.site.register(Client)
 admin.site.register(Invoice)
 admin.site.register(Product)
+admin.site.register(Offer)
 admin.site.register(Settings)
