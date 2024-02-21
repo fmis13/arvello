@@ -85,6 +85,32 @@ def invoices(request):
     return render(request, 'invoices.html', {'form': form}, context)
 
 @login_required
+def companies(request):
+    context = {}
+    companies = Settings.objects.all()
+    context['companies'] = companies
+
+    if request.method == 'GET':
+        form = SettingsForm()
+        context['form'] = form
+        return render(request, 'companies.html', context)
+
+    if request.method == 'POST':
+        form = SettingsForm(request.POST, request.FILES)
+        
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Nadodan je novi subjekt')
+            return redirect('companies')
+        else:
+            messages.error(request, 'Problem pri obradi zahtjeva')
+            return redirect('companies')
+    else:
+        form = SettingsForm()
+
+    return render(request, 'companies.html', {'form': form}, context)
+
+@login_required
 def offers(request):
     context = {}
     offers = Offer.objects.all()
