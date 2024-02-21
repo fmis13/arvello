@@ -43,10 +43,10 @@ class InvoiceForm(forms.ModelForm):
     dueDate = forms.DateField(required = True, label='Datum dospijeća', widget=DateInput(attrs={'class': 'form-control'}),)
     class Meta:
         model = Invoice
-        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'product']
+        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'product', 'date_created', 'date']
         labels = {
             'title': 'Naslov', 'number': 'Broj računa',
-            'dueDate': 'Datum dospijeća', 'notes': 'Napomene',
+            'dueDate': 'Datum dospijeća', 'date': 'Datum računa', 'notes': 'Napomene',
             'client': 'Klijent', 'product': 'Proizvod',
         }
 
@@ -58,10 +58,17 @@ class OfferForm(forms.ModelForm):
         labels = {
             'title': 'Naslov', 'number': 'Broj računa',
             'dueDate': 'Datum dospijeća', 'notes': 'Napomene',
-            'client': 'Klijent', 'product': 'Proizvod',
+            'client': 'ID klijenta', 'product': 'Proizvod',
         }
 
 class SettingsForm(forms.ModelForm):
     class Meta:
         model = Settings
-        fields = ['clientName', 'addressLine1', 'province', 'postalCode', 'phoneNumber', 'emailAddress', 'clientUniqueId', 'clientType', 'OIB', 'VATID']
+        fields = ['clientName', 'addressLine1', 'province', 'postalCode', 'phoneNumber', 'emailAddress', 'clientUniqueId', 'clientType', 'OIB', 'SustavPDVa', 'IBAN']
+        labels = {
+            'clientName': 'Ime subjekta', 'addressLine1': 'Adresa',
+            'province': 'Županija', 'postalCode': 'Poštanski broj',
+            'phoneNumber': 'Tel. broj', 'emailAddress': 'Email adresa',
+            'clientUniqueId': 'ID subjekta', 'clientType': 'Tip subjekta',
+            'OIB': 'OIB', 'SustavPDVa': 'Je li subjekt u sustavu PDV-a?',
+        }
