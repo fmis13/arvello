@@ -61,12 +61,12 @@ class OfferForm(forms.ModelForm):
             'client': 'ID klijenta', 'product': 'Proizvod',
         }
 
-class SettingsForm(forms.ModelForm):
+class CompanyForm(forms.ModelForm):
     class Meta:
-        model = Settings
-        fields = ['clientName', 'addressLine1', 'province', 'postalCode', 'phoneNumber', 'emailAddress', 'clientUniqueId', 'clientType', 'OIB', 'SustavPDVa', 'IBAN']
+        model = Company
+        fields = ['clientName', 'addressLine1', 'town', 'province', 'postalCode', 'phoneNumber', 'emailAddress', 'clientUniqueId', 'clientType', 'OIB', 'SustavPDVa', 'IBAN']
         labels = {
-            'clientName': 'Ime subjekta', 'addressLine1': 'Adresa',
+            'clientName': 'Ime subjekta', 'addressLine1': 'Adresa', 'town': 'Grad',
             'province': 'Županija', 'postalCode': 'Poštanski broj',
             'phoneNumber': 'Tel. broj', 'emailAddress': 'Email adresa',
             'clientUniqueId': 'ID subjekta', 'clientType': 'Tip subjekta',

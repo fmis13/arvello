@@ -87,16 +87,16 @@ def invoices(request):
 @login_required
 def companies(request):
     context = {}
-    companies = Settings.objects.all()
+    companies = Company.objects.all()
     context['companies'] = companies
 
     if request.method == 'GET':
-        form = SettingsForm()
+        form = CompanyForm()
         context['form'] = form
         return render(request, 'companies.html', context)
 
     if request.method == 'POST':
-        form = SettingsForm(request.POST, request.FILES)
+        form = CompanyForm(request.POST, request.FILES)
         
         if form.is_valid():
             form.save()
@@ -106,7 +106,7 @@ def companies(request):
             messages.error(request, 'Problem pri obradi zahtjeva')
             return redirect('companies')
     else:
-        form = SettingsForm()
+        form = CompanyForm()
 
     return render(request, 'companies.html', {'form': form}, context)
 
@@ -193,15 +193,17 @@ def login(request):
 @login_required
 def invoice_pdf(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
+    subject = invoice.subject
     product = invoice.product
     client = invoice.client
-    return render(request, 'invoice_export_view.html', {'invoice': invoice, 'product': product, 'client': client})
+    return render(request, 'invoice_export_view.html', {'invoice': invoice, 'product': product, 'client': client, 'subject': subject})
 
 def offer_pdf(request, pk):
     offer = get_object_or_404(Offer, pk=pk)
+    subject = offer.subject
     product = offer.product
     client = offer.client
-    return render(request, 'offer_export_view.html', {'offer': offer, 'product': product, 'client': client})
+    return render(request, 'offer_export_view.html', {'offer': offer, 'product': product, 'client': client, 'subject': subject})
 
 
 @login_required

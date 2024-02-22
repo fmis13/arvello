@@ -37,12 +37,17 @@
       </thead>
       <tbody>
 
-        {% for product in product %}
+        {% for companies in companies %}
       <tr>
-        <td>{{product.title}}</td>
-        <td>{{product.description}}</td>
-        <td>{{product.quantity}}</td>
-        <td>{{product.price}} {{product.currency}}</td>
+        <td>{{companies.clientName}}</td>
+        <td>{{companies.addressLine1}}</td>
+        <td>{{companies.province}}</td>
+        <td>{{companies.postalCode}}</td>
+        <td>{{companies.phoneNumber}}</td>
+        <td>{{companies.emailAddress}}</td>
+        <td>{{companies.clientUniqueId}}</td>
+        <td>{{companies.OIB}}</td>
+        <td>{{companies.IBAN}}</td>
       </tr>
         {% endfor %}
 
@@ -50,7 +55,7 @@
     </table>
   </div>
   <body>
-    <footer> <a href="{% url 'admin:arvelloapp_settings_changelist' %}" style="color: white;">Jedino administrator može brisati subjekte, klikom ovdje.</a> </footer>
+    <footer> <a href="{% url 'admin:arvelloapp_company_changelist' %}" style="color: white;">Jedino administrator može brisati subjekte, klikom ovdje.</a> </footer>
   </body>
 
   <div class="modal modal-sheet py-5" tabindex="-1" id="addCompanyModal">
