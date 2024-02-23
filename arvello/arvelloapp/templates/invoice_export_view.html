@@ -49,15 +49,16 @@
               <th scope="col">Količina </th>
               <th scope="col">Iznos </th>
             </tr>
-          </thead>
-          <tbody>
+        </thead>
+        <tbody>
+        {% for product in products %}
           <tr>
-            <td>{{product.title}} </td>
-            <td>{{product.quantity}} </td>
-            <td>{{product.price}} {{product.currency}} </td>
+            <td>{{ product.title }} </td>
+            <td>{{ product.quantity }} </td>
+            <td>{{ product.price }} {{ product.currency }} </td>
           </tr>
-    
-          </tbody>
+        {% endfor %}
+        </tbody>
         </table>
       </div>
 

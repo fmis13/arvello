@@ -39,7 +39,7 @@
         </div>
     </div>
         <h1 style="text-align: center;">Ponuda {{offer.number}}</h1>
-        <p style="text-align: center;">Datum i vrijeme izrade: {{invoice.date_created}}<br>Datum računa: {{invoice.date}}<br>Datum isteka ponude: {{invoice.dueDate}}</p>
+        <p style="text-align: center;">Datum i vrijeme izrade: {{invoice.date_created}}<br>Datum ponude: {{invoice.date}}<br>Datum isteka ponude: {{invoice.dueDate}}</p>
 
     <div class="table-responsive" style="justify-content: center; display: flex; align-items: center;">
         <table class="table table-striped table-sm">
@@ -49,15 +49,16 @@
               <th scope="col">Količina </th>
               <th scope="col">Iznos </th>
             </tr>
-          </thead>
-          <tbody>
+        </thead>
+        <tbody>
+        {% for product in products %}
           <tr>
-            <td>{{product.title}} </td>
-            <td>{{product.quantity}} </td>
-            <td>{{product.price}} {{product.currency}} </td>
+            <td>{{ product.title }} </td>
+            <td>{{ product.quantity }} </td>
+            <td>{{ product.price }} {{ product.currency }} </td>
           </tr>
-    
-          </tbody>
+        {% endfor %}
+        </tbody>
         </table>
       </div>
 

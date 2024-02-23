@@ -1,8 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect, FileResponse
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+from django.core.cache import cache
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
@@ -26,10 +24,6 @@ def anonymous_required(function=None, redirect_url=None):
        return actual_decorator(function)
    return actual_decorator
 
-@login_required
-def invoices(request):
-    invoices = Invoice.objects.all()
-    return render(request, 'invoices.html', {'invoices': invoices})
 
 @login_required
 def products(request):
@@ -62,6 +56,7 @@ def products(request):
 def invoices(request):
     context = {}
     invoices = Invoice.objects.all()
+    cache.clear()
     context['invoices'] = invoices
 
     if request.method == 'GET':
@@ -88,6 +83,7 @@ def invoices(request):
 def companies(request):
     context = {}
     companies = Company.objects.all()
+    cache.clear()
     context['companies'] = companies
 
     if request.method == 'GET':
@@ -114,6 +110,7 @@ def companies(request):
 def offers(request):
     context = {}
     offers = Offer.objects.all()
+    cache.clear()
     context['offers'] = offers
 
     if request.method == 'GET':
@@ -141,6 +138,7 @@ def offers(request):
 def clients(request):
     context = {}
     clients = Client.objects.all()
+    cache.clear()
     context['clients'] = clients
 
     if request.method == 'GET':
@@ -194,16 +192,16 @@ def login(request):
 def invoice_pdf(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
     subject = invoice.subject
-    product = invoice.product
+    product = invoice.product.all()
     client = invoice.client
-    return render(request, 'invoice_export_view.html', {'invoice': invoice, 'product': product, 'client': client, 'subject': subject})
+    return render(request, 'invoice_export_view.html', {'invoice': invoice, 'products': product, 'client': client, 'subject': subject})
 
 def offer_pdf(request, pk):
     offer = get_object_or_404(Offer, pk=pk)
     subject = offer.subject
-    product = offer.product
+    product = offer.product.all()
     client = offer.client
-    return render(request, 'offer_export_view.html', {'offer': offer, 'product': product, 'client': client, 'subject': subject})
+    return render(request, 'offer_export_view.html', {'offer': offer, 'producs': product, 'client': client, 'subject': subject})
 
 
 @login_required
