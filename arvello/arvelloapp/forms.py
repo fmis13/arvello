@@ -41,9 +41,10 @@ class ProductForm(forms.ModelForm):
 
 class InvoiceForm(forms.ModelForm):
     dueDate = forms.DateField(required = True, label='Datum dospijeća', widget=DateInput(attrs={'class': 'form-control'}),)
+    date = forms.DateField(required = True, label='Datum računa', widget=DateInput(attrs={'class': 'form-control'}),)
     class Meta:
         model = Invoice
-        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'product', 'date_created', 'date']
+        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'product', 'date']
         labels = {
             'title': 'Naslov', 'number': 'Broj računa',
             'dueDate': 'Datum dospijeća', 'date': 'Datum računa', 'notes': 'Napomene',
@@ -52,13 +53,14 @@ class InvoiceForm(forms.ModelForm):
 
 class OfferForm(forms.ModelForm):
     dueDate = forms.DateField(required = True, label='Datum dospijeća', widget=DateInput(attrs={'class': 'form-control'}),)
+    date = forms.DateField(required = True, label='Datum ponude', widget=DateInput(attrs={'class': 'form-control'}),)
     class Meta:
         model = Offer
-        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'product']
+        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'product', 'date']
         labels = {
             'title': 'Naslov', 'number': 'Broj računa',
             'dueDate': 'Datum dospijeća', 'notes': 'Napomene',
-            'client': 'ID klijenta', 'product': 'Proizvod',
+            'client': 'ID klijenta', 'product': 'Proizvod', 'date': 'Datum ponude',
         }
 
 class CompanyForm(forms.ModelForm):

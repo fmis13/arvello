@@ -11,3 +11,4 @@ six==1.16.0
 soupsieve==2.5
 sqlparse==0.4.4
 tzdata==2023.3
+django-clearcache==1.2.1
