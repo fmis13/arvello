@@ -47,6 +47,7 @@
             <tr>
               <th scope="col">Naslov </th>
               <th scope="col">Količina </th>
+              <th scope="col">Porez </th>
               <th scope="col">Iznos </th>
             </tr>
         </thead>
@@ -55,6 +56,7 @@
           <tr>
             <td>{{ product.title }} </td>
             <td>{{ product.quantity }} </td>
+            <td>{{ product.taxPercent }} %</td>
             <td>{{ product.price }} {{ product.currency }} </td>
           </tr>
         {% endfor %}
@@ -65,15 +67,11 @@
       <table class="right-align-table" border="1" style="margin-left: auto; margin-right: 0;">
         <tr>
           <th>Cijena bez poreza</th>
-          <th>{{product.price}} {{product.currency}}</th>
-        </tr>
-        <tr>
-          <td>Porez</td>
-          <td>{{product.taxPercent}}%</td>
+          <th>{{invoice.sum}} {{invoice.curr}}</th>
         </tr>
         <tr>
           <td>Ukupno</td>
-          <td>{{product.price_with_vat}} {{product.currency}}</td>
+          <td>{{invoice.price_with_vat}} {{invoice.curr}}</td>
         </tr>
       </table>
       <div style="display: flex; justify-content: space-between;">
