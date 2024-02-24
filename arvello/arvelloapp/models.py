@@ -281,6 +281,17 @@ class Offer(models.Model):
 
         super(Offer, self).save(*args, **kwargs)
 
+    def price_with_vat(self):
+        return round(sum((product.price * (1 + (product.taxPercent / 100))) for product in self.product.all()), 2)
+
+    def sum(self):
+        return sum(product.price for product in self.product.all())
+    
+    def curr(self):
+        first_product = self.product.first()
+        return first_product.currency
+
+
 class Invoice(models.Model):
     title = models.CharField(null=True, blank=True, max_length=100)
     number = models.CharField(null=True, blank=True, max_length=100)
@@ -312,5 +323,15 @@ class Invoice(models.Model):
         self.last_updated = timezone.localtime(timezone.now())
 
         super(Invoice, self).save(*args, **kwargs)
+
+    def price_with_vat(self):
+        return round(sum((product.price * (1 + (product.taxPercent / 100))) for product in self.product.all()), 2)
+
+    def sum(self):
+        return sum(product.price for product in self.product.all())
+    
+    def curr(self):
+        first_product = self.product.first()
+        return first_product.currency
 
 

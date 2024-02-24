@@ -56,7 +56,7 @@ def products(request):
 def invoices(request):
     context = {}
     invoices = Invoice.objects.all()
-    cache.clear()
+    
     context['invoices'] = invoices
 
     if request.method == 'GET':
@@ -83,7 +83,7 @@ def invoices(request):
 def companies(request):
     context = {}
     companies = Company.objects.all()
-    cache.clear()
+    
     context['companies'] = companies
 
     if request.method == 'GET':
@@ -110,7 +110,7 @@ def companies(request):
 def offers(request):
     context = {}
     offers = Offer.objects.all()
-    cache.clear()
+    
     context['offers'] = offers
 
     if request.method == 'GET':
@@ -138,7 +138,7 @@ def offers(request):
 def clients(request):
     context = {}
     clients = Client.objects.all()
-    cache.clear()
+    
     context['clients'] = clients
 
     if request.method == 'GET':
@@ -201,7 +201,7 @@ def offer_pdf(request, pk):
     subject = offer.subject
     product = offer.product.all()
     client = offer.client
-    return render(request, 'offer_export_view.html', {'offer': offer, 'producs': product, 'client': client, 'subject': subject})
+    return render(request, 'offer_export_view.html', {'offer': offer, 'products': product, 'client': client, 'subject': subject})
 
 
 @login_required

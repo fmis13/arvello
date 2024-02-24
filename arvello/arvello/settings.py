@@ -33,7 +33,6 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
-    'clearcache',
     'crispy_forms',
     'arvelloapp',
     'django.contrib.admin',
