@@ -207,5 +207,5 @@ def offer_pdf(request, pk):
 @login_required
 def logout(request):
     auth.logout(request)
-    return redirect('/login')
+    return redirect('/accounts/login')
 
