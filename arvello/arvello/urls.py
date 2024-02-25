@@ -23,6 +23,8 @@ from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('', login, name='login'),
+    path('login/', login, name='login'),
+    path('accounts/login/', login, name='login'),
     path('invoices/', views.invoices, name='invoices'),
     path('offers/', views.offers, name='offers'),
     path('invoice_pdf/<int:pk>/', invoice_pdf, name='invoice_pdf'),
