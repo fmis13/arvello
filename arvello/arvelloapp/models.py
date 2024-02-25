@@ -89,7 +89,7 @@ class Company(models.Model):
 
 
     def __str__(self):
-        return '{} {} {}'.format(self.clientName, self.province, self.uniqueId)
+        return '{} {}'.format(self.clientName, self.uniqueId)
 
 
     def get_absolute_url(self):
@@ -101,9 +101,9 @@ class Company(models.Model):
             self.date_created = timezone.localtime(timezone.now())
         if self.uniqueId is None:
             self.uniqueId = str(uuid4()).split('-')[4]
-            self.slug = slugify('{} {} {}'.format(self.clientName, self.province, self.uniqueId))
+            self.slug = slugify('{} {}'.format(self.clientName, self.uniqueId))
 
-        self.slug = slugify('{} {} {}'.format(self.clientName, self.province, self.uniqueId))
+        self.slug = slugify('{} {}'.format(self.clientName, self.uniqueId))
         self.last_updated = timezone.localtime(timezone.now())
 
         super(Company, self).save(*args, **kwargs)
@@ -182,7 +182,7 @@ class Client(models.Model):
 
 
     def __str__(self):
-        return '{} {} {}'.format(self.clientName, self.province, self.uniqueId)
+        return '{} {}'.format(self.clientName, self.uniqueId)
 
 
     def get_absolute_url(self):
@@ -194,9 +194,9 @@ class Client(models.Model):
             self.date_created = timezone.localtime(timezone.now())
         if self.uniqueId is None:
             self.uniqueId = str(uuid4()).split('-')[4]
-            self.slug = slugify('{} {} {}'.format(self.clientName, self.province, self.VATID))
+            self.slug = slugify('{} {}'.format(self.clientName, self.VATID))
 
-        self.slug = slugify('{} {} {}'.format(self.clientName, self.province, self.VATID))
+        self.slug = slugify('{} {}'.format(self.clientName, self.VATID))
         self.last_updated = timezone.localtime(timezone.now())
         
 
