@@ -152,10 +152,10 @@ def clients(request):
         if form.is_valid():
             form.save()
 
-            messages.success(request, 'New Client Added')
+            messages.success(request, 'Nadodan je novi klijent')
             return redirect('clients')
         else:
-            messages.error(request, 'Problem processing your request')
+            messages.error(request, 'Problem pri obradi zahtjeva')
             return redirect('clients')
 
 
