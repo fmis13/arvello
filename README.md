@@ -6,17 +6,21 @@ This program is written to adapt the Croatian language. Further adding of other 
 ## Table of Contents
 
 - [Installation](#installation)
-- [Usage](#usage)
 - [Contributing](#contributing)
 - [License](#license)
 
 ## Installation
 
-Instructions TODO
+$ sudo apt install git-all #instalirajte Git, python3 se uglavnom nalazi preinstaliran
+$ git clone https://github.com/fmis13/arvello.git
+$ sudo apt install python3.11-venv
+$ python3 -m venv /putanja/koju/zelite
+$ source /putanja/koju_ste/postavili/bin/activate
+$ cd /putanja/u/koju/ste/pokrenuli-git-clone
+$ pip3 install -r requirements.txt
+$ cd arvello
+$ python manage.py runserver [PORT] #ovime se pokreće web server
 
-## Usage
-
-Instructions TODO
 
 ## Contributing
 
