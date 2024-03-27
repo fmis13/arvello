@@ -203,9 +203,34 @@ def offer_pdf(request, pk):
     client = offer.client
     return render(request, 'offer_export_view.html', {'offer': offer, 'products': product, 'client': client, 'subject': subject})
 
-
 @login_required
 def logout(request):
     auth.logout(request)
     return redirect('/accounts/login')
 
+@login_required
+def inventory(request):
+    context = {}
+    inventory = Inventory.objects.all()
+    
+    context['inventory'] = inventory
+
+    if request.method == 'GET':
+        form = InventoryForm()
+        context['form'] = form
+        return render(request, 'inventory.html', context)
+
+    if request.method == 'POST':
+        form = InventoryForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            form.save()
+
+            messages.success(request, 'Nadodan je novi predmet u inventar')
+            return redirect('inventory')
+        else:
+            messages.error(request, 'Problem pri obradi zahtjeva')
+            return redirect('inventory')
+
+
+    return render(request, 'inventory.html', {'form': form}, context)
