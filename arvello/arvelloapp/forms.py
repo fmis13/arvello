@@ -78,5 +78,5 @@ class CompanyForm(forms.ModelForm):
 class InventoryForm(forms.ModelForm):
     class Meta:
         model = Inventory
-        fields = ['title', 'quantity']
-        labels = {'title': 'Naziv proizvoda', 'quantity': 'Količina',}
+        fields = ['title', 'quantity', 'subject']
+        labels = {'title': 'Naziv proizvoda', 'quantity': 'Količina', 'subject' : 'Subjekt'}

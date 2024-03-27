@@ -27,6 +27,7 @@
           <th scope="col">Naslov</th>
           <th scope="col">Broj</th>
           <th scope="col">Količina</th>
+          <th scope="col">Subjekt</th>
         </tr>
       </thead>
       <tbody>
@@ -36,6 +37,7 @@
         <td>{{inventory.title}}</td>
         <td>{{inventory.id}}</td>
         <td>{{inventory.quantity}}</td>
+        <td>{{inventory.subject.clientName}}</td>
       </tr>
         {% endfor %}
 
