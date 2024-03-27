@@ -22,6 +22,7 @@
           <th scope="col">Naslov</th>
           <th scope="col">Klijent</th>
           <th scope="col">Broj računa</th>
+          <th scope="col">Subjekt</th>
           <th scope="col">Dospijeće</th>
           <th scope="col">Bilješke</th>
           <th scope="col">Preuzimanje</th>
@@ -34,9 +35,10 @@
         <td>{{offer.title}}</td>
         <td>{{offer.client.clientName}}</td>
         <td>{{offer.number}}</td>
+        <td>{{offer.subject.clientName}}</td>
         <td>{{offer.dueDate}}</td>
         <td>{{offer.notes}}</td>
-        <td><a href="{% url 'offer_pdf' offer.id %}"><button type="button" class="btn"><img src="{% static 'img/download.svg' %}" alt="Download icon" width="16" height="16"></button></a></td>
+        <td><a href="{% url 'offer_pdf' offer.id %}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn"><img src="{% static 'img/download.svg' %}" alt="Download icon" width="16" height="16"></button></a></td>
 
       </tr>
         {% endfor %}

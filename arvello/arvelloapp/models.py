@@ -338,6 +338,7 @@ class Invoice(models.Model):
 class Inventory(models.Model):
     title= models.CharField(null=True, blank=True, max_length=100)
     quantity = models.FloatField(null=True, blank=True)
+    subject = models.ForeignKey(Company, blank=True, null=True, on_delete=models.SET_NULL)
     date_created = models.DateTimeField(blank=True, null=True)
     last_updated = models.DateTimeField(blank=True, null=True)
 
