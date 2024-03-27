@@ -74,3 +74,9 @@ class CompanyForm(forms.ModelForm):
             'clientUniqueId': 'ID subjekta', 'clientType': 'Tip subjekta',
             'OIB': 'OIB', 'SustavPDVa': 'Je li subjekt u sustavu PDV-a?',
         }
+
+class InventoryForm(forms.ModelForm):
+    class Meta:
+        model = Inventory
+        fields = ['title', 'quantity']
+        labels = {'title': 'Naziv proizvoda', 'quantity': 'Količina',}

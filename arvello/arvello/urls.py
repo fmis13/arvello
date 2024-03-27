@@ -35,6 +35,7 @@ urlpatterns = [
     path('products/', views.products, name='products'),
     path('clients/', views.clients, name='clients'),
     path('companies/', views.companies, name='companies'),
+    path('inventory/', views.inventory, name='inventory'),
 ]
 
 admin.site.site_header = "Arvello backend administracija"

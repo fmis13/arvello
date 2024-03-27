@@ -1,5 +1,6 @@
 {% load static %}
 {% load crispy_forms_tags %}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
 <!doctype html>
 <html lang="hr">
@@ -33,7 +34,23 @@
         color: white;
         text-align: center;
         padding: 10px 0;
+        margin-top: 20px;
     }
+    .table-responsive {
+      overflow-y: auto;
+      padding-bottom: 20px;
+    }
+    .black-text {
+      color: black;
+    }
+    .align-items {
+      display: flex;
+      align-items: center;
+  }
+  .align-icon {
+    margin-right: 8px;
+    align-items: center;
+  }
     </style>
 
 
@@ -52,7 +69,7 @@
   <div class="navbar-nav">
     <div class="nav-item text-nowrap">
       <a style="color:white; margin: 6px; padding-right: 15px; margin-top: 10px;">{{request.user.get_full_name}}</a>
-      <a class="nav-link px-2" href="{% url 'logout' %}" style="font-size: 1em; margin: 3px;">Odjava</a>
+      <a class="nav-link px-2" href="{% url 'logout' %}" style="font-size: 1em;">Odjava</a>
     </div>
   </div>
   
@@ -77,8 +94,8 @@
 
 <div class="container-fluid">
   <div class="row">
-    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-      <div class="position-sticky pt-3">
+    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse text-primary">
+      <div class="position-fixed pt-3 text-black">
         <ul class="nav flex-column">
         {% comment %}
         <li class="nav-item">
@@ -88,63 +105,55 @@
             </a>
           </li> {% endcomment %}	
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'invoices' %}">
+            <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
               <span data-feather="file"></span>
+              <span class="material-symbols-outlined align-icon"> receipt_long </span>
               Računi
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'products' %}">
+            <a class="nav-link black-text" href="{% url 'products' %}">
               <span data-feather="shopping-cart"></span>
+              <span class="material-symbols-outlined align-icon"> category </span>
               Usluge i proizvodi
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'clients' %}">
+            <a class="nav-link black-text" href="{% url 'clients' %}">
               <span data-feather="users"></span>
+              <span class="material-symbols-outlined align-icon"> person_edit </span>
               Klijenti
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'offers' %}">
+            <a class="nav-link black-text" href="{% url 'offers' %}">
               <span data-feather="users"></span>
+              <span class="material-symbols-outlined align-icon"> request_page </span>
               Ponude
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'companies' %}">
+            <a class="nav-link black-text" href="{% url 'companies' %}">
               <span data-feather="users"></span>
+              <span class="material-symbols-outlined align-icon"> attribution </span>
               Subjekti
             </a>
           </li>
-        </ul>
-        
-
-       {% comment %}	 <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-          <span>Settings</span>
-          <a class="link-secondary" href="#" aria-label="Add a new report">
-            <span data-feather="plus-circle"></span>
-          </a>
-        </h6>
-        <ul class="nav flex-column mb-2">
           <li class="nav-item">
-            <a class="nav-link" href="#">
-              <span data-feather="file-text"></span>
-              Tvrtka
+            <a class="nav-link black-text" href="{% url 'inventory' %}">
+              <span data-feather="users"></span>
+              <span class="material-symbols-outlined align-icon"> edit_note </span>
+              Inventar
             </a>
-          </li> 
+          </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">
-              <span data-feather="file-text"></span>
-              SMTP
-            </a>
-          </li> {% endcomment %}	
-          <li class="nav-item">
-            <a class="nav-link" href="/logout">
-              <span data-feather="file-text"></span>
+            <a class="nav-link black-text" href="/logout">
+              <span data-feather="users"></span>
+              <span class="material-symbols-outlined align-icon">logout</span>
               Odjava
             </a>
           </li>
+        </ul>
         </ul>
       </div>
     </nav>

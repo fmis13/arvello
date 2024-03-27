@@ -335,3 +335,35 @@ class Invoice(models.Model):
         return first_product.currency
 
 
+class Inventory(models.Model):
+    title= models.CharField(null=True, blank=True, max_length=100)
+    quantity = models.FloatField(null=True, blank=True)
+    date_created = models.DateTimeField(blank=True, null=True)
+    last_updated = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return '{} {}'.format(self.title, self.quantity)
+
+    def save(self, *args, **kwargs):
+        if self.date_created is None:
+            self.date_created = timezone.localtime(timezone.now())
+        self.last_updated = timezone.localtime(timezone.now())
+
+        super(Inventory, self).save(*args, **kwargs)
+
+
+#class inventory(models.Model):
+#    product = models.ForeignKey(Product, blank=True, null=True, on_delete=models.SET_NULL)
+#    quantity = models.FloatField(null=True, blank=True)
+#    date_created = models.DateTimeField(blank=True, null=True)
+#    last_updated = models.DateTimeField(blank=True, null=True)
+#
+#    def __str__(self):
+#        return '{} {}'.format(self.product, self.quantity)
+#
+#    def save(self, *args, **kwargs):
+#        if self.date_created is None:
+#            self.date_created = timezone.localtime(timezone.now)
+#        self.last_updated = timezone.localtime(timezone.now)
+#
+#        super(inventory, self).save(*args, **kwargs)
