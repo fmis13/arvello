@@ -69,7 +69,10 @@
   <div class="navbar-nav">
     <div class="nav-item text-nowrap">
       <a style="color:white; margin: 6px; padding-right: 15px; margin-top: 10px;">{{request.user.get_full_name}}</a>
-      <a class="nav-link px-2" href="{% url 'logout' %}" style="font-size: 1em;">Odjava</a>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="nav-link px-2" style="font-size: 1em; margin: 1px;">Odjava</button>
+        </form>
     </div>
   </div>
   
