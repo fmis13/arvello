@@ -1,4 +1,4 @@
-#!/home/frano/arvello/bin/python3
+#!/home/frano/arvello/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
