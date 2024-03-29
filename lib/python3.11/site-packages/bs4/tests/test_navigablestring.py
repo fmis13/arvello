@@ -26,12 +26,14 @@ class TestNavigableString(SoupTest):
         comment = Comment("foe ")
 
         assert "fee " == s.get_text()
+        assert "fee " == s.string
         assert "fee" == s.get_text(strip=True)
         assert ["fee "] == list(s.strings)
         assert ["fee"] == list(s.stripped_strings)
         assert ["fee "] == list(s._all_strings())
 
         assert "fie " == cdata.get_text()
+        assert "fie " == cdata.string
         assert "fie" == cdata.get_text(strip=True)
         assert ["fie "] == list(cdata.strings)
         assert ["fie"] == list(cdata.stripped_strings)
