@@ -17,11 +17,11 @@
         }
     </style>
 </head>
-
+<link href="{% static '/css/bootstrap.min.css' %}" rel="stylesheet">
 <body onload="window.print()">
     <div style="display: flex; align-items: center; justify-content: center;">
         <img class="mb-4" src="{% static '/img/FS_Arvello_nobg_Final.png' %}" alt="" width="230" height="115">
-        <p style="margin-left: 20px;">{{subject.clientName}}
+        <p style="margin-left: 20px; font-size: 0.7em;">{{subject.clientName}}
             <br>{{subject.addressLine1}}
             <br>{{subject.postalCode}} {{subject.town}}
             <br>{{subject.province}}
@@ -39,7 +39,7 @@
         </div>
     </div>
         <h1 style="text-align: center;">Ponuda {{offer.number}}</h1>
-        <p style="text-align: center;">Datum i vrijeme izrade: {{offer.date_created}}<br>Datum ponude: {{offer.date}}<br>Datum isteka ponude: {{offer.dueDate}}</p>
+        <p style="text-align: center;">Datum i vrijeme izrade: {{offer.date_created}}<br>Datum ponude: {{offer.date}}<br>Datum dospijeća: {{offer.dueDate}}</p>
 
     <div class="table-responsive" style="justify-content: center; display: flex; align-items: center;">
         <table class="table table-striped table-sm">
@@ -54,28 +54,33 @@
         <tbody>
         {% for product in products %}
           <tr>
-            <td>{{ product.title }} </td>
+            <td>{{ product.product.title }} </td>
             <td>{{ product.quantity }} </td>
-            <td>{{ product.taxPercent }}% </td>
-            <td>{{ product.price }} {{ product.currency }} </td>
+            <td>{{ product.product.taxPercent }} %</td>
+            <td>{{ product.product.price }} {{ product.product.currency }} </td>
           </tr>
         {% endfor %}
         </tbody>
         </table>
       </div>
+      <div class="d-flex justify-content-between">
+        <div style="flex: 1; margin-right: 20px; font-size: 0.9em;">
+            <div>Molimo Vas da iznos uplatite na naš račun do naznačenog roka.</div>
+            <div>Poziv na broj: {{offer.poziv_na_broj}}<br>Hvala!</div>
+        </div>
+        <table class="table table-striped right-align-table" border="1" style="flex: 0 0 auto; width: 7cm;">
+            <tr>
+                <th style="font-weight: normal;">Cijena bez poreza</th>
+                <th style="font-weight: normal;">{{offer.pretax}} {{offer.curr}}</th>
+            </tr>
+            <tr>
+                <td><strong>Ukupno</strong></td>
+                <td><strong>{{offer.price_with_vat}} {{offer.curr}}</strong></td>
+            </tr>
+        </table>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <p style="margin-left: 3cm;"><strong>Referent</strong> - {{ request.user.get_full_name }}</p>
+      <img style="width: 5.5cm; height: auto; margin-right: 1cm" src="data:image/png;base64,{{ barcode_image|safe }}">
 
-      <table class="right-align-table" border="1" style="margin-left: auto; margin-right: 0;">
-        <tr>
-          <th>Cijena bez poreza</th>
-          <th>{{offer.sum}} {{ offer.curr }}</th>
-        </tr>
-        <tr>
-          <td>Ukupno</td>
-          <td>{{offer.price_with_vat}} {{ offer.curr }}</td>
-        </tr>
-      </table>
-      <div style="display: flex; justify-content: space-between;">
-        <div>Molimo Vas da iznos uplatite na naš račun do naznačenog roka, ukoliko se slažete s ponudom.<br>Hvala!</div>
-        <div style="white-space: nowrap;">Poziv na broj:&nbsp;{{offer.poziv_na_broj}}</div>
-      </div>
-</body>
+    </div>
