@@ -12,14 +12,23 @@ This program is written to adapt the Croatian language. Further adding of other 
 ## Installation
 
 $ sudo apt install git-all ufw #instalirajte Git i ufw (firewall), python3 se uglavnom nalazi preinstaliran
+
 $ git clone https://github.com/fmis13/arvello.git
+
 $ sudo apt install python3.11-venv
+
 $ python3 -m venv /putanja/koju/zelite
+
 $ source /putanja/koju_ste/postavili/bin/activate
+
 $ cd /putanja/u/koju/ste/pokrenuli-git-clone
+
 $ pip3 install -r requirements.txt
+
 $ cd arvello
+
 $ sudo ufw allow [PORT] #dopuštavanje korištenja porta kroz firewall
+
 $ python manage.py runserver [IP ADRESA]:[PORT] #ovime se pokreće web server
 
 
