@@ -165,17 +165,17 @@ class Client(models.Model):
     "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ", "VU", "VE", "VN",
     "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"]
 
-    clientName = models.CharField(null=True, blank=True, max_length=200)
-    addressLine1 = models.CharField(null=True, blank=True, max_length=200)
-    province = models.CharField(choices=PROVINCES, blank=True, max_length=100)
-    postalCode = models.CharField(null=True, blank=True, max_length=5)
+    clientName = models.CharField(null=False, blank=False, max_length=200)
+    addressLine1 = models.CharField(null=False, blank=False, max_length=200)
+    province = models.CharField(choices=PROVINCES, blank=False, max_length=100)
+    postalCode = models.CharField(null=False, blank=False, max_length=5)
     phoneNumber = models.CharField(null=True, blank=True, max_length=40, validators=[validate_phone_number])
-    emailAddress = models.CharField(null=True, blank=True, max_length=100)
-    clientUniqueId = models.CharField(null=True, blank=True, max_length=4, unique=True, validators=[RegexValidator(r'^\d{4}$', 'Idetifikacijski broj klijenta mora sadržavati točno 4 broja.')])
-    clientType = models.CharField(choices=clientTypes, blank=True, max_length=40)
+    emailAddress = models.CharField(null=False, blank=False, max_length=100)
+    clientUniqueId = models.CharField(null=False, blank=False, max_length=4, unique=True, validators=[RegexValidator(r'^\d{4}$', 'Idetifikacijski broj klijenta mora sadržavati točno 4 broja.')])
+    clientType = models.CharField(choices=clientTypes, blank=False, max_length=40)
     OIB = models.CharField(null=True, blank=True, max_length=11, unique=True, validators=[RegexValidator(r'^\d{11}$', 'OIB mora sadržavati točno 11 broja.')])
     SustavPDVa = models.BooleanField(default=False)
-    VATID = models.CharField(null=True, blank=True, max_length=13, unique=True, validators=[RegexValidator(r'^[A-Za-z0-9]{13}$', 'Porezni identifikacijski broj mora sadržavati točno 13 karaktera, prva dva karaktera moraju biti identifikatori države, a ostalih 11 karaktera moraju biti brojevi koji označavaju entitet.')])
+    VATID = models.CharField(null=False, blank=False, max_length=13, unique=True, validators=[RegexValidator(r'^[A-Za-z0-9]{13}$', 'Porezni identifikacijski broj mora sadržavati točno 13 karaktera, prva dva karaktera moraju biti identifikatori države, a ostalih 11 karaktera moraju biti brojevi koji označavaju entitet.')])
     uniqueId = models.CharField(null=True, blank=True, max_length=100)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
     date_created = models.DateTimeField(blank=True, null=True)
@@ -214,11 +214,12 @@ class Product(models.Model):
     #Add other currencies freely
     ]
 
-    title = models.CharField(null=True, blank=True, max_length=100)
+    title = models.CharField(null=False, blank=False, max_length=100)
     description = models.TextField(null=True, blank=True)
-    price = models.FloatField(null=True, blank=True)
+    price = models.FloatField(null=False, blank=False)
     currency = models.CharField(choices=CURRENCY, default='€', max_length=100)
-    taxPercent = models.FloatField(null=True, blank=True, default=25)
+    taxPercent = models.FloatField(null=False, blank=False, default=25)
+    barid = models.CharField(null=False, blank=False, max_length=100)
 
     uniqueId = models.CharField(null=True, blank=True, max_length=100)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
@@ -229,7 +230,7 @@ class Product(models.Model):
         return round(self.price * (1+(self.taxPercent/100)), 2)
     
     def __str__(self):
-        return '{} {}'.format(self.title, self.uniqueId)
+        return '{} {}'.format(self.barid, self.title)
 
 
     def get_absolute_url(self):
@@ -254,11 +255,11 @@ class Product(models.Model):
 
 class Offer(models.Model):
     title = models.CharField(null=True, blank=True, max_length=100)
-    number = models.CharField(null=True, blank=True, max_length=100)
+    number = models.CharField(null=False, blank=False, max_length=20)
     dueDate = models.DateField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
-    client = models.ForeignKey(Client, blank=True, null=True, on_delete=models.SET_NULL)
-    subject = models.ForeignKey(Company, blank=True, null=True, on_delete=models.SET_NULL)
+    client = models.ForeignKey(Client, blank=False, null=False, on_delete=models.DO_NOTHING)
+    subject = models.ForeignKey(Company, blank=False, null=False, on_delete=models.DO_NOTHING)
     uniqueId = models.CharField(null=True, blank=True, max_length=100, unique=True)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
     date_created = models.DateTimeField(blank=True, null=True)
@@ -288,12 +289,16 @@ class Offer(models.Model):
 
     def pretax(self):
         ofrprdt = OfferProduct.objects.filter(offer=self)
-        return sum(offer_product.product.price for offer_product in ofrprdt)
+        return round(sum(offer_product.pretotal() for offer_product in ofrprdt), 2)
     
     def price_with_vat(self):
         ofrprdt = OfferProduct.objects.filter(offer=self)
-        return round(sum((offer_product.product.price * (1 + (offer_product.product.taxPercent / 100))) for offer_product in ofrprdt), 2)
-
+        return round(sum(offer_product.total() for offer_product in ofrprdt), 2)
+    
+    def tax(self):
+        ofrprdt = OfferProduct.objects.filter(offer=self)
+        return round(sum(offer_product.tax() for offer_product in ofrprdt), 2)
+    
     def curr(self):
         first_product = OfferProduct.objects.filter(offer=self).first()
         return first_product.product.currency
@@ -301,26 +306,23 @@ class Offer(models.Model):
     def currtext(self):
         first_product = OfferProduct.objects.filter(offer=self).first()
         return first_product.product.get_currency_code()
-
-    def calculate_totals(self, product):
-        self.sub_total = self.tax = self.sum = 0
-        for product in OfferProduct.objects.filter(offer=self):
-            self.sub_total += product.price
-            self.tax += product.price * product.taxPercent / 100
-
-        self.sum = self.sub_total + self.tax
         
     def total100(self):
         return self.price_with_vat() * 100
+    
+    def tolrabat(self):
+        ofrprdt = OfferProduct.objects.filter(offer=self, rabat__gt=0)
+        return round(sum((Decimal(offer_product.product.price) * Decimal(offer_product.quantity) - (Decimal(offer_product.product.price) * Decimal(offer_product.quantity) * (Decimal(offer_product.rabat)/Decimal(100)))) for offer_product in ofrprdt), 2)
+
 
 
 class Invoice(models.Model):
-    title = models.CharField(null=True, blank=True, max_length=100)
-    number = models.CharField(null=True, blank=True, max_length=100)
+    title = models.CharField(null=True, blank=True, max_length=30)
+    number = models.CharField(null=False, blank=False, max_length=20)
     dueDate = models.DateField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
-    client = models.ForeignKey(Client, blank=True, null=True, on_delete=models.SET_NULL)
-    subject = models.ForeignKey(Company, blank=True, null=True, on_delete=models.SET_NULL)
+    client = models.ForeignKey(Client, blank=False, null=False, on_delete=models.DO_NOTHING)
+    subject = models.ForeignKey(Company, blank=False, null=False, on_delete=models.DO_NOTHING)
     uniqueId = models.CharField(null=True, blank=True, max_length=100, unique=True)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
     date_created = models.DateTimeField(blank=True, null=True)
@@ -350,12 +352,16 @@ class Invoice(models.Model):
 
     def pretax(self):
         invprdt = InvoiceProduct.objects.filter(invoice=self)
-        return sum(invoice_product.product.price for invoice_product in invprdt)
+        return round(sum(invoice_product.pretotal() for invoice_product in invprdt), 2)
     
     def price_with_vat(self):
         invprdt = InvoiceProduct.objects.filter(invoice=self)
-        return round(sum((invoice_product.product.price * (1 + (invoice_product.product.taxPercent / 100))) for invoice_product in invprdt), 2)
-
+        return round(sum(invoice_product.total() for invoice_product in invprdt), 2)
+    
+    def tax(self):
+        invprdt = InvoiceProduct.objects.filter(invoice=self)
+        return round(sum(invoice_product.tax() for invoice_product in invprdt), 2)
+    
     def curr(self):
         first_product = InvoiceProduct.objects.filter(invoice=self).first()
         return first_product.product.currency
@@ -363,18 +369,13 @@ class Invoice(models.Model):
     def currtext(self):
         first_product = InvoiceProduct.objects.filter(invoice=self).first()
         return first_product.product.get_currency_code()
-
-    def calculate_totals(self, product):
-        self.sub_total = self.tax = self.sum = 0
-        for product in InvoiceProduct.objects.filter(invoice=self):
-            self.sub_total += product.price
-            self.tax += product.price * product.taxPercent / 100
-
-        self.sum = self.sub_total + self.tax
         
     def total100(self):
         return self.price_with_vat() * 100
-
+    
+    def tolrabat(self):
+        invprdt = InvoiceProduct.objects.filter(invoice=self, rabat__gt=0)
+        return round(sum((Decimal(invoice_product.product.price) * Decimal(invoice_product.quantity) - (Decimal(invoice_product.product.price) * Decimal(invoice_product.quantity) * (Decimal(invoice_product.rabat)/Decimal(100)))) for invoice_product in invprdt), 2)
 class Inventory(models.Model):
     title= models.CharField(null=True, blank=True, max_length=100)
     quantity = models.FloatField(null=True, blank=True)
@@ -400,20 +401,23 @@ class InvoiceProduct(models.Model):
     rabat = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
 
     def save(self, *args, **kwargs):
-        self.total = self.quantity * Decimal(self.product.price)
         super().save(*args, **kwargs)
 
     def pretotal(self):
-        if self.rabat:
-            return round(self.product.price * self.quantity * (1 - self.rabat/100),2)
+        if self.rabat and self.discount:
+            return round(Decimal(self.product.price) * Decimal(self.quantity) * (1 - Decimal(self.rabat)/100) * (1 - Decimal(self.discount)/100), 2)
+        elif self.rabat:
+            return round(Decimal(self.product.price) * Decimal(self.quantity) * (1 - Decimal(self.rabat)/100), 2)
+        elif self.discount:
+            return round(Decimal(self.product.price) * Decimal(self.quantity) * (1 - Decimal(self.discount)/100), 2)
         else:
-            return round(self.product.price * self.quantity, 2)
-    
+            return round(Decimal(self.product.price) * Decimal(self.quantity), 2)
+
     def total(self):
-        if self.discount:
-            return round(self.pretotal() * (1 - self.discount/100) * (self.product.taxPercent/100+1), 2)
-        else:
-            return round(self.pretotal() * (self.product.taxPercent/100+1), 2)
+        return round(self.pretotal() * (Decimal(self.product.taxPercent)/100+1), 2)
+
+    def tax(self):
+        return round((Decimal(self.pretotal()) * (1 + Decimal(self.product.taxPercent)/100))-Decimal(self.pretotal()), 2)
 
     def curr(self):
         return self.product.currency
@@ -421,26 +425,29 @@ class InvoiceProduct(models.Model):
 class OfferProduct(models.Model):
     product = models.ForeignKey(to=Product, on_delete=models.CASCADE)
     offer = models.ForeignKey(to=Offer, on_delete=models.CASCADE)
-    quantity = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
-    discount = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
-    rabat = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
+    quantity = models.DecimalField(max_digits=6, decimal_places=3, null=False, blank=False, default=1)
+    discount = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
+    rabat = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        self.total = self.quantity * Decimal(self.product.price)
         super().save(*args, **kwargs)
 
     def pretotal(self):
-        if self.rabat:
-            return round(self.product.price * self.quantity * (1 - self.rabat/100), 2)
+        if self.rabat and self.discount:
+            return round(Decimal(self.product.price) * Decimal(self.quantity) * (1 - Decimal(self.rabat)/100) * (1 - Decimal(self.discount)/100), 2)
+        elif self.rabat:
+            return round(Decimal(self.product.price) * Decimal(self.quantity) * (1 - Decimal(self.rabat)/100), 2)
+        elif self.discount:
+            return round(Decimal(self.product.price) * Decimal(self.quantity) * (1 - Decimal(self.discount)/100), 2)
         else:
-            return round(self.product.price * self.quantity, 2)
-    
+            return round(Decimal(self.product.price) * Decimal(self.quantity), 2)
+
     def total(self):
-        if self.discount:
-            return round(self.pretotal() * (1 - self.discount/100) * (self.product.taxPercent/100+1), 2)
-        else:
-            return round(self.pretotal() * (self.product.taxPercent/100+1), 2)
-    
+        return round(self.pretotal() * (Decimal(self.product.taxPercent)/100+1), 2)
+
+    def tax(self):
+        return round((Decimal(self.pretotal()) * (1 + Decimal(self.product.taxPercent)/100))-Decimal(self.pretotal()), 2)
+
     def curr(self):
         return self.product.currency
 

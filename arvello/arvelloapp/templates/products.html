@@ -25,8 +25,8 @@
       <thead>
         <tr>
           <th scope="col">Naslov</th>
-          <th scope="col">Opis</th>
-          <th scope="col">Količina</th>
+          <th scope="col">Interni opis</th>
+          <th scope="col">ID</th>
           <th scope="col">Iznos</th>
         </tr>
       </thead>
@@ -36,7 +36,7 @@
       <tr>
         <td>{{product.title}}</td>
         <td>{{product.description}}</td>
-        <td>{{product.quantity}}</td>
+        <td>{{product.barid}}</td>
         <td>{{product.price}} {{product.currency}}</td>
       </tr>
         {% endfor %}
