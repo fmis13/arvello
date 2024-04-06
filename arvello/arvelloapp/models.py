@@ -314,6 +314,24 @@ class Offer(models.Model):
         ofrprdt = OfferProduct.objects.filter(offer=self, rabat__gt=0)
         return round(sum((Decimal(offer_product.product.price) * Decimal(offer_product.quantity) - (Decimal(offer_product.product.price) * Decimal(offer_product.quantity) * (Decimal(offer_product.rabat)/Decimal(100)))) for offer_product in ofrprdt), 2)
 
+    def toldiscount(self):
+        ofrprdt = OfferProduct.objects.filter(offer=self, discount__gt=0)
+        return round(sum((Decimal(offer_product.product.price) * Decimal(offer_product.quantity) - (Decimal(offer_product.product.price) * Decimal(offer_product.quantity) * (Decimal(offer_product.discount)/Decimal(100)))) for offer_product in ofrprdt), 2)
+    
+    def hasDiscount(self):
+        ofrprdt = OfferProduct.objects.filter(offer=self, discount__gt=0)
+        if ofrprdt:
+            return True
+        else:
+            return False
+        
+    def hasRabat(self):
+        ofrprdt = OfferProduct.objects.filter(offer=self, rabat__gt=0)
+        if ofrprdt:
+            return True
+        else:
+            return False
+
 
 
 class Invoice(models.Model):
@@ -330,7 +348,7 @@ class Invoice(models.Model):
     last_updated = models.DateTimeField(blank=True, null=True)
 
     def poziv_na_broj(self):
-        return "HR 00 " + self.number.replace('/', '-')
+        return "HR 00 "  + " " + self.client.clientUniqueId + "-" + self.number.replace('/', '-')
     
     def reference(self):
         return self.number.replace('/', '-')
@@ -375,7 +393,25 @@ class Invoice(models.Model):
     
     def tolrabat(self):
         invprdt = InvoiceProduct.objects.filter(invoice=self, rabat__gt=0)
-        return round(sum((Decimal(invoice_product.product.price) * Decimal(invoice_product.quantity) - (Decimal(invoice_product.product.price) * Decimal(invoice_product.quantity) * (Decimal(invoice_product.rabat)/Decimal(100)))) for invoice_product in invprdt), 2)
+        return round(sum((Decimal(invoice_product.product.price) * Decimal(invoice_product.quantity) * (Decimal(invoice_product.rabat)/Decimal(100))) for invoice_product in invprdt), 2)
+
+    def toldiscount(self):
+        invprdt = InvoiceProduct.objects.filter(invoice=self, discount__gt=0)
+        return round(sum((Decimal(invoice_product.product.price) * Decimal(invoice_product.quantity) * (Decimal(invoice_product.discount)/Decimal(100))) for invoice_product in invprdt), 2)
+    
+    def hasDiscount(self):
+        invprdt = InvoiceProduct.objects.filter(invoice=self, discount__gt=0)
+        if invprdt:
+            return True
+        else:
+            return False
+    
+    def hasRabat(self):
+        invprdt = InvoiceProduct.objects.filter(invoice=self, rabat__gt=0)
+        if invprdt:
+            return True
+        else:
+            return False
 class Inventory(models.Model):
     title= models.CharField(null=True, blank=True, max_length=100)
     quantity = models.FloatField(null=True, blank=True)
