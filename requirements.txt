@@ -13,3 +13,4 @@ tzdata==2024.1
 django-clearcache==1.2.1
 requests==2.31.0
 xhtml2pdf == 0.2.15
+python-barcode==0.15.1

@@ -38,6 +38,7 @@ urlpatterns = [
     path('inventory/', views.inventory, name='inventory'),
     path('create_invoice/', views.create_invoice, name='create_invoice'),
     path('create_offer/', views.create_offer, name='create_offer'),
+    path('inventory_label/<int:pk>/', inventory_label, name='inventory_label'),
 ]
 
 admin.site.site_header = "Arvello backend administracija"

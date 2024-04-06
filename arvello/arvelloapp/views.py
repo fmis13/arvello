@@ -12,6 +12,8 @@ from .models import *
 import requests
 import json
 import base64
+from barcode import Code39
+from barcode.writer import SVGWriter
 
 def anonymous_required(function=None, redirect_url=None):
 
@@ -302,7 +304,7 @@ def invoice_pdf(request, pk):
                 "place": subject.postalCode + " " + subject.province,
                 "iban": subject.IBAN,
                 "model": "00",
-                "reference": invoice.reference(),
+                "reference": invoice.client.clientUniqueId + "-" + invoice.number.replace('/', '-'),
             },
             "purpose": "",
             "description": "Uplata po računu " + invoice.number,
@@ -345,7 +347,7 @@ def offer_pdf(request, pk):
                 "place": subject.postalCode + " " + subject.province,
                 "iban": subject.IBAN,
                 "model": "00",
-                "reference": offer.reference(),
+                "reference": offer.client.clientUniqueId + "-" + offer.number.replace('/', '-'),
             },
             "purpose": "",
             "description": "Uplata po računu " + offer.number,
@@ -356,6 +358,15 @@ def offer_pdf(request, pk):
     print(response.status_code)
     print(response.content)
     return render(request, 'offer_export_view.html', {'offer': offer, 'products': product, 'client': client, 'subject': subject, 'barcode_image': barcode_image})
+
+@login_required
+def inventory_label(request, pk):
+    item = get_object_or_404(Inventory, pk=pk)
+    barcode = Code39(str(pk), writer=SVGWriter())
+    barcode_output = BytesIO()
+    barcode.write(barcode_output)
+    barcode_svg = barcode_output.getvalue().decode()
+    return render(request, 'inventory_label.html', {'item': item, 'barcode_svg': barcode_svg})
 
 @login_required
 def logout(request):

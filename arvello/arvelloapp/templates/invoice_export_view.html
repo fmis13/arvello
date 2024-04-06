@@ -42,26 +42,44 @@
         <p style="text-align: center;">Datum i vrijeme izrade: {{invoice.date_created}}<br>Datum računa: {{invoice.date}}<br>Datum dospijeća: {{invoice.dueDate}}</p>
 
     <div class="table-responsive" style="justify-content: center; display: flex; align-items: center;">
-        <table class="table table-striped table-sm">
+        <table class="table table-striped table-sm" style="font-size: 85%">
           <thead>
             <tr>
                 <th scope="col">Naslov</th>
                 <th scope="col">Količina</th>
-                <th scope="col">Jedinična cijena</th>
+                <th scope="col">Jed. cijena</th>
+                {% if invoice.hasRabat %}
                 <th scope="col">Rabat</th>
+                {% endif %}
+                {% if invoice.hasDiscount %}
                 <th scope="col">Popust</th>
+                {% endif %}
+                <th scope="col">Iznos bez poreza</th>
                 <th scope="col">Porez</th>
-                <th scope="col">Iznos</th>
+                <th scope="col">Ukupno</th>
             </tr>
             </thead>
             <tbody>
-            {% for product in products %}
+                {% for product in products %}
                 <tr>
                     <td>{{ product.product.title }}</td>
                     <td>{{ product.quantity }}</td>
                     <td>{{ product.product.price }} {{ product.product.currency }}</td>
-                    <td>{% if product.rabat != None %}{{ product.rabat }}%{% endif %}</td>
-                    <td>{% if product.discount != None %}{{ product.discount }}%{% endif %}</td>
+                    {% if invoice.hasRabat %}
+                        {% if product.rabat != None and product.rabat != 0 %}
+                            <td>{{ product.rabat }}%</td>
+                        {% else %}
+                            <td></td>
+                        {% endif %}
+                    {% endif %}
+                    {% if invoice.hasDiscount %}
+                        {% if product.discount != None and product.discount != 0 %}
+                            <td>{{ product.discount }}%</td>
+                        {% else %}
+                            <td></td>
+                        {% endif %}
+                    {% endif %}
+                    <td>{{ product.pretotal }} {{ product.product.currency }}</td>
                     <td>{{ product.product.taxPercent }} %</td>
                     <td>{{ product.total }} {{ product.product.currency }}</td>
                 </tr>
@@ -73,6 +91,9 @@
         <div style="flex: 1; margin-right: 20px; font-size: 0.9em;">
             <div>Molimo Vas da iznos uplatite na naš račun do naznačenog roka.</div>
             <div>Poziv na broj: {{invoice.poziv_na_broj}}<br>Hvala!</div>
+            <p style="margin-top: 0.1cm;"><strong>Napomena:</strong> račun je pravovaljan bez pečata i/ili potpisa jer je elektronički izrađen.</p>
+            <img style="width: 5.5cm; height: auto; margin-left: 3cm" src="data:image/png;base64,{{ barcode_image|safe }}">
+            <p style="margin-left: 3.5cm;"><strong>Referent</strong> - {{ request.user.get_full_name }}</p>
         </div>
         <table class="table table-striped right-align-table" border="1" style="flex: 0 0 auto; width: 7cm;">
             <tr>
@@ -83,18 +104,21 @@
                 <th style="font-weight: normal;">Porez</th>
                 <th style="font-weight: normal;">{{invoice.tax}} {{invoice.curr}}</th>
             </tr>
+            {% if invoice.hasRabat %}
+                <tr>
+                    <th style="font-weight: normal;">Ukupan rabat</th>
+                    <th style="font-weight: normal;">{{invoice.tolrabat}} {{invoice.curr}}</th>
+                </tr>
+            {% endif %}
+            {% if invoice.hasDiscount %}
             <tr>
-                <th style="font-weight: normal;">Ukupan rabat</th>
-                <th style="font-weight: normal;">{{invoice.tolrabat}} {{invoice.curr}}</th>
+                <th style="font-weight: normal;">Ukupan popust</th>
+                <th style="font-weight: normal;">{{invoice.toldiscount}} {{invoice.curr}}</th>
             </tr>
+            {% endif %}
             <tr>
                 <td><strong>Ukupno</strong></td>
                 <td><strong>{{invoice.price_with_vat}} {{invoice.curr}}</strong></td>
             </tr>
         </table>
     </div>
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <p style="margin-left: 3cm;"><strong>Referent</strong> - {{ request.user.get_full_name }}</p>
-        <img style="width: 5.5cm; height: auto; margin-right: 1cm" src="data:image/png;base64,{{ barcode_image|safe }}">
-  
-      </div>
