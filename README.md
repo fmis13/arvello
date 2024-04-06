@@ -40,4 +40,5 @@ All pull requests until then ***will be rejected***.
 
 ## License
 
-This project uses a custom-made license. It can be found in the root folder by the file LICENSE.
+This project uses a MIT license. It can be found in the root folder by the file LICENSE. Please understand that you may be bound by other licenses from other projects used in this project, including, but not limited to:
+GNU AGPL v3 for HUB-3 Barcode API
