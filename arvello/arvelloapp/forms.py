@@ -36,10 +36,11 @@ class ClientForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['title', 'description', 'price', 'taxPercent', 'currency']
+        fields = ['title', 'description', 'price', 'taxPercent', 'currency', 'barid']
         labels = {
             'title': 'Naziv proizvoda', 'description': 'Opis proizvoda',
             'price': 'Cijena', 'currency': 'Valuta', 'taxPercent': 'Porez (%)',
+            'barid': 'ID (za barkod)'
         }
 
 
@@ -73,6 +74,7 @@ class InvoiceForm(forms.ModelForm):
 
 class InvoiceProductForm(ModelForm):
     product = forms.ModelChoiceField(queryset=Product.objects.order_by('title'))
+    quantity = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=1)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -87,9 +89,9 @@ class InvoiceProductForm(ModelForm):
                 Column('id', type="hidden", css_class="d-none"),
                 Column('DELETE', type="hidden", css_class="d-none"),
                 Column('product', css_class='form-group col-lg-3 col-md-3 col-sm-5 mb-0'),
-                Column('quantity', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0'),
-                Column('rabat', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0'),
-                Column('discount', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0'),
+                Column('quantity', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0', style='width: 7em'),
+                Column('rabat', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0', style='width: 7em'),
+                Column('discount', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0', style='width: 7em'),
                 Div(HTML("""<label class='empty-div form-label'>&nbsp</label>
                             <button type="button" class="buttonDynamic btn btn-primary align-middle {% if forloop.first %}first-button{% endif %}">+</button>"""),
                     css_class="form-group col-lg-1 col-md-1 col-sm-1 mb-0 box-btn-add-product"), css_class="formsetDynamic")
@@ -154,9 +156,9 @@ class OfferProductForm(ModelForm):
                 Column('id', type="hidden", css_class="d-none"),
                 Column('DELETE', type="hidden", css_class="d-none"),
                 Column('product', css_class='form-group col-lg-3 col-md-3 col-sm-5 mb-0'),
-                Column('quantity', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0'),
-                Column('rabat', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0'),
-                Column('discount', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0'),
+                Column('quantity', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0', style='width: 7em'),
+                Column('rabat', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0', style='width: 7em'),
+                Column('discount', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0', style='width: 7em'),
                 Div(HTML("""<label class='empty-div form-label'>&nbsp</label>
                             <button type="button" class="buttonDynamic btn btn-primary align-middle {% if forloop.first %}first-button{% endif %}">+</button>"""),
                     css_class="form-group col-lg-1 col-md-1 col-sm-1 mb-0 box-btn-add-product"), css_class="formsetDynamic")

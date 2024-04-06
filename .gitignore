@@ -2,4 +2,4 @@ lib64
 lib
 include
 bin
-db.sqlite3
+arvello/db.sqlite3
