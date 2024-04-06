@@ -4,7 +4,6 @@ chardet==5.2.0
 Django==4.2.11
 crispy_bootstrap5
 django-crispy-forms==2.1
-django-wkhtmltopdf==3.4.0
 pillow==10.3.0
 reportlab==4.1.0
 six==1.16.0
