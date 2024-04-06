@@ -78,6 +78,9 @@ class InvoiceProductForm(ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_tag = False
+        self.fields['quantity'].initial = '1'
+        self.fields['rabat'].initial = ''
+        self.fields['discount'].initial = ''
         self.helper.layout = Layout(
 
             Row(
@@ -95,6 +98,9 @@ class InvoiceProductForm(ModelForm):
     class Meta:
         model = InvoiceProduct
         fields = ['product', 'quantity', 'rabat', 'discount']
+        labels = {
+            'product': 'Proizvod', 'quantity': 'Količina', 'rabat': 'Rabat (%)', 'discount': 'Popust (%)'
+        }
 
 class BaseInlineInvoiceProductSet(BaseInlineFormSet):
     deletion_widget = forms.HiddenInput
@@ -139,6 +145,9 @@ class OfferProductForm(ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_tag = False
+        self.fields['quantity'].initial = '1'
+        self.fields['rabat'].initial = ''
+        self.fields['discount'].initial = ''
         self.helper.layout = Layout(
 
             Row(
@@ -157,7 +166,7 @@ class OfferProductForm(ModelForm):
         model = OfferProduct
         fields = ['product', 'quantity', 'rabat', 'discount']
         labels = {
-            'product': 'Proizvod', 'quantity': 'Količina', 'rabat': 'Rabat', 'discount': 'Popust'
+            'product': 'Proizvod', 'quantity': 'Količina', 'rabat': 'Rabat (%)', 'discount': 'Popust (%)'
         }
 
 class BaseInlineOfferProductSet(BaseInlineFormSet):
