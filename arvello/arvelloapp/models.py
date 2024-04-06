@@ -6,6 +6,7 @@ from django.core.validators import RegexValidator
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
+from decimal import Decimal
 
 def validate_phone_number(value):
     if not all(char.isdigit() or char == '+' for char in value):
@@ -234,6 +235,9 @@ class Product(models.Model):
     def get_absolute_url(self):
         return reverse('product-detail', kwargs={'slug': self.slug})
 
+    def get_currency_code(self):
+        currency_dict = dict((x, y) for x, y in self.CURRENCY)
+        return currency_dict.get(self.currency)
 
     def save(self, *args, **kwargs):
         if self.date_created is None:
@@ -254,7 +258,6 @@ class Offer(models.Model):
     dueDate = models.DateField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     client = models.ForeignKey(Client, blank=True, null=True, on_delete=models.SET_NULL)
-    product = models.ManyToManyField(Product, blank=True)
     subject = models.ForeignKey(Company, blank=True, null=True, on_delete=models.SET_NULL)
     uniqueId = models.CharField(null=True, blank=True, max_length=100, unique=True)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
@@ -263,7 +266,10 @@ class Offer(models.Model):
     last_updated = models.DateTimeField(blank=True, null=True)
 
     def poziv_na_broj(self):
-        return "HR 00 " + self.number.replace('/', '-')
+        return "HR 00 "  + " " + self.client.clientUniqueId + "-" + self.number.replace('/', '-')
+    
+    def reference(self):
+        return self.number.replace('/', '-')
 
     def __str__(self):
         return '{} {}'.format(self.title, self.uniqueId)
@@ -280,15 +286,32 @@ class Offer(models.Model):
 
         super(Offer, self).save(*args, **kwargs)
 
-    def price_with_vat(self):
-        return round(sum((product.price * (1 + (product.taxPercent / 100))) for product in self.product.all()), 2)
-
-    def sum(self):
-        return sum(product.price for product in self.product.all())
+    def pretax(self):
+        ofrprdt = OfferProduct.objects.filter(offer=self)
+        return sum(offer_product.product.price for offer_product in ofrprdt)
     
+    def price_with_vat(self):
+        ofrprdt = OfferProduct.objects.filter(offer=self)
+        return round(sum((offer_product.product.price * (1 + (offer_product.product.taxPercent / 100))) for offer_product in ofrprdt), 2)
+
     def curr(self):
-        first_product = self.product.first()
-        return first_product.currency
+        first_product = OfferProduct.objects.filter(offer=self).first()
+        return first_product.product.currency
+    
+    def currtext(self):
+        first_product = OfferProduct.objects.filter(offer=self).first()
+        return first_product.product.get_currency_code()
+
+    def calculate_totals(self, product):
+        self.sub_total = self.tax = self.sum = 0
+        for product in OfferProduct.objects.filter(offer=self):
+            self.sub_total += product.price
+            self.tax += product.price * product.taxPercent / 100
+
+        self.sum = self.sub_total + self.tax
+        
+    def total100(self):
+        return self.price_with_vat() * 100
 
 
 class Invoice(models.Model):
@@ -297,7 +320,6 @@ class Invoice(models.Model):
     dueDate = models.DateField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     client = models.ForeignKey(Client, blank=True, null=True, on_delete=models.SET_NULL)
-    product = models.ManyToManyField(Product, blank=True)
     subject = models.ForeignKey(Company, blank=True, null=True, on_delete=models.SET_NULL)
     uniqueId = models.CharField(null=True, blank=True, max_length=100, unique=True)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
@@ -307,6 +329,9 @@ class Invoice(models.Model):
 
     def poziv_na_broj(self):
         return "HR 00 " + self.number.replace('/', '-')
+    
+    def reference(self):
+        return self.number.replace('/', '-')
 
     def __str__(self):
         return '{} {}'.format(self.title, self.uniqueId)
@@ -323,16 +348,32 @@ class Invoice(models.Model):
 
         super(Invoice, self).save(*args, **kwargs)
 
-    def price_with_vat(self):
-        return round(sum((product.price * (1 + (product.taxPercent / 100))) for product in self.product.all()), 2)
-
-    def sum(self):
-        return sum(product.price for product in self.product.all())
+    def pretax(self):
+        invprdt = InvoiceProduct.objects.filter(invoice=self)
+        return sum(invoice_product.product.price for invoice_product in invprdt)
     
-    def curr(self):
-        first_product = self.product.first()
-        return first_product.currency
+    def price_with_vat(self):
+        invprdt = InvoiceProduct.objects.filter(invoice=self)
+        return round(sum((invoice_product.product.price * (1 + (invoice_product.product.taxPercent / 100))) for invoice_product in invprdt), 2)
 
+    def curr(self):
+        first_product = InvoiceProduct.objects.filter(invoice=self).first()
+        return first_product.product.currency
+    
+    def currtext(self):
+        first_product = InvoiceProduct.objects.filter(invoice=self).first()
+        return first_product.product.get_currency_code()
+
+    def calculate_totals(self, product):
+        self.sub_total = self.tax = self.sum = 0
+        for product in InvoiceProduct.objects.filter(invoice=self):
+            self.sub_total += product.price
+            self.tax += product.price * product.taxPercent / 100
+
+        self.sum = self.sub_total + self.tax
+        
+    def total100(self):
+        return self.price_with_vat() * 100
 
 class Inventory(models.Model):
     title= models.CharField(null=True, blank=True, max_length=100)
@@ -351,23 +392,57 @@ class Inventory(models.Model):
 
         super(Inventory, self).save(*args, **kwargs)
 
-class OrderLine(models.Model):
+class InvoiceProduct(models.Model):
     product = models.ForeignKey(to=Product, on_delete=models.CASCADE)
     invoice = models.ForeignKey(to=Invoice, on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
-    unit_price = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=0)
-    line_total = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    discount = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
+    rabat = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
 
     def save(self, *args, **kwargs):
-        # set default unit price if not already set
-        if not self.unit_price:
-            self.unit_price = self.product.default_unit_price()
+        self.total = self.quantity * Decimal(self.product.price)
+        super().save(*args, **kwargs)
 
-        # get line total
-        self.line_total = self.quantity * self.unit_price
+    def pretotal(self):
+        if self.rabat:
+            return round(self.product.price * self.quantity * (1 - self.rabat/100),2)
+        else:
+            return round(self.product.price * self.quantity, 2)
+    
+    def total(self):
+        if self.discount:
+            return round(self.pretotal() * (1 - self.discount/100) * (self.product.taxPercent/100+1), 2)
+        else:
+            return round(self.pretotal() * (self.product.taxPercent/100+1), 2)
 
-        super(OrderLine, self).save(*args, **kwargs)
+    def curr(self):
+        return self.product.currency
 
+class OfferProduct(models.Model):
+    product = models.ForeignKey(to=Product, on_delete=models.CASCADE)
+    offer = models.ForeignKey(to=Offer, on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
+    discount = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
+    rabat = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
+
+    def save(self, *args, **kwargs):
+        self.total = self.quantity * Decimal(self.product.price)
+        super().save(*args, **kwargs)
+
+    def pretotal(self):
+        if self.rabat:
+            return round(self.product.price * self.quantity * (1 - self.rabat/100), 2)
+        else:
+            return round(self.product.price * self.quantity, 2)
+    
+    def total(self):
+        if self.discount:
+            return round(self.pretotal() * (1 - self.discount/100) * (self.product.taxPercent/100+1), 2)
+        else:
+            return round(self.pretotal() * (self.product.taxPercent/100+1), 2)
+    
+    def curr(self):
+        return self.product.currency
 
 #class inventory(models.Model):
 #    product = models.ForeignKey(Product, blank=True, null=True, on_delete=models.SET_NULL)

@@ -35,11 +35,11 @@
     <div class="container">
       <form class="" method="post">
         {% csrf_token %}
-        {% crispy invoice_form %}
-        {{ invoice_formset.management_form | crispy}}
-        {% for invoice_form in invoice_formset %}
+        {% crispy offer_form %}
+        {{ offer_formset.management_form | crispy}}
+        {% for offer_form in offer_formset %}
           <div class="formsetDynamic">
-              {% crispy invoice_form %}
+              {% crispy offer_form %}
           </div>
       {% endfor %}
         <button type="submit" id="submit-button" class="mt-4 btn btn-primary" value="Submit">Spremi</button>
@@ -90,7 +90,7 @@
   }
   $(document).on('click', '.buttonDynamic', function (e) {
       e.preventDefault();
-      cloneMore('.formsetDynamic:last', 'invoiceproduct_set');
+      cloneMore('.formsetDynamic:last', 'offerproduct_set');
       return false;
   });
 </script>
