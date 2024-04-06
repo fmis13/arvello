@@ -1,7 +1,7 @@
 asgiref==3.8.1
 beautifulsoup4==4.13.0b2
 chardet==5.2.0
-Django==4.2.11
+Django==5.0.4
 crispy_bootstrap5
 django-crispy-forms==2.1
 pillow==10.3.0
