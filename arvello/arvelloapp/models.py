@@ -215,7 +215,6 @@ class Product(models.Model):
 
     title = models.CharField(null=True, blank=True, max_length=100)
     description = models.TextField(null=True, blank=True)
-    quantity = models.FloatField(null=True, blank=True) #FloatField jer se može dogoditi da klijent želi naručiti 1.5 proizvoda (kruh), ili se može prodavati npr. jabuke po kilogramu
     price = models.FloatField(null=True, blank=True)
     currency = models.CharField(choices=CURRENCY, default='€', max_length=100)
     taxPercent = models.FloatField(null=True, blank=True, default=25)
@@ -351,6 +350,23 @@ class Inventory(models.Model):
         self.last_updated = timezone.localtime(timezone.now())
 
         super(Inventory, self).save(*args, **kwargs)
+
+class OrderLine(models.Model):
+    product = models.ForeignKey(to=Product, on_delete=models.CASCADE)
+    invoice = models.ForeignKey(to=Invoice, on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
+    unit_price = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=0)
+    line_total = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # set default unit price if not already set
+        if not self.unit_price:
+            self.unit_price = self.product.default_unit_price()
+
+        # get line total
+        self.line_total = self.quantity * self.unit_price
+
+        super(OrderLine, self).save(*args, **kwargs)
 
 
 #class inventory(models.Model):
