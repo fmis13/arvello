@@ -350,7 +350,7 @@ def offer_pdf(request, pk):
                 "reference": offer.client.clientUniqueId + "-" + offer.number.replace('/', '-'),
             },
             "purpose": "",
-            "description": "Uplata po računu " + offer.number,
+            "description": "Uplata po ponudi " + offer.number,
         }
     }
     response = requests.post(url, headers=headers, data=json.dumps(data))
