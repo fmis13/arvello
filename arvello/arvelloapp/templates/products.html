@@ -28,6 +28,7 @@
           <th scope="col">Interni opis</th>
           <th scope="col">ID</th>
           <th scope="col">Iznos</th>
+          <th scope="col">Akcije</th>
         </tr>
       </thead>
       <tbody>
@@ -38,6 +39,7 @@
         <td>{{product.description}}</td>
         <td>{{product.barid}}</td>
         <td>{{product.price}} {{product.currency}}</td>
+        <td><a href="{% url 'product_label' product.id %}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn"><img src="{% static 'img/download.svg' %}" alt="Preuzmi" title="Preuzmi" width="16" height="16"></button></a></td>
       </tr>
         {% endfor %}
 

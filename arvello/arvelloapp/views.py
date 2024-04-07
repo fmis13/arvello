@@ -12,7 +12,7 @@ from .models import *
 import requests
 import json
 import base64
-from barcode import Code39
+from barcode import Code128
 from barcode.writer import SVGWriter
 
 def anonymous_required(function=None, redirect_url=None):
@@ -362,11 +362,20 @@ def offer_pdf(request, pk):
 @login_required
 def inventory_label(request, pk):
     item = get_object_or_404(Inventory, pk=pk)
-    barcode = Code39(str(pk), writer=SVGWriter())
+    barcode = Code128(str(pk), writer=SVGWriter())
     barcode_output = BytesIO()
     barcode.write(barcode_output)
     barcode_svg = barcode_output.getvalue().decode()
-    return render(request, 'inventory_label.html', {'item': item, 'barcode_svg': barcode_svg})
+    return render(request, 'label.html', {'item': item, 'barcode_svg': barcode_svg})
+
+@login_required
+def product_label(request, pk):
+    item = get_object_or_404(Product, pk=pk)
+    barcode = Code128(str(item.barid), writer=SVGWriter())
+    barcode_output = BytesIO()
+    barcode.write(barcode_output)
+    barcode_svg = barcode_output.getvalue().decode()
+    return render(request, 'label.html', {'item': item, 'barcode_svg': barcode_svg})
 
 @login_required
 def logout(request):
