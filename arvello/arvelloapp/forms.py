@@ -135,7 +135,7 @@ class OfferForm(forms.ModelForm):
         model = Offer
         fields = ['title', 'number', 'dueDate', 'notes', 'client', 'date', 'subject']
         labels = {
-            'title': 'Naslov', 'number': 'Broj računa',
+            'title': 'Naslov', 'number': 'Broj ponude',
             'dueDate': 'Datum dospijeća', 'notes': 'Napomene',
             'client': 'Klijent', 'product': 'Proizvod', 'date': 'Datum ponude', 'subject': 'Subjekt'
         }

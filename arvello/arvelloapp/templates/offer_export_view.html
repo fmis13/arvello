@@ -39,7 +39,7 @@
         </div>
     </div>
         <h1 style="text-align: center;">Ponuda {{offer.number}}</h1>
-        <p style="text-align: center;">Datum i vrijeme izrade: {{offer.date_created}}<br>Datum Ponudaa: {{offer.date}}<br>Datum dospijeća: {{offer.dueDate}}</p>
+        <p style="text-align: center;">Datum i vrijeme izrade: {{offer.date_created}}<br>Datum ponude: {{offer.date}}<br>Datum dospijeća: {{offer.dueDate}}</p>
 
     <div class="table-responsive" style="justify-content: center; display: flex; align-items: center;">
         <table class="table table-striped table-sm" style="font-size: 85%">
@@ -107,13 +107,13 @@
             {% if offer.hasRabat %}
                 <tr>
                     <th style="font-weight: normal;">Ukupan rabat</th>
-                    <th style="font-weight: normal;">{{invoice.tolrabat}} {{invoice.curr}}</th>
+                    <th style="font-weight: normal;">{{offer.tolrabat}} {{offer.curr}}</th>
                 </tr>
             {% endif %}
             {% if offer.hasDiscount %}
             <tr>
                 <th style="font-weight: normal;">Ukupan popust</th>
-                <th style="font-weight: normal;">{{invoice.toldiscount}} {{invoice.curr}}</th>
+                <th style="font-weight: normal;">{{offer.toldiscount}} {{offer.curr}}</th>
             </tr>
             {% endif %}
             <tr>
