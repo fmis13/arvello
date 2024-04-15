@@ -312,11 +312,11 @@ class Offer(models.Model):
     
     def tolrabat(self):
         ofrprdt = OfferProduct.objects.filter(offer=self, rabat__gt=0)
-        return round(sum((Decimal(offer_product.product.price) * Decimal(offer_product.quantity) - (Decimal(offer_product.product.price) * Decimal(offer_product.quantity) * (Decimal(offer_product.rabat)/Decimal(100)))) for offer_product in ofrprdt), 2)
+        return round(sum((Decimal(offer_product.product.price) * Decimal(offer_product.quantity) * Decimal(offer_product.rabat/100)) for offer_product in ofrprdt), 2)
 
     def toldiscount(self):
         ofrprdt = OfferProduct.objects.filter(offer=self, discount__gt=0)
-        return round(sum((Decimal(offer_product.product.price) * Decimal(offer_product.quantity) - (Decimal(offer_product.product.price) * Decimal(offer_product.quantity) * (Decimal(offer_product.discount)/Decimal(100)))) for offer_product in ofrprdt), 2)
+        return round(sum((Decimal(offer_product.product.price) * Decimal(offer_product.quantity) * Decimal(offer_product.discount/100)) for offer_product in ofrprdt), 2)
     
     def hasDiscount(self):
         ofrprdt = OfferProduct.objects.filter(offer=self, discount__gt=0)
