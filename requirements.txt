@@ -11,5 +11,5 @@ soupsieve==2.5
 sqlparse==0.4.4
 tzdata==2024.1
 django-clearcache==1.2.1
-requests==2.31.0
+requests==2.32.2
 python-barcode==0.15.1
