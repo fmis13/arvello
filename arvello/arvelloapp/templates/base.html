@@ -13,8 +13,9 @@
 
     <link rel="canonical" href="">
 
-    <link href="{% static '/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static '/css/bootstrap.css' %}" rel="stylesheet">
     <script type = "text/javascript" src = "{% static '/js/bootstrap.min.js' %}"></script>
+
 
     {% block css %}
     {% endblock %}
@@ -47,11 +48,16 @@
     .align-items {
       display: flex;
       align-items: center;
+      display: inline-block;
+      vertical-align: middle;
   }
-  .align-icon {
-    margin-right: 8px;
-    align-items: center;
-  }
+    .align-icon {
+      margin-right: 8px;
+      align-items: center;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
     </style>
 
 
@@ -59,7 +65,7 @@
   </head>
   <body>
 
-<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow position:sticky" aria-expanded="false">
   <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">Arvello</a>
   <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
@@ -67,16 +73,20 @@
   {% comment %}
   <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">
   {% endcomment %}
-  <div class="navbar-nav">
-    <div class="nav-item text-nowrap">
-      <a style="color:white; margin: 6px; padding-right: 15px; margin-top: 10px;">{{request.user.get_full_name}}</a>
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit" class="nav-link px-2" style="font-size: 1em; margin: 1px;">Odjava</button>
-        </form>
+
+    <div class="navbar-nav">
+      <div class="nav-item text-nowrap p-3 m-0 border-0 bd-example m-0 border-0">
+        <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" href="#" role="button">
+            {{request.user.get_full_name}}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end"  style="position: absolute;">
+            <li><form method="post" action="{% url 'logout' %}"> {% csrf_token %} <button class="dropdown-item" type="submit">Odjava</button></form></li>
+          </ul>
+        </div>
+      </div>
     </div>
-  </div>
-  
+
 
 </header>
 
@@ -98,7 +108,7 @@
 
 <div class="container-fluid">
   <div class="row">
-    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse text-primary">
+    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse text-primary" style="height: 100%;">
       <div class="position-fixed pt-3 text-black">
         <ul class="nav flex-column">
         {% comment %}
@@ -107,7 +117,14 @@
               <span data-feather="home"></span>
               Dashboard
             </a>
-          </li> {% endcomment %}	
+          </li> {% endcomment %}
+          <li class="nav-item">
+            <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
+              <span data-feather="file"></span>
+              <span class="material-symbols-outlined align-icon">home</span>
+              Početna stranica
+            </a>
+          </li>	
           <li class="nav-item">
             <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
               <span data-feather="file"></span>

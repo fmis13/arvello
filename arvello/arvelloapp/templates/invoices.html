@@ -33,7 +33,11 @@
 
         {% for invoice in invoices %}
       <tr>
+        {% if invoice.title == None %}
+        <td>∅</td>
+        {% else %}
         <td>{{invoice.title}}</td>
+        {% endif %}
         <td>{{invoice.client.clientName}}</td>
         <td>{{invoice.number}}</td>
         <td>{{invoice.subject.clientName}}</td>
