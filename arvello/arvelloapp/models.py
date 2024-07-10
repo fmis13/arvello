@@ -2,7 +2,7 @@ from django.db import models
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from uuid import uuid4
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinLengthValidator
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
@@ -254,16 +254,16 @@ class Product(models.Model):
 
 
 class Offer(models.Model):
-    title = models.CharField(null=True, blank=True, max_length=100)
-    number = models.CharField(null=False, blank=False, max_length=20)
-    dueDate = models.DateField(null=True, blank=True)
+    title = models.CharField(null=True, blank=True, max_length=30)
+    number = models.CharField(null=False, blank=False, max_length=20, validators=[MinLengthValidator(6, 'Broj računa mora sadržavati više od 5 karaktera.')])
+    dueDate = models.DateField(null=True, blank=False)
     notes = models.TextField(null=True, blank=True)
     client = models.ForeignKey(Client, blank=False, null=False, on_delete=models.DO_NOTHING)
     subject = models.ForeignKey(Company, blank=False, null=False, on_delete=models.DO_NOTHING)
     uniqueId = models.CharField(null=True, blank=True, max_length=100, unique=True)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
-    date_created = models.DateTimeField(blank=True, null=True)
-    date = models.DateField(blank=True, null=True)
+    date_created = models.DateTimeField(blank=False, null=True)
+    date = models.DateField(blank=False, null=True)
     last_updated = models.DateTimeField(blank=True, null=True)
 
     def poziv_na_broj(self):
@@ -336,15 +336,15 @@ class Offer(models.Model):
 
 class Invoice(models.Model):
     title = models.CharField(null=True, blank=True, max_length=30)
-    number = models.CharField(null=False, blank=False, max_length=20)
-    dueDate = models.DateField(null=True, blank=True)
+    number = models.CharField(null=False, blank=False, max_length=20, validators=[MinLengthValidator(6, 'Broj računa mora sadržavati više od 5 karaktera.')])
+    dueDate = models.DateField(null=True, blank=False)
     notes = models.TextField(null=True, blank=True)
     client = models.ForeignKey(Client, blank=False, null=False, on_delete=models.DO_NOTHING)
     subject = models.ForeignKey(Company, blank=False, null=False, on_delete=models.DO_NOTHING)
     uniqueId = models.CharField(null=True, blank=True, max_length=100, unique=True)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
-    date_created = models.DateTimeField(blank=True, null=True)
-    date = models.DateField(blank=True, null=True)
+    date_created = models.DateTimeField(blank=False, null=True)
+    date = models.DateField(blank=False, null=True)
     last_updated = models.DateTimeField(blank=True, null=True)
 
     def poziv_na_broj(self):

@@ -73,7 +73,7 @@ class InvoiceForm(forms.ModelForm):
         }
 
 class InvoiceProductForm(ModelForm):
-    product = forms.ModelChoiceField(queryset=Product.objects.order_by('title'))
+    product = forms.ModelChoiceField(queryset=Product.objects.order_by('title'), label='Proizvod')
     quantity = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=1)
 
     def __init__(self, *args, **kwargs):
