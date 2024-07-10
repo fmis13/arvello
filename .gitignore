@@ -2,4 +2,5 @@ lib64
 lib
 include
 bin
+.venv
 arvello/db.sqlite3
