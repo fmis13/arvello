@@ -13,3 +13,5 @@ tzdata==2024.1
 django-clearcache==1.2.1
 requests==2.31.0
 python-barcode==0.15.1
+django-localflavor==4.0
+django-bootstrap5==24.2

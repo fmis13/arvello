@@ -1,4 +1,5 @@
 {
     "python.analysis.typeCheckingMode": "off",
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "search.useIgnoreFiles": false
 }

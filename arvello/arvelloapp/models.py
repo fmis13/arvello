@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from decimal import Decimal
 
+
 def validate_phone_number(value):
     if not all(char.isdigit() or char == '+' for char in value):
         raise ValidationError(
@@ -71,18 +72,18 @@ class Company(models.Model):
     "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ", "VU", "VE", "VN",
     "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"]
 
-    clientName = models.CharField(null=True, blank=True, max_length=200)
-    addressLine1 = models.CharField(null=True, blank=True, max_length=200)
-    town = models.CharField(null=True, blank=True, max_length=200)
-    province = models.CharField(choices=PROVINCES, blank=True, max_length=100)
-    postalCode = models.CharField(null=True, blank=True, max_length=5)
-    phoneNumber = models.CharField(null=True, blank=True, max_length=40, validators=[validate_phone_number])
-    emailAddress = models.CharField(null=True, blank=True, max_length=100)
-    clientUniqueId = models.CharField(null=True, blank=True, max_length=4, unique=True, validators=[RegexValidator(r'^\d{4}$', 'Idetifikacijski broj klijenta mora sadržavati točno 4 broja.')])
-    clientType = models.CharField(choices=clientTypes, blank=True, max_length=40)
+    clientName = models.CharField(null=True, blank=False, max_length=200)
+    addressLine1 = models.CharField(null=True, blank=False, max_length=200)
+    town = models.CharField(null=True, blank=False, max_length=200)
+    province = models.CharField(choices=PROVINCES, blank=False, max_length=100)
+    postalCode = models.CharField(null=True, blank=False, max_length=5)
+    phoneNumber = models.CharField(null=True, blank=False, max_length=40, validators=[validate_phone_number])
+    emailAddress = models.CharField(null=True, blank=False, max_length=100)
+    clientUniqueId = models.CharField(null=True, blank=False, max_length=4, unique=True, validators=[RegexValidator(r'^\d{4}$', 'Idetifikacijski broj klijenta mora sadržavati točno 4 broja.')])
+    clientType = models.CharField(choices=clientTypes, blank=False, max_length=40)
     OIB = models.CharField(null=True, blank=True, max_length=11, unique=True, validators=[RegexValidator(r'^\d{11}$', 'OIB mora sadržavati točno 11 broja.')])
     SustavPDVa = models.BooleanField(default=False)
-    IBAN = models.CharField(null=True, blank=True, max_length=36)
+    IBAN = models.CharField(null=True, blank=False, max_length=36)
     uniqueId = models.CharField(null=True, blank=True, max_length=100)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
     date_created = models.DateTimeField(blank=True, null=True)
@@ -432,7 +433,7 @@ class Inventory(models.Model):
 class InvoiceProduct(models.Model):
     product = models.ForeignKey(to=Product, on_delete=models.CASCADE)
     invoice = models.ForeignKey(to=Invoice, on_delete=models.CASCADE)
-    quantity = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
+    quantity = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=False, default=0)
     discount = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
     rabat = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=0)
 
