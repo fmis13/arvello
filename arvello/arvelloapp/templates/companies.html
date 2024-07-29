@@ -4,6 +4,7 @@
 
 
 
+
 {% block main %}
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -71,12 +72,11 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
         </div>
   
-        <div class="modal-body py-0">
-  
-  
-          {{form.as_p}}
-  
-  
+        <div class="modal-body py-0" layout="floating">
+        
+        
+          {% crispy form %}
+        
         </div>
         <div class="modal-footer flex-column border-top-0">
           <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi izmjene</button>

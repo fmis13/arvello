@@ -6,6 +6,8 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Div, HTML, Layout, Row
 from django.forms import BaseInlineFormSet, inlineformset_factory, ModelForm
 from django.forms.widgets import NumberInput
+from localflavor.generic.forms import IBANFormField
+from crispy_bootstrap5.bootstrap5 import FloatingField, Field
 
 class DateInput(forms.DateInput):
     input_type = 'date'
@@ -40,7 +42,7 @@ class ProductForm(forms.ModelForm):
         labels = {
             'title': 'Naziv proizvoda', 'description': 'Opis proizvoda',
             'price': 'Cijena', 'currency': 'Valuta', 'taxPercent': 'Porez (%)',
-            'barid': 'ID (za barkod)'
+            'barid': 'ID (za barkod)', 'Product': 'Proizvod'
         }
 
 
@@ -141,7 +143,7 @@ class OfferForm(forms.ModelForm):
         }
 
 class OfferProductForm(ModelForm):
-    product = forms.ModelChoiceField(queryset=Product.objects.order_by('title'))
+    product = forms.ModelChoiceField(queryset=Product.objects.order_by('title'), label='Proizvod')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -180,6 +182,7 @@ OfferProductFormSet = inlineformset_factory(
 
 
 class CompanyForm(forms.ModelForm):
+    IBAN = IBANFormField(label="IBAN")
     class Meta:
         model = Company
         fields = ['clientName', 'addressLine1', 'town', 'province', 'postalCode', 'phoneNumber', 'emailAddress', 'clientUniqueId', 'clientType', 'OIB', 'SustavPDVa', 'IBAN']
@@ -191,6 +194,13 @@ class CompanyForm(forms.ModelForm):
             'OIB': 'OIB', 'SustavPDVa': 'Je li subjekt u sustavu PDV-a?',
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            *[FloatingField(field) if field != 'SustavPDVa' else Field(field) for field in self.Meta.fields]
+        )
 class InventoryForm(forms.ModelForm):
     class Meta:
         model = Inventory

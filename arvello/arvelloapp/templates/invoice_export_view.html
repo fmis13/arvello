@@ -38,7 +38,7 @@
             </p>
         </div>
     </div>
-        <h1 style="text-align: center;">Račun {{invoice.number}}</h1>
+        <h1 style="text-align: center;">Račun {{invoice.number}} {% if invoice.title %} - {{ invoice.title }} {% endif %}</h1>
         <p style="text-align: center;">Datum i vrijeme izrade: {{invoice.date_created}}<br>Datum računa: {{invoice.date}}<br>Datum dospijeća: {{invoice.dueDate}}</p>
 
     <div class="table-responsive" style="justify-content: center; display: flex; align-items: center;">

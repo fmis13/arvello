@@ -38,7 +38,7 @@
             </p>
         </div>
     </div>
-        <h1 style="text-align: center;">Ponuda {{offer.number}}</h1>
+        <h1 style="text-align: center;">Ponuda {{offer.number}} {% if offer.title %} - {{ offer.title }} {% endif %}</h1>
         <p style="text-align: center;">Datum i vrijeme izrade: {{offer.date_created}}<br>Datum ponude: {{offer.date}}<br>Datum dospijeća: {{offer.dueDate}}</p>
 
     <div class="table-responsive" style="justify-content: center; display: flex; align-items: center;">

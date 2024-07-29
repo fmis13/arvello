@@ -11,28 +11,28 @@ This program is written to adapt the Croatian language. Further adding of other 
 
 ## Installation
 
-$ sudo apt install git-all ufw #instalirajte Git i ufw (firewall), python3 se uglavnom nalazi preinstaliran
+sudo apt install git-all ufw #instalirajte Git i ufw (firewall), python3 se uglavnom nalazi preinstaliran
 
-$ git clone https://github.com/fmis13/arvello.git
+git clone https://github.com/fmis13/arvello.git
 
-$ sudo apt install python3.11-venv
+sudo apt install python3.11-venv
 
-$ python3 -m venv /putanja/koju/zelite
+python3 -m venv /putanja/koju/zelite
 
-$ source /putanja/koju_ste/postavili/bin/activate
+source /putanja/koju_ste/postavili/bin/activate
 
-$ cd /putanja/u/koju/ste/pokrenuli-git-clone
+cd /putanja/u/koju/ste/pokrenuli-git-clone
 
-$ pip3 install -r requirements.txt
+pip3 install -r requirements.txt
 
-$ cd arvello
+cd arvello
 
-$ sudo ufw allow [PORT] #dopuštavanje korištenja porta kroz firewall
+sudo ufw allow [PORT] #dopuštavanje korištenja porta kroz firewall
 
-$ python manage.py runserver [IP ADRESA]:[PORT] #ovime se pokreće web server
+python manage.py runserver [IP ADRESA]:[PORT] #ovime se pokreće web server
 
-
-
+## Notes!
+None for now.
 ## Contributing
 
 Contributing will not be allowed until 21-06-2024 23:59 CET because of this project being a part of a national competition.
