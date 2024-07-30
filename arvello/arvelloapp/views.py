@@ -29,6 +29,13 @@ def anonymous_required(function=None, redirect_url=None):
        return actual_decorator(function)
    return actual_decorator
 
+def loginredir(request):
+    return redirect('/account/login')
+
+@login_required
+def select_subject(request):
+    companies = Company.objects.all()
+    return render(request, 'selectSubject.html', {'companies': companies})
 
 @login_required
 def products(request):
