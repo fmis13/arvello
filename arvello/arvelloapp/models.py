@@ -83,7 +83,7 @@ class Company(models.Model):
     clientType = models.CharField(choices=clientTypes, blank=False, max_length=40)
     OIB = models.CharField(null=True, blank=True, max_length=11, unique=True, validators=[RegexValidator(r'^\d{11}$', 'OIB mora sadržavati točno 11 broja.')])
     SustavPDVa = models.BooleanField(default=False)
-    IBAN = models.CharField(null=True, blank=False, max_length=36)
+    IBAN = models.CharField(null=True, blank=False, max_length=34)
     uniqueId = models.CharField(null=True, blank=True, max_length=100)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
     date_created = models.DateTimeField(blank=True, null=True)
