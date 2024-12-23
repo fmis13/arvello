@@ -7,7 +7,7 @@ django-crispy-forms==2.1
 pillow==11.0.0
 reportlab==4.1.0
 six==1.16.0
-soupsieve==2.5
+soupsieve==2.6
 sqlparse==0.4.4
 tzdata==2024.1
 django-clearcache==1.2.1
