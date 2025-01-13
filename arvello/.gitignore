@@ -1,0 +1,11 @@
+lib64
+lib
+include
+bin
+.venv
+arvello/db.sqlite3
+arvello/__pycache__
+arvelloapp/__pycache__
+arvelloapp/migrations
+.idea
+.vscode
