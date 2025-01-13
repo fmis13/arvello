@@ -68,7 +68,7 @@
   <body>
 
 <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow position:sticky" aria-expanded="false">
-  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">Arvello</a>
+  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">Arvello | {{ company.clientName }}</a>
   <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
@@ -115,20 +115,21 @@
         <ul class="nav flex-column">
         {% comment %}
         <li class="nav-item">
-            <a class="nav-link" href="{% url 'dashboard' %}">
+            <a class="nav-link" href="{% url 'dashboard' company.id %}">
               <span data-feather="home"></span>
               Dashboard
             </a>
           </li> {% endcomment %}
           <li class="nav-item">
-            <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
+            <a class="nav-link black-text align-items" href="{% url 'invoices' company_id %}">
               <span data-feather="file"></span>
               <span class="material-symbols-outlined align-icon">home</span>
               Početna stranica
             </a>
           </li>	
+          
           <li class="nav-item">
-            <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
+            <a class="nav-link black-text align-items" href="{% url 'invoices' company_id %}">
               <span data-feather="file"></span>
               <span class="material-symbols-outlined align-icon"> receipt_long </span>
               Računi
@@ -147,14 +148,14 @@
               <span class="material-symbols-outlined align-icon"> person_edit </span>
               Klijenti
             </a>
-          </li>
+          </li>{% comment %}
           <li class="nav-item">
             <a class="nav-link black-text" href="{% url 'offers' %}">
               <span data-feather="users"></span>
               <span class="material-symbols-outlined align-icon"> request_page </span>
               Ponude
             </a>
-          </li>
+          </li>{% endcomment %}
           <li class="nav-item">
             <a class="nav-link black-text" href="{% url 'companies' %}">
               <span data-feather="users"></span>

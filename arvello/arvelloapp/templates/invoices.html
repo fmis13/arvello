@@ -23,7 +23,6 @@
           <th scope="col">Naslov</th>
           <th scope="col">Klijent</th>
           <th scope="col">Broj računa</th>
-          <th scope="col">Subjekt</th>
           <th scope="col">Dospijeće</th>
           <th scope="col">Bilješke</th>
           <th scope="col">Preuzimanje</th>
@@ -40,7 +39,6 @@
         {% endif %}
         <td>{{invoice.client.clientName}}</td>
         <td>{{invoice.number}}</td>
-        <td>{{invoice.subject.clientName}}</td>
         <td>{{invoice.dueDate}}</td>
         <td>{{invoice.notes}}</td>
         <td><a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn"><img src="{% static 'img/download.svg' %}" alt="Preuzmi" title="Preuzmi" width="16" height="16"></button></a></td>

@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'arvelloapp',
+#    'django-otp',
+#    'django_otp.plugins.otp_totp',
     'localflavor',
     'django_bootstrap5',
     'django.contrib.admin',
@@ -57,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+#    'django_otp.middleware.OTPMiddleware',
 ]
 
 ROOT_URLCONF = 'arvello.urls'
