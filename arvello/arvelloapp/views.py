@@ -18,7 +18,7 @@ from barcode.writer import SVGWriter
 def anonymous_required(function=None, redirect_url=None):
 
    if not redirect_url:
-       redirect_url = '/invoices'
+       redirect_url = '/select_subject'
 
    actual_decorator = user_passes_test(
        lambda u: u.is_anonymous,
@@ -65,11 +65,15 @@ def products(request):
     return render(request, 'products.html', {'form': form}, context)
 
 @login_required
-def invoices(request):
-    context = {}
-    invoices = Invoice.objects.all()
+def invoices(request, company_id):
+    context = {
+        'company_id': company_id
+    }
+    company = get_object_or_404(Company, id=company_id)
+    invoices = Invoice.objects.filter(subject=company)
     
     context['invoices'] = invoices
+    context['company'] = company
 
     if request.method == 'GET':
         form = InvoiceForm()
@@ -89,7 +93,8 @@ def invoices(request):
     else:
         form = InvoiceForm()
 
-    return render(request, 'invoices.html', {'form': form}, context)
+    context["company"] = company
+    return render(request, 'invoices.html', context)
 
 @login_required
 def create_invoice(request):
@@ -199,9 +204,12 @@ def companies(request):
     return render(request, 'companies.html', {'form': form}, context)
 
 @login_required
-def offers(request):
-    context = {}
-    offers = Offer.objects.all()
+def offers(request,company_id):
+    context = {
+        'company_id': company_id
+    }
+    company = get_object_or_404(Company, id=company_id)
+    offers = Offer.objects.filter(subject=company)
     
     context['offers'] = offers
 
@@ -271,7 +279,7 @@ def login(request):
         if user is not None:
             auth.login(request, user)
 
-            return redirect('/invoices')
+            return redirect('/select_subject')
         else:
             context['form'] = form
             messages.error(request, 'Netočne vjerodajnice')
