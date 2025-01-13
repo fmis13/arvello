@@ -4,3 +4,6 @@ include
 bin
 .venv
 arvello/db.sqlite3
+*migrations*
+*pycache*
+.vscode
