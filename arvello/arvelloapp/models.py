@@ -79,7 +79,7 @@ class Company(models.Model):
     postalCode = models.CharField(null=True, blank=False, max_length=5)
     phoneNumber = models.CharField(null=True, blank=False, max_length=40, validators=[validate_phone_number])
     emailAddress = models.CharField(null=True, blank=False, max_length=100)
-    clientUniqueId = models.CharField(null=True, blank=False, max_length=4, unique=True, validators=[RegexValidator(r'^\d{4}$', 'Idetifikacijski broj klijenta mora sadržavati točno 4 broja.')])
+    clientUniqueId = models.CharField(null=True, blank=False, max_length=4, unique=True, validators=[RegexValidator(r'^\d{4}$', 'Identifikacijski broj klijenta mora sadržavati točno 4 broja.')])
     clientType = models.CharField(choices=clientTypes, blank=False, max_length=40)
     OIB = models.CharField(null=True, blank=True, max_length=11, unique=True, validators=[RegexValidator(r'^\d{11}$', 'OIB mora sadržavati točno 11 broja.')])
     SustavPDVa = models.BooleanField(default=False)
