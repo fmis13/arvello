@@ -58,6 +58,9 @@ def products(request):
             return redirect('products')
         else:
             messages.error(request, 'Problem pri obradi zahtjeva')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
             return redirect('products')
     else:
         form = ProductForm()
@@ -85,6 +88,9 @@ def invoices(request):
             return redirect('invoices')
         else:
             messages.error(request, 'Problem pri obradi zahtjeva')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
             return redirect('invoices')
     else:
         form = InvoiceForm()
@@ -118,6 +124,9 @@ def create_invoice(request):
         if not invoice_formset.is_valid():
             print(invoice_formset.errors)
             messages.error(request, 'Problem pri obradi zahtjeva')
+            for field, errors in invoice_formset.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         invoice_form = InvoiceForm()
         invoice_formset = InvoiceProductFormSet(queryset=InvoiceProduct.objects.none())
@@ -158,6 +167,9 @@ def create_offer(request):
         if not offer_formset.is_valid():
             print(offer_formset.errors)
             messages.error(request, 'Problem pri obradi zahtjeva')
+            for field, errors in offer_form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         offer_form = OfferForm()
         offer_formset = OfferProductFormSet(queryset=OfferProduct.objects.none())
@@ -185,6 +197,8 @@ def companies(request):
 
     if request.method == 'POST':
         form = CompanyForm(request.POST, request.FILES)
+        if form.errors:
+                print(f"Form validation errors: {form.errors}")
         
         if form.is_valid():
             form.save()
@@ -192,6 +206,9 @@ def companies(request):
             return redirect('companies')
         else:
             messages.error(request, 'Problem pri obradi zahtjeva')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
             return redirect('companies')
     else:
         form = CompanyForm()
@@ -219,6 +236,9 @@ def offers(request):
             return redirect('offers')
         else:
             messages.error(request, 'Problem pri obradi zahtjeva')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
             return redirect('offers')
     else:
         form = OfferForm()
@@ -248,6 +268,9 @@ def clients(request):
             return redirect('clients')
         else:
             messages.error(request, 'Problem pri obradi zahtjeva')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
             return redirect('clients')
 
 
@@ -319,8 +342,8 @@ def invoice_pdf(request, pk):
     }
     response = requests.post(url, headers=headers, data=json.dumps(data))
     barcode_image = base64.b64encode(response.content).decode()
-    print(response.status_code)
-    print(response.content)
+    #print(response.status_code)
+    #print(response.content)
     return render(request, 'invoice_export_view.html', {'invoice': invoice, 'products': product, 'client': client, 'subject': subject, 'barcode_image': barcode_image})
 
 @login_required
@@ -362,8 +385,8 @@ def offer_pdf(request, pk):
     }
     response = requests.post(url, headers=headers, data=json.dumps(data))
     barcode_image = base64.b64encode(response.content).decode()
-    print(response.status_code)
-    print(response.content)
+    #print(response.status_code)
+    #print(response.content)
     return render(request, 'offer_export_view.html', {'offer': offer, 'products': product, 'client': client, 'subject': subject, 'barcode_image': barcode_image})
 
 @login_required
@@ -411,6 +434,9 @@ def inventory(request):
             return redirect('inventory')
         else:
             messages.error(request, 'Problem pri obradi zahtjeva')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
             return redirect('inventory')
 
 
