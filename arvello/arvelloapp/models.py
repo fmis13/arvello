@@ -218,9 +218,10 @@ class Product(models.Model):
     title = models.CharField(null=False, blank=False, max_length=100)
     description = models.TextField(null=True, blank=True)
     price = models.FloatField(null=False, blank=False)
-    currency = models.CharField(choices=CURRENCY, default='€', max_length=100)
+    currency = models.CharField(choices=CURRENCY, default='€', max_length=100, blank=False)
     taxPercent = models.FloatField(null=False, blank=False, default=25)
     barid = models.CharField(null=False, blank=False, max_length=100)
+    company = models.ForeignKey(Company, blank=False, null=True, on_delete=models.CASCADE)
 
     uniqueId = models.CharField(null=True, blank=True, max_length=100)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)

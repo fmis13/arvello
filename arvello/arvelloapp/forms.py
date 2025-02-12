@@ -8,17 +8,20 @@ from django.forms import BaseInlineFormSet, inlineformset_factory, ModelForm
 from django.forms.widgets import NumberInput
 from localflavor.generic.forms import IBANFormField
 from crispy_bootstrap5.bootstrap5 import FloatingField, Field
+from django_otp.forms import OTPAuthenticationFormMixin
 
 class DateInput(forms.DateInput):
     input_type = 'date'
 
 
-class UserLoginForm(forms.ModelForm):
+class UserLoginForm(OTPAuthenticationFormMixin, forms.ModelForm):
     username = forms.CharField(widget=forms.TextInput(attrs={'id': 'floatingInput', 'class': 'form-control mb-3'}), required=True)
     password = forms.CharField(widget=forms.PasswordInput(attrs={'id': 'floatingPassword', 'class': 'form-control mb-3'}), required=True)
+#    otp = forms.CharField(widget=forms.TextInput(attrs={'id': 'floatingOTPInput', 'class': 'form-control mb-3'}), required=False)
+
     class Meta:
-        model=User
-        fields=['username','password']
+        model = User
+        fields = ['username', 'password']
 
 
 

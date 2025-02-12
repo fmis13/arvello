@@ -120,14 +120,14 @@
               <tbody>
                   {% for company in companies %}
                       <tr>
-                          <td>{{ company.clientName }} (OIB: {{ company.OIB }})</td>
+                          <td><a href="{% url 'invoices' company.id %}" style="color: black; text-decoration: none;">{{ company.clientName }} (OIB: {{ company.OIB }})</a></td>
                       </tr>
                   {% endfor %}
               </tbody>
-          </table>
+          </table> {%comment%}
           <div style="text-align: right; width: fit-content; margin-left: auto;">
             <button type="submit" id="submit-button" class="mt-4 btn btn-primary" value="Submit">> Dalje</button>
-          </div>
+          </div> {%endcomment%}
       </div>
     </div>
 
