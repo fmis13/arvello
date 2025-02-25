@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block main %}
+
+<title>Knjiga izlaznih računa</title>
+<style>
+    /* Print-specific styles */
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        body {
+            font-size: 12px;
+        }
+        .table td, .table th {
+            padding: 0.3rem;
+        }
+        .navbar,
+        header.navbar,
+        .sticky-top,
+        .sidebar,
+        .alert {
+            display: none !important;
+        }
+        .main-content,
+        .content-area {
+            margin-left: 0 !important;
+            padding-left: 0 !important;
+        }
+        .main-container,
+        main {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+    }
+
+    /* Page settings */
+    @page {
+        size: A4 landscape;
+        margin: 1cm;
+    }
+
+    /* General layout */
+    .table-container {
+        overflow-x: auto;
+        width: 100%;
+    }
+    .small-text {
+        font-size: 0.9em;
+    }
+    .footer-info {
+        position: fixed;
+        bottom: 1cm;
+        left: 1cm;
+        right: 1cm;
+        width: calc(100% - 2cm);
+    }
+
+    /* Content positioning */
+    .content-area {
+        padding-left: 280px;
+        width: 100%;
+        position: relative;
+    }
+    .content-wrapper {
+        margin-left: 0;
+        width: 100%;
+        padding: 20px;
+    }
+
+    /* Screen-specific styles */
+    @media screen {
+        .content-wrapper {
+            margin-left: 250px;
+        }
+        .main-content {
+            padding-left: 250px !important;
+            padding: 20px;
+        }
+    }
+</style>
+
+<main class="col-md-10 col-lg-11 px-md-2 ms-sm-0 main-content">
+    <!-- Form (no-print) -->
+    <div class="container-fluid mb-4 no-print">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="my-4">Knjiga izlaznih računa</h2>
+                <form method="post" class="card p-3">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-4">
+                            {{ form.company.label_tag }}
+                            {{ form.company }}
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                {{ form.filter_type.label_tag }}
+                                {% for radio in form.filter_type %}
+                                    <div class="form-check">
+                                        {{ radio }}
+                                        <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                            {{ radio.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3" id="month-year-filters">
+                        <div class="col-md-3">
+                            {{ form.year.label_tag }}
+                            {{ form.year }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.month.label_tag }}
+                            {{ form.month }}
+                        </div>
+                    </div>
+                    <div class="row mt-3" id="date-range-filters" style="display: none;">
+                        <div class="col-md-3">
+                            {{ form.date_from.label_tag }}
+                            {{ form.date_from }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.date_to.label_tag }}
+                            {{ form.date_to }}
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">Prikaži</button>
+                            <button type="button" class="btn btn-secondary" onclick="window.print()">Ispiši</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>  
+
+
+    {% if show_results %}
+    <!-- Print -->
+    <div class="container-fluid">
+        <!-- Zaglavlje -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h3>{{ company.clientName }}</h3>
+                <p>{{ company.addressLine1 }}, {{ company.postalCode }} {{ company.town }}<br>
+                OIB: {{ company.OIB }}</p>
+                <h4>Knjiga izlaznih računa</h4>
+                <p>Razdoblje: {{ start_date|date:"d.m.Y." }} - {{ end_date|date:"d.m.Y." }}</p>
+            </div>
+        </div>
+
+        <!-- Tablica -->
+        <div class="table-container">
+            <table class="table table-bordered table-sm">
+                <thead>
+                    <tr>
+                        <th>Rbr.</th>
+                        <th>Datum</th>
+                        <th>Broj računa</th>
+                        <th>Kupac</th>
+                        <th>OIB</th>
+                        <th>Poziv na broj</th>
+                        <th class="text-end">Iznos bez PDV-a</th>
+                        <th class="text-end">PDV</th>
+                        <th class="text-end">Ukupno s PDV-om</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ invoice.date|date:"d.m.Y." }}</td>
+                        <td>{{ invoice.number }}</td>
+                        <td>{{ invoice.client.clientName }}</td>
+                        <td>{{ invoice.client.OIB }}</td>
+                        <td>{{ invoice.poziv_na_broj }}</td>
+                        <td class="text-end">{{ invoice.pretax|floatformat:2 }}</td>
+                        <td class="text-end">{{ invoice.tax|floatformat:2 }}</td>
+                        <td class="text-end">{{ invoice.price_with_vat|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="font-weight-bold">
+                        <td colspan="6" class="text-end">UKUPNO:</td>
+                        <td class="text-end">{{ total_pretax|floatformat:2 }}</td>
+                        <td class="text-end">{{ total_tax|floatformat:2 }}</td>
+                        <td class="text-end">{{ total_with_tax|floatformat:2 }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Podnožje -->
+        <div class="footer-info">
+            <div class="row">
+                <div class="col-6">
+                    <span class="small-text">
+                        Korisnik: {{request.user.get_full_name}}<br>
+                        Generirano: {{ generated_at|date:"d.m.Y. H:i:s" }}
+                    </span>
+                </div>
+                <div class="col-6 text-end">
+                    <span class="small-text page-number-container">Stranica <span class="page-number"></span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</main>
+
+<script src="{% static 'js/bootstrap.min.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterType = document.querySelector('[name="filter_type"]');
+        const monthYearFilters = document.getElementById('month-year-filters');
+        const dateRangeFilters = document.getElementById('date-range-filters');
+
+        function updateFilters() {
+            const selected = document.querySelector('[name="filter_type"]:checked').value;
+            if (selected === 'month_year') {
+                monthYearFilters.style.display = 'flex';
+                dateRangeFilters.style.display = 'none';
+            } else {
+                monthYearFilters.style.display = 'none';
+                dateRangeFilters.style.display = 'flex';
+            }
+        }
+
+        document.querySelectorAll('[name="filter_type"]').forEach(radio => {
+            radio.addEventListener('change', updateFilters);
+        });
+
+        updateFilters();
+    });
+
+    // Broj stranica
+    (function() {
+        let pageNum = 1;
+
+        function updatePageNumbers() {
+            const pageNumbers = document.getElementsByClassName('page-number');
+            const pageBreaks = document.getElementsByClassName('page-break');
+            const totalPages = pageBreaks.length + 1;
+            
+            Array.from(pageNumbers).forEach((element, index) => {
+                element.textContent = `${pageNum}/${totalPages}`;
+                pageNum++;
+            });
+        }
+
+        window.onbeforeprint = function() {
+            pageNum = 1;
+            updatePageNumbers();
+        };
+
+        window.onafterprint = function() {
+            pageNum = 1;
+            const pageNumbers = document.getElementsByClassName('page-number');
+            Array.from(pageNumbers).forEach(element => {
+                element.textContent = '';
+            });
+        };
+    })();
+</script>
+{% endblock %}

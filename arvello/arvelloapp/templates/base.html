@@ -5,7 +5,7 @@
 <!doctype html>
 <html lang="hr">
   <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Arvello Invoicing System">
     <meta name="author" content="Frano Mišković">
@@ -27,6 +27,9 @@
         .bd-placeholder-img-lg {
           font-size: 3.5rem;
         }
+        #sidebarMenu.collapse:not(.show) {
+          display: none;
+      }
       }
 
       footer {
@@ -58,147 +61,178 @@
       align-items: center;
       display: inline-block;
       vertical-align: middle;
+      top: 2px;
     }
 
+    #sidebarMenu {
+      position: sticky;
+      top: 0;
+      min-width: 2.5em !important;
+      max-width: 2.5em !important;
+      z-index: 100;
+  }
+  
+    #sidebarMenu.collapse {
+        display: block;
+    }
+
+    .dropdown-fix {
+      display: block;
+      --bs-btn-padding-x: 0 !important;
+      --bs-btn-padding-y: 0 !important;
+      font-weight: var(--bs-nav-link-font-weight) !important;
+    }
+
+    .align-navitem {
+      display: flex;
+      align-items: center;
+      display: inline-block;
+      vertical-align: middle;
+    }
     </style>
 
 
 
   </head>
+
+
   <body>
+    <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow position:sticky" aria-expanded="false">
+      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">Arvello</a>
+      <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      {% comment %}
+      <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">
+      {% endcomment %}
 
-<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow position:sticky" aria-expanded="false">
-  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">Arvello</a>
-  <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
-  </button>
-  {% comment %}
-  <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">
-  {% endcomment %}
-
-    <div class="navbar-nav">
-      <div class="nav-item text-nowrap p-3 m-0 border-0 bd-example m-0 border-0">
-        <div class="dropdown">
-          <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" href="#" role="button">
-            {{request.user.get_full_name}}
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end"  style="position: absolute;">
-            <li><form method="post" action="{% url 'logout' %}"> {% csrf_token %} <button class="dropdown-item" type="submit">Odjava</button></form></li>
-          </ul>
+        <div class="navbar-nav">
+          <div class="nav-item text-nowrap p-3 m-0 border-0 bd-example m-0 border-0">
+            <div class="dropdown">
+              <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" href="#" role="button">
+                {{request.user.get_full_name}}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end"  style="position: absolute;">
+                <li><form method="post" action="{% url 'logout' %}"> {% csrf_token %} <button class="dropdown-item" type="submit">Odjava</button></form></li>
+              </ul>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
 
-</header>
+    </header>
 
-{% if messages %}
-    {% for message in messages %}
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == 'error' %}
+                    <div class="alert alert-danger">
+                        {{message}}
+                        {% if message != "\nProblem pri obradi zahtjeva\n" %}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
+                        {{message}}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
 
-    {% if message.tags == 'error' %}
-    <div class="alert alert-danger">
-    {{message}}
-    </div>
-    {% else %}
-    <div class="alert alert-{{message.tags}}">
-    {{message}}
-    </div>
-    {% endif %}
-
-    {% endfor %}
-    {% endif %}
-
-<div class="container-fluid">
-  <div class="row">
-    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse text-primary" style="height: 100%;">
-      <div class="position-fixed pt-3 text-black">
-        <ul class="nav flex-column">
-        {% comment %}
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'dashboard' %}">
-              <span data-feather="home"></span>
-              Dashboard
-            </a>
-          </li> {% endcomment %}
-          <li class="nav-item">
-            <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
-              <span data-feather="file"></span>
-              <span class="material-symbols-outlined align-icon">home</span>
-              Početna stranica
-            </a>
-          </li>	
-          <li class="nav-item">
-            <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
-              <span data-feather="file"></span>
-              <span class="material-symbols-outlined align-icon"> receipt_long </span>
-              Računi
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link black-text" href="{% url 'products' %}">
-              <span data-feather="shopping-cart"></span>
-              <span class="material-symbols-outlined align-icon"> category </span>
-              Usluge i proizvodi
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link black-text" href="{% url 'clients' %}">
-              <span data-feather="users"></span>
-              <span class="material-symbols-outlined align-icon"> person_edit </span>
-              Klijenti
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link black-text" href="{% url 'offers' %}">
-              <span data-feather="users"></span>
-              <span class="material-symbols-outlined align-icon"> request_page </span>
-              Ponude
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link black-text" href="{% url 'companies' %}">
-              <span data-feather="users"></span>
-              <span class="material-symbols-outlined align-icon"> attribution </span>
-              Subjekti
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link black-text" href="{% url 'inventory' %}">
-              <span data-feather="users"></span>
-              <span class="material-symbols-outlined align-icon"> edit_note </span>
-              Inventar
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link black-text" href="/logout">
-              <span data-feather="users"></span>
-              <span class="material-symbols-outlined align-icon">logout</span>
-              Odjava
-            </a>
-          </li>
-        </ul>
-        </ul>
-      </div>
-    </nav>
-
-
-
-
-  {% block main %}
-  {% endblock %}
+        <div class="container-fluid">
+          <div class="row">
+            <nav id="sidebarMenu" class="col-auto d-md-block bg-light sidebar collapse text-primary" style="min-width: 2.5em; max-width: 2.5em;">
+              <div class="position-fixed pt-3 text-black">
+              <ul class="nav flex-column">
+              {% comment %}
+              <li class="nav-item align-navitem">
+                  <a class="nav-link" href="{% url 'dashboard' %}">
+                    <span data-feather="home"></span>
+                    Dashboard
+                  </a>
+                </li> {% endcomment %}
+                <li class="nav-item align-navitem">
+                  <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
+                    <span class="material-symbols-outlined align-icon">home</span>
+                    Početna stranica
+                  </a>
+                </li>	
+                <li class="nav-item align-navitem">
+                  <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
+                    <span class="material-symbols-outlined align-icon"> receipt_long </span>
+                    Računi
+                  </a>
+                </li>
+                <li class="nav-item align-navitem">
+                  <a class="nav-link black-text" href="{% url 'products' %}">
+                    <span class="material-symbols-outlined align-icon"> category </span>
+                    Usluge i proizvodi
+                  </a>
+                </li>
+                <li class="nav-item align-navitem">
+                  <a class="nav-link black-text" href="{% url 'clients' %}">
+                    <span class="material-symbols-outlined align-icon"> person_edit </span>
+                    Klijenti
+                  </a>
+                </li>
+                <li class="nav-item align-navitem">
+                  <a class="nav-link black-text" href="{% url 'offers' %}">
+                    <span class="material-symbols-outlined align-icon"> request_page </span>
+                    Ponude
+                  </a>
+                </li>
+                <li class="nav-item align-navitem">
+                  <a class="nav-link black-text" href="{% url 'companies' %}">
+                    <span class="material-symbols-outlined align-icon"> attribution </span>
+                    Subjekti
+                  </a>
+                </li>
+                <li class="nav-item align-navitem">
+                  <a class="nav-link black-text" href="{% url 'inventory' %}">
+                    <span class="material-symbols-outlined align-icon"> edit_note </span>
+                    Inventar
+                  </a>
+                </li>
+                <li class="nav-item align-navitem">
+                  <div class="nav-link btn-group dropend nav-item black-text">
+                    <button type="button" class="btn dropdown-toggle dropdown-fix" data-bs-toggle="dropdown" aria-expanded="false">
+                      <span class="material-symbols-outlined align-icon"> lab_profile </span>
+                      Izvještaji
+                    </button>            
+                    <ul class="dropdown-menu">
+                      <li><button class="dropdown-item" type="button" ><a class="black-text" href="{% url 'outgoing_invoices_book_view' %}" style="text-decoration: none;">Knjiga izlaznih računa</a></button></li>
+                      <li><button class="dropdown-item disabled" type="button" aria-disabled="true">Knjiga ulaznih računa</button></li>
+                    </ul>
+                  </div>
+                </li>
+                <li class="nav-item align-navitem">
+                  <a class="nav-link black-text" href="/logout">
+                    <span class="material-symbols-outlined align-icon">logout</span>
+                    Odjava
+                  </a>
+                </li>
+              </ul>
+              </ul>
+          </div>
+        </nav>
 
 
 
 
-  </div>
-</div>
-
-
-      <script src="{% static '/js/bootstrap.bundle.min.js' %}"></script>
-
-      <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js" integrity="sha384-uO3SXW5IuS1ZpFPKugNNWqTZRRglnUJK6UAZ/gxOX80nxEkN9NcGZTftn6RzhGWE" crossorigin="anonymous"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js" integrity="sha384-zNy6FEbO50N+Cg5wap8IKA4M/ZnLJgzc6w2NqACZaK0u0FXfOWRRJOnQtpZun8ha" crossorigin="anonymous"></script>
-      {% block scripts %}
+      {% block main %}
       {% endblock %}
 
-      
+
+
+
+      </div>
+    </div>
+
+
+          <script src="{% static '/js/bootstrap.bundle.min.js' %}"></script>
+
+          <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js" integrity="sha384-uO3SXW5IuS1ZpFPKugNNWqTZRRglnUJK6UAZ/gxOX80nxEkN9NcGZTftn6RzhGWE" crossorigin="anonymous"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js" integrity="sha384-zNy6FEbO50N+Cg5wap8IKA4M/ZnLJgzc6w2NqACZaK0u0FXfOWRRJOnQtpZun8ha" crossorigin="anonymous"></script>
+          {% block scripts %}
+          {% endblock %}
+  </body>    
 </html>
