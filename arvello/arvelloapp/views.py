@@ -6,6 +6,8 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.models import User, auth
+from django.views.generic import FormView
+from django.utils import timezone
 from io import BytesIO
 from .forms import *
 from .models import *
@@ -14,6 +16,9 @@ import json
 import base64
 from barcode import Code128
 from barcode.writer import SVGWriter
+from datetime import datetime
+from calendar import monthrange
+import calendar
 
 def anonymous_required(function=None, redirect_url=None):
 
@@ -441,3 +446,73 @@ def inventory(request):
 
 
     return render(request, 'inventory.html', {'form': form}, context)
+
+@login_required
+def OutgoingInvoicesBookView(request):
+    context = {}
+    
+    if request.method == 'GET':
+        form = InvoiceFilterForm()
+        context['form'] = form
+        return render(request, 'outgoing_invoice_book_print.html', context)
+
+    if request.method == 'POST':
+        form = InvoiceFilterForm(request.POST)
+        context['form'] = form
+
+        if form.is_valid():
+            try:
+                company = form.cleaned_data['company']
+                filter_type = form.cleaned_data['filter_type']
+                
+                if filter_type == 'month_year':
+                    year = int(form.cleaned_data['year'])
+                    month = int(form.cleaned_data['month'])
+                    start_date = datetime(year, month, 1).date()
+                    _, last_day = monthrange(year, month)
+                    end_date = datetime(year, month, last_day).date()
+                else:
+                    start_date = form.cleaned_data['date_from']
+                    end_date = form.cleaned_data['date_to']
+
+                invoices = Invoice.objects.filter(
+                    subject=company,
+                    date__gte=start_date,
+                    date__lte=end_date
+                ).order_by('date')
+
+                if not invoices.exists():
+                    if filter_type == 'month_year':
+                        period_desc = f"mjesec {calendar.month_name[month]} {year}"
+                    else:
+                        period_desc = f"razdoblje od {start_date.strftime('%d.%m.%Y.')} do {end_date.strftime('%d.%m.%Y.')}"
+                    
+                    messages.warning(
+                        request,
+                        f"Nema pronađenih računa za {company.clientName} za {period_desc}"
+                    )
+
+                context.update({
+                    'invoices': invoices,
+                    'company': company,
+                    'start_date': start_date,
+                    'end_date': end_date,
+                    'total_pretax': sum(invoice.pretax() for invoice in invoices),
+                    'total_tax': sum(invoice.tax() for invoice in invoices),
+                    'total_with_tax': sum(invoice.price_with_vat() for invoice in invoices),
+                    'generated_at': timezone.now(),
+                    'show_results': True
+                })
+                
+            except Exception as e:
+                messages.error(
+                    request,
+                    'Došlo je do greške prilikom obrade podataka. Molimo pokušajte ponovno.'
+                )
+        else:
+            messages.error(request, 'Problem pri obradi zahtjeva')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+
+    return render(request, 'outgoing_invoice_book_print.html', context)

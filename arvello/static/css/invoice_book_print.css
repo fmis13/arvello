@@ -1,0 +1,120 @@
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 1.5cm;
+        @bottom-right {
+            content: "Stranica " counter(page);
+        }
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        padding: 0 !important;
+        font-size: 9pt;
+    }
+
+    .table {
+        font-size: 8pt;
+    }
+
+    .company-info {
+        font-size: 9pt;
+    }
+
+    .company-info h2 {
+        font-size: 12pt;
+        margin-bottom: 0.5rem;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tfoot {
+        display: table-footer-group;
+    }
+
+    tr {
+        page-break-inside: avoid;
+    }
+
+    .print-area {
+        width: 100%;
+    }
+
+    /* Zaobiđi Bootstrap stilove ispisa */
+    .table {
+        border-collapse: collapse !important;
+    }
+
+    .table td,
+    .table th {
+        background-color: #fff !important;
+        border: 1px solid #000 !important;
+        padding: 3px 5px !important;
+    }
+
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0,0,0,.05) !important;
+    }
+
+    .table-bordered th,
+    .table-bordered td {
+        border: 1px solid #000 !important;
+    }
+
+    /* sakrij izbornik iznad */
+    .d-print-none {
+        display: none !important;
+    }
+
+    /* podnožje */
+    .footer {
+        position: running(footer);
+        text-align: right;
+        font-size: 8pt;
+    }
+
+    /* margine */
+    .mb-4 {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .mb-1 {
+        margin-bottom: 0.1rem !important;
+    }
+}
+
+@media screen {
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .print-area {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        margin: 20px auto;
+        max-width: 297mm; /* A4 landscape širina */
+    }
+
+    .table-responsive {
+        margin-bottom: 1rem;
+    }
+}
+
+.page-number:after {
+    content: counter(page);
+}
+
+.text-end {
+    text-align: right;
+}
+
+.small {
+    font-size: 85%;
+}

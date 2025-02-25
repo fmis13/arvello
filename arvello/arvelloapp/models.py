@@ -91,7 +91,7 @@ class Company(models.Model):
 
 
     def __str__(self):
-        return '{} {}'.format(self.clientName, self.uniqueId)
+        return '{}'.format(self.clientName)
 
 
     def get_absolute_url(self):
@@ -184,7 +184,7 @@ class Client(models.Model):
 
 
     def __str__(self):
-        return '{} {}'.format(self.clientName, self.uniqueId)
+        return '{}'.format(self.clientName)
 
 
     def get_absolute_url(self):

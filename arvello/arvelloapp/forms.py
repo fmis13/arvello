@@ -8,6 +8,9 @@ from django.forms import BaseInlineFormSet, inlineformset_factory, ModelForm
 from django.forms.widgets import NumberInput
 from localflavor.generic.forms import IBANFormField
 from crispy_bootstrap5.bootstrap5 import FloatingField, Field
+from django.utils import timezone
+from django.db.models import Min, Max
+import calendar
 
 class DateInput(forms.DateInput):
     input_type = 'date'
@@ -206,3 +209,152 @@ class InventoryForm(forms.ModelForm):
         model = Inventory
         fields = ['title', 'quantity', 'subject']
         labels = {'title': 'Naziv proizvoda', 'quantity': 'Količina', 'subject' : 'Subjekt'}
+
+class InvoiceFilterForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Dohvati raspon godina iz računa
+        year_range = Invoice.objects.aggregate(
+            min_year=Min('date'),
+            max_year=Max('date')
+        )
+        
+        current_year = timezone.now().year
+        
+        # Ukoliko postoje računi, koristi godine iz računa
+        if year_range['min_year'] and year_range['max_year']:
+            start_year = year_range['min_year'].year
+            end_year = max(year_range['max_year'].year, current_year)
+        else:
+            # U protivnom, koristi trenutnu godinu
+            start_year = current_year
+            end_year = current_year
+            
+        self.fields['year'].choices = [
+            (str(x), str(x)) for x in range(start_year, end_year + 1)
+        ]
+        # zadana godina - sadašnja godina
+        self.fields['year'].initial = str(current_year)
+
+        # crispy
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Row(
+                Column('company', css_class='col-md-4'),
+                Column('filter_type', css_class='col-md-8'),
+                css_class='mb-3'
+            ),
+            Row(
+                Column('year', css_class='col-md-3'),
+                Column('month', css_class='col-md-3'),
+                css_class='mb-3',
+                id='month-year-filters'
+            ),
+            Row(
+                Column('date_from', css_class='col-md-3'),
+                Column('date_to', css_class='col-md-3'),
+                css_class='mb-3',
+                id='date-range-filters'
+            )
+        )
+
+    company = forms.ModelChoiceField(
+        queryset=Company.objects.all(),
+        label='Tvrtka',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        error_messages={
+            'required': 'Molimo odaberite tvrtku',
+            'invalid_choice': 'Odabrana tvrtka nije važeća'
+        }
+    )
+    
+    FILTER_CHOICES = [
+        ('month_year', 'Po mjesecu i godini'),
+        ('date_range', 'Po razdoblju'),
+    ]
+    
+    filter_type = forms.ChoiceField(
+        choices=FILTER_CHOICES,
+        label='Način filtriranja',
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        initial='month_year',
+        error_messages={
+            'required': 'Molimo odaberite način filtriranja',
+            'invalid_choice': 'Odabrani način filtriranja nije važeći'
+        }
+    )
+    
+    year = forms.ChoiceField(
+        choices=[],
+        label='Godina',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=False,
+        error_messages={
+            'invalid_choice': 'Odabrana godina nije važeća'
+        }
+    )
+    
+    month = forms.ChoiceField(
+        choices=[
+            ('1', 'Siječanj'), ('2', 'Veljača'), ('3', 'Ožujak'),
+            ('4', 'Travanj'), ('5', 'Svibanj'), ('6', 'Lipanj'),
+            ('7', 'Srpanj'), ('8', 'Kolovoz'), ('9', 'Rujan'),
+            ('10', 'Listopad'), ('11', 'Studeni'), ('12', 'Prosinac')
+        ],
+        label='Mjesec',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=False,
+        error_messages={
+            'invalid_choice': 'Odabrani mjesec nije važeći'
+        }
+    )
+    
+    date_from = forms.DateField(
+        label='Od datuma',
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        required=False,
+        error_messages={
+            'invalid': 'Neispravan format datuma'
+        }
+    )
+    
+    date_to = forms.DateField(
+        label='Do datuma',
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        required=False,
+        error_messages={
+            'invalid': 'Neispravan format datuma'
+        }
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        filter_type = cleaned_data.get('filter_type')
+        
+        if filter_type == 'month_year':
+            year = cleaned_data.get('year')
+            month = cleaned_data.get('month')
+            if not year:
+                self.add_error('year', 'Godina je obavezna za mjesečni prikaz')
+            if not month:
+                self.add_error('month', 'Mjesec je obavezan za mjesečni prikaz')
+                
+        elif filter_type == 'date_range':
+            date_from = cleaned_data.get('date_from')
+            date_to = cleaned_data.get('date_to')
+            
+            if not date_from:
+                self.add_error('date_from', 'Početni datum je obavezan za razdoblje')
+            if not date_to:
+                self.add_error('date_to', 'Završni datum je obavezan za razdoblje')
+                
+            if date_from and date_to and date_from > date_to:
+                self.add_error('date_from', 'Početni datum mora biti prije završnog datuma')
+                
+        return cleaned_data
