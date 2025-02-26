@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block main %}
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Troškovi</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+              <div class="btn-group me-2">
+                {% comment %}
+                <button type="button" class="btn btn-sm btn-outline-secondary">Print</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary">Export</button> {% endcomment %}
+                <button href="#addExpenseModal" type="button" class="btn btn-primary" data-bs-toggle="modal">Novi trošak</button>
+              </div>
+            </div>
+          </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Naziv</th>
+                        <th>Iznos</th>
+                        <th>Valuta</th>
+                        <th>Datum</th>
+                        <th>Kategorija</th>
+                        <th>Subjekt</th>
+                        <th>Račun</th>
+                        <th>Akcije</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr>
+                        <td>{{ expense.title }}</td>
+                        <td>{{ expense.amount }}</td>
+                        <td>{{ expense.get_currency_display }}</td>
+                        <td>{{ expense.date }}</td>
+                        <td>{{ expense.get_category_display }}</td>
+                        <td>{{ expense.subject }}</td>
+                        <td>
+                            {% if expense.receipt %}
+                            <a href="{{ expense.receipt.url }}" target="_blank" class="btn btn-sm btn-link">
+                                <span class="material-symbols-outlined">description</span>
+                            </a>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-link edit-expense" 
+                                    data-id="{{ expense.pk }}" 
+                                    data-title="{{ expense.title }}"
+                                    data-amount="{{ expense.amount }}"
+                                    data-currency="{{ expense.currency }}"
+                                    data-date="{{ expense.date|date:'Y-m-d' }}"
+                                    data-category="{{ expense.category }}"
+                                    data-subject="{{ expense.subject.id }}"
+                                    data-description="{{ expense.description }}"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#editExpenseModal">
+                                <span class="material-symbols-outlined">edit</span>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link delete-expense" 
+                                    data-id="{{ expense.pk }}"
+                                    data-title="{{ expense.title }}"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#deleteExpenseModal">
+                                <span class="material-symbols-outlined" style="color: #dc3545;">delete</span>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">Nema unesenih troškova</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal za dodavanje novog troška -->
+    <div class="modal modal-sheet py-5" tabindex="-1" id="addExpenseModal">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-6 shadow">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="modal-header border-bottom-0">
+                        <h5 class="modal-title">Novi trošak</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                    </div>
+                    
+                    <div class="modal-body py-0">
+                        {{ form|crispy }}
+                    </div>
+                    
+                    <div class="modal-footer flex-column border-top-0">
+                        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi</button>
+                        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal modal-sheet py-5" tabindex="-1" id="editExpenseModal">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-6 shadow">
+                <form method="post" enctype="multipart/form-data" id="edit-expense-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="expense_id" id="edit-expense-id">
+                    
+                    <div class="modal-header border-bottom-0">
+                        <h5 class="modal-title">Uredi trošak</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                    </div>
+                    
+                    <div class="modal-body py-0">
+                        {{ edit_form|crispy }}
+                    </div>
+                    
+                    <div class="modal-footer flex-column border-top-0">
+                        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi promjene</button>
+                        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete confirmation modal -->
+    <div class="modal fade" id="deleteExpenseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Potvrda brisanja</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Jeste li sigurni da želite izbrisati trošak: <span id="deleteExpenseTitle"></span>?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">Izbriši</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Edit expense handler
+    document.querySelectorAll('.edit-expense').forEach(button => {
+        button.addEventListener('click', function() {
+            const form = document.getElementById('edit-expense-form');
+            
+            // Set the id in the hidden field
+            form.querySelector('input[name="expense_id"]').value = this.getAttribute('data-id');
+            
+            // Set each form field value
+            const fields = {
+                'title': this.getAttribute('data-title'),
+                'amount': this.getAttribute('data-amount'),
+                'currency': this.getAttribute('data-currency'),
+                'date': this.getAttribute('data-date'),
+                'category': this.getAttribute('data-category'),
+                'subject': this.getAttribute('data-subject'),
+                'description': this.getAttribute('data-description') || ''
+            };
+
+            Object.keys(fields).forEach(fieldName => {
+                const field = form.querySelector(`[name="${fieldName}"]`);
+                if (field) {
+                    field.value = fields[fieldName];
+                }
+            });
+        });
+    });
+
+    // Delete expense handler
+    let expenseToDelete = null;
+    
+    document.querySelectorAll('.delete-expense').forEach(button => {
+        button.addEventListener('click', function() {
+            expenseToDelete = this.getAttribute('data-id');
+            document.getElementById('deleteExpenseTitle').textContent = this.getAttribute('data-title');
+        });
+    });
+
+    document.getElementById('confirmDelete').addEventListener('click', function() {
+        if (expenseToDelete) {
+            fetch(`/expenses/delete/${expenseToDelete}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                }
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

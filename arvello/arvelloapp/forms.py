@@ -26,6 +26,11 @@ class UserLoginForm(forms.ModelForm):
 
 
 class ClientForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'form-control'})
+
     class Meta:
         model = Client
         fields = ['clientName', 'addressLine1', 'province', 'postalCode', 'phoneNumber', 'emailAddress', 'clientUniqueId', 'clientType', 'OIB', 'VATID']
@@ -39,6 +44,11 @@ class ClientForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'form-control'})
+            
     class Meta:
         model = Product
         fields = ['title', 'description', 'price', 'taxPercent', 'currency', 'barid']
@@ -122,6 +132,12 @@ class OfferForm(forms.ModelForm):
     date = forms.DateField(required = True, label='Datum ponude', widget=DateInput(attrs={'class': 'form-control'}),)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({
+                'class': 'form-control',
+            })
+            if field.widget.__class__.__name__ == 'DateInput':
+                field.widget.attrs.update({'type': 'date'})
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.layout = Layout(
@@ -186,6 +202,10 @@ OfferProductFormSet = inlineformset_factory(
 
 class CompanyForm(forms.ModelForm):
     IBAN = IBANFormField(label="IBAN")
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'form-control'})
     class Meta:
         model = Company
         fields = ['clientName', 'addressLine1', 'town', 'province', 'postalCode', 'phoneNumber', 'emailAddress', 'clientUniqueId', 'clientType', 'OIB', 'SustavPDVa', 'IBAN']
@@ -211,6 +231,11 @@ class InventoryForm(forms.ModelForm):
         labels = {'title': 'Naziv proizvoda', 'quantity': 'Količina', 'subject' : 'Subjekt'}
 
 class InvoiceFilterForm(forms.Form):
+    FILTER_CHOICES = [
+        ('month_year', 'Po mjesecu i godini'),
+        ('date_range', 'Po razdoblju'),
+    ]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Dohvati raspon godina iz računa
@@ -267,11 +292,6 @@ class InvoiceFilterForm(forms.Form):
             'invalid_choice': 'Odabrana tvrtka nije važeća'
         }
     )
-    
-    FILTER_CHOICES = [
-        ('month_year', 'Po mjesecu i godini'),
-        ('date_range', 'Po razdoblju'),
-    ]
     
     filter_type = forms.ChoiceField(
         choices=FILTER_CHOICES,
@@ -358,3 +378,21 @@ class InvoiceFilterForm(forms.Form):
                 self.add_error('date_from', 'Početni datum mora biti prije završnog datuma')
                 
         return cleaned_data
+
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ['title', 'amount', 'currency', 'date', 'category', 'description', 'subject', 'receipt']
+        labels = {
+            'title': 'Naziv troška',
+            'amount': 'Iznos',
+            'currency': 'Valuta',
+            'date': 'Datum',
+            'category': 'Kategorija',
+            'description': 'Opis',
+            'subject': 'Subjekt',
+            'receipt': 'Račun (slika/PDF)'
+        }
+        widgets = {
+            'date': DateInput()
+        }
