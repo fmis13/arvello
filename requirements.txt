@@ -8,7 +8,7 @@ pillow==10.3.0
 reportlab==4.3.1
 six==1.16.0
 soupsieve==2.6
-sqlparse==0.4.4
+sqlparse==0.5.3
 tzdata==2024.1
 django-clearcache==1.2.1
 requests==2.31.0
