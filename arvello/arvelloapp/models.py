@@ -208,9 +208,11 @@ class Client(models.Model):
 
 class Product(models.Model):
     CURRENCY = [
-    ('€', 'EUR'),
     ('$', 'USD'),
+    ('€', 'EUR'),
     ('£', 'GBP'),
+    #Slobodno nadodajte valute
+    #Add other currencies freely
     ]
 
     title = models.CharField(null=False, blank=False, max_length=100)
@@ -501,51 +503,3 @@ class OfferProduct(models.Model):
 #        self.last_updated = timezone.localtime(timezone.now)
 #
 #        super(inventory, self).save(*args, **kwargs)
-
-class Expense(models.Model):
-    EXPENSE_CATEGORIES = [
-        ('office', 'Uredski troškovi'),
-        ('travel', 'Putni troškovi'),
-        ('utilities', 'Režije'),
-        ('equipment', 'Oprema'),
-        ('services', 'Usluge'),
-        ('other', 'Ostalo')
-    ]
-
-    CURRENCY = [
-        ('€', 'EUR'),
-        ('$', 'USD'),
-        ('£', 'GBP'),
-    ]
-
-    title = models.CharField(null=False, blank=False, max_length=200)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
-    currency = models.CharField(choices=CURRENCY, default='€', max_length=3)
-    date = models.DateField(null=False, blank=False)
-    category = models.CharField(choices=EXPENSE_CATEGORIES, max_length=50, null=False, blank=False)
-    description = models.TextField(null=True, blank=True)
-    subject = models.ForeignKey(Company, blank=False, null=False, on_delete=models.DO_NOTHING)
-    receipt = models.FileField(upload_to='receipts/', null=True, blank=True)
-    uniqueId = models.CharField(null=True, blank=True, max_length=100, unique=True)
-    slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
-    date_created = models.DateTimeField(blank=True, null=True)
-    last_updated = models.DateTimeField(blank=True, null=True)
-
-    def __str__(self):
-        return f'{self.title} - {self.amount} {self.currency}'
-
-    def get_currency_code(self):
-        currency_dict = dict((x, y) for x, y in self.CURRENCY)
-        return currency_dict.get(self.currency)
-
-    def save(self, *args, **kwargs):
-        if self.date_created is None:
-            self.date_created = timezone.localtime(timezone.now())
-        if self.uniqueId is None:
-            self.uniqueId = str(uuid4()).split('-')[4]
-            self.slug = slugify('{} {}'.format(self.title, self.uniqueId))
-
-        self.slug = slugify('{} {}'.format(self.title, self.uniqueId))
-        self.last_updated = timezone.localtime(timezone.now())
-
-        super(Expense, self).save(*args, **kwargs)
