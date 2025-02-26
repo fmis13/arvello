@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect, FileResponse
+from django.http import HttpResponse, HttpResponseRedirect, FileResponse, JsonResponse
 from django.core.cache import cache
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -516,3 +516,41 @@ def OutgoingInvoicesBookView(request):
                     messages.error(request, f"{field}: {error}")
 
     return render(request, 'outgoing_invoice_book_print.html', context)
+
+@login_required
+def expenses(request):
+    context = {}
+    expenses_list = Expense.objects.all().order_by('-date')
+    context['expenses'] = expenses_list
+
+    if request.method == 'POST':
+        expense_id = request.POST.get('expense_id')
+        if expense_id:
+            expense = get_object_or_404(Expense, pk=expense_id)
+            if request.FILES:
+                form = ExpenseForm(request.POST, request.FILES, instance=expense)
+            else:
+                form = ExpenseForm(request.POST, instance=expense)
+        else:
+            form = ExpenseForm(request.POST, request.FILES)
+        
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Trošak uspješno spremljen')
+            return redirect('expenses')
+        else:
+            messages.error(request, 'Problem pri obradi zahtjeva')
+            context['edit_form'] = form  # Return the form with errors
+            return render(request, 'expenses.html', context)
+    
+    context['form'] = ExpenseForm()
+    context['edit_form'] = ExpenseForm()
+    return render(request, 'expenses.html', context)
+
+@login_required
+def delete_expense(request, pk):
+    if request.method == 'POST':
+        expense = get_object_or_404(Expense, pk=pk)
+        expense.delete()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=400)
