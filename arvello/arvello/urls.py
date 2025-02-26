@@ -20,6 +20,8 @@ from arvelloapp.views import *
 from arvelloapp import views
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('', login, name='login'),
@@ -41,7 +43,9 @@ urlpatterns = [
     path('inventory_label/<int:pk>/', inventory_label, name='inventory_label'),
     path('product_label/<int:pk>/', product_label, name='product_label'),
     path('outgoing_invoices_book_view/', views.OutgoingInvoicesBookView, name='outgoing_invoices_book_view'),
-]
+    path('expenses/', views.expenses, name='expenses'),
+    path('expenses/delete/<int:pk>/', views.delete_expense, name='delete_expense'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 admin.site.site_header = "Arvello backend administracija"
 admin.site.site_title = "Arvello backend"
