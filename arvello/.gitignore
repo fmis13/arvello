@@ -9,3 +9,4 @@ arvelloapp/__pycache__
 arvelloapp/migrations
 .idea
 .vscode
+*media/*
