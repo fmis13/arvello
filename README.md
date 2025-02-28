@@ -1,4 +1,5 @@
 # <center>**Arvello**</center>
+# <center>**NOTE - THIS DOCUMENTATION IS A WIP!**</center>
 
 A simple invoice creator for Croatian small businesses.
 This program is written to adapt the Croatian language. Further adding of other functionality is imminent. 
@@ -35,7 +36,7 @@ python manage.py runserver [IP ADRESA]:[PORT] #ovime se pokreće web server
 None for now.
 ## Contributing
 
-Contributing will not be allowed until 21-06-2024 23:59 CET because of this project being a part of a national competition.
+Contributing will not be allowed until 13-06-2025 23:59 CET because of this project being a part of a national competition.
 All pull requests until then ***will be rejected***.
 
 ## License
