@@ -334,7 +334,7 @@ def invoice_pdf(request, pk):
                 "place": client.postalCode + " " + client.province,
             },
             "receiver": {
-                "name": subject.clientName,
+                "name": subject.clientName[:25],
                 "street": subject.addressLine1,
                 "place": subject.postalCode + " " + subject.province,
                 "iban": subject.IBAN,
@@ -347,7 +347,7 @@ def invoice_pdf(request, pk):
     }
     response = requests.post(url, headers=headers, data=json.dumps(data))
     barcode_image = base64.b64encode(response.content).decode()
-    #print(response.status_code)
+    print(response.status_code)
     #print(response.content)
     return render(request, 'invoice_export_view.html', {'invoice': invoice, 'products': product, 'client': client, 'subject': subject, 'barcode_image': barcode_image})
 
@@ -377,7 +377,7 @@ def offer_pdf(request, pk):
                 "place": client.postalCode + " " + client.province,
             },
             "receiver": {
-                "name": subject.clientName,
+                "name": subject.clientName[:25],
                 "street": subject.addressLine1,
                 "place": subject.postalCode + " " + subject.province,
                 "iban": subject.IBAN,
