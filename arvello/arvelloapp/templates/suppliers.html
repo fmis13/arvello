@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block main %}
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Dobavljači</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button href="#addSupplierModal" type="button" class="btn btn-primary" data-bs-toggle="modal">Dodaj dobavljača</button>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Naziv</th>
+                    <th>OIB</th>
+                    <th>Adresa</th>
+                    <th>Grad</th>
+                    <th>Tel. br.</th>
+                    <th>Email</th>
+                    <th>Radnje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in suppliers %}
+                <tr>
+                    <td>{{ supplier.supplierName }}</td>
+                    <td>{{ supplier.OIB|default:"-" }}</td>
+                    <td>{{ supplier.addressLine1 }}</td>
+                    <td>{{ supplier.town }}</td>
+                    <td>{{ supplier.phoneNumber|default:"-" }}</td>
+                    <td>{{ supplier.emailAddress|default:"-" }}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-info view-supplier"
+                               data-id="{{ supplier.id }}"
+                               data-naziv="{{ supplier.supplierName }}"
+                               data-adresa="{{ supplier.addressLine1 }}"
+                               data-grad="{{ supplier.town }}"
+                               data-postanski-broj="{{ supplier.postalCode }}"
+                               data-zupanija="{{ supplier.province }}"
+                               data-telefon="{{ supplier.phoneNumber|default:'' }}"
+                               data-email="{{ supplier.emailAddress|default:'' }}"
+                               data-vrsta-subjekta="{{ supplier.businessType }}"
+                               data-oib="{{ supplier.OIB|default:'' }}"
+                               data-iban="{{ supplier.IBAN|default:'' }}"
+                               data-napomena="{{ supplier.notes|default:'' }}"
+                               data-bs-toggle="modal" 
+                               data-bs-target="#viewSupplierModal">
+                            <span class="material-symbols-outlined">visibility</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-warning edit-supplier"
+                               data-id="{{ supplier.id }}"
+                               data-naziv="{{ supplier.supplierName }}"
+                               data-adresa="{{ supplier.addressLine1 }}"
+                               data-grad="{{ supplier.town }}"
+                               data-postanski-broj="{{ supplier.postalCode }}"
+                               data-zupanija="{{ supplier.province }}"
+                               data-telefon="{{ supplier.phoneNumber|default:'' }}"
+                               data-email="{{ supplier.emailAddress|default:'' }}"
+                               data-vrsta-subjekta="{{ supplier.businessType }}"
+                               data-oib="{{ supplier.OIB|default:'' }}"
+                               data-iban="{{ supplier.IBAN|default:'' }}"
+                               data-napomena="{{ supplier.notes|default:'' }}"
+                               data-bs-toggle="modal" 
+                               data-bs-target="#editSupplierModal">
+                            <span class="material-symbols-outlined">edit</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger delete-supplier"
+                               data-id="{{ supplier.id }}"
+                               data-naziv="{{ supplier.supplierName }}"
+                               data-bs-toggle="modal" 
+                               data-bs-target="#deleteSupplierModal">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">Nadodajte prvog dobavljača</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="modal modal-sheet py-5" tabindex="-1" id="addSupplierModal">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-6 shadow">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title">Novi dobavljač</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add">
+                    
+                    <div class="modal-body py-0">
+                        {{ form|crispy }}
+                    </div>
+                    
+                    <div class="modal-footer flex-column border-top-0">
+                        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi</button>
+                        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal za prikaz dobavljača -->
+    <div class="modal modal-sheet py-5" tabindex="-1" id="viewSupplierModal">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-6 shadow">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title">Detalji dobavljača: <span id="viewSupplierTitle"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                </div>
+                <div class="modal-body py-0">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Naziv dobavljača:</strong>
+                            <p id="viewSupplierNaziv"></p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Vrsta subjekta:</strong>
+                            <p id="viewSupplierVrsta"></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>OIB:</strong>
+                            <p id="viewSupplierOIB"></p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>IBAN:</strong>
+                            <p id="viewSupplierIBAN"></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Adresa:</strong>
+                            <p id="viewSupplierAdresa"></p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Grad:</strong>
+                            <p id="viewSupplierGrad"></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Županija:</strong>
+                            <p id="viewSupplierZupanija"></p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Poštanski broj:</strong>
+                            <p id="viewSupplierPostanski"></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Telefon:</strong>
+                            <p id="viewSupplierTelefon"></p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>E-mail:</strong>
+                            <p id="viewSupplierEmail"></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <strong>Napomena:</strong>
+                            <p id="viewSupplierNapomena"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer flex-column border-top-0">
+                    <button type="button" class="btn btn-lg btn-secondary w-100 mx-0" data-bs-dismiss="modal">Zatvori</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal modal-sheet py-5" tabindex="-1" id="editSupplierModal">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-6 shadow">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title">Uredi dobavljača: <span id="editSupplierTitle"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                </div>
+                <form method="post" id="edit-supplier-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="supplier_id" id="edit_supplier_id">
+                    
+                    <div class="modal-body py-0">
+                        {{ edit_form|crispy }}
+                    </div>
+                    
+                    <div class="modal-footer flex-column border-top-0">
+                        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi promjene</button>
+                        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteSupplierModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Potvrda brisanja</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Jeste li sigurni da želite izbrisati dobavljača: <span id="deleteSupplierName"></span>?</p>
+                </div>
+                <div class="modal-footer">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="supplier_id" id="delete_supplier_id">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                        <button type="submit" class="btn btn-danger">Izbriši</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.view-supplier').forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('viewSupplierTitle').textContent = this.getAttribute('data-naziv');
+            document.getElementById('viewSupplierNaziv').textContent = this.getAttribute('data-naziv');
+            document.getElementById('viewSupplierOIB').textContent = this.getAttribute('data-oib') || '-';
+            document.getElementById('viewSupplierIBAN').textContent = this.getAttribute('data-iban') || '-';
+            document.getElementById('viewSupplierAdresa').textContent = this.getAttribute('data-adresa');
+            document.getElementById('viewSupplierGrad').textContent = this.getAttribute('data-grad') + ' ' + this.getAttribute('data-postanski-broj');
+            document.getElementById('viewSupplierZupanija').textContent = this.getAttribute('data-zupanija');
+            document.getElementById('viewSupplierPostanski').textContent = this.getAttribute('data-postanski-broj');
+            document.getElementById('viewSupplierTelefon').textContent = this.getAttribute('data-telefon') || '-';
+            document.getElementById('viewSupplierEmail').textContent = this.getAttribute('data-email') || '-';
+            document.getElementById('viewSupplierVrsta').textContent = this.getAttribute('data-vrsta-subjekta');
+            document.getElementById('viewSupplierNapomena').textContent = this.getAttribute('data-napomena') || '-';
+        });
+    });
+    
+    document.querySelectorAll('.edit-supplier').forEach(button => {
+        button.addEventListener('click', function() {
+            const form = document.getElementById('edit-supplier-form');
+            
+            document.getElementById('edit_supplier_id').value = this.getAttribute('data-id');
+            document.getElementById('editSupplierTitle').textContent = this.getAttribute('data-naziv');
+            
+            form.querySelector('#id_supplierName').value = this.getAttribute('data-naziv');
+            form.querySelector('#id_addressLine1').value = this.getAttribute('data-adresa');
+            form.querySelector('#id_town').value = this.getAttribute('data-grad');
+            form.querySelector('#id_postalCode').value = this.getAttribute('data-postanski-broj');
+            form.querySelector('#id_province').value = this.getAttribute('data-zupanija');
+            form.querySelector('#id_phoneNumber').value = this.getAttribute('data-telefon');
+            form.querySelector('#id_emailAddress').value = this.getAttribute('data-email');
+            form.querySelector('#id_businessType').value = this.getAttribute('data-vrsta-subjekta');
+            form.querySelector('#id_OIB').value = this.getAttribute('data-oib');
+            form.querySelector('#id_IBAN').value = this.getAttribute('data-iban');
+            form.querySelector('#id_notes').value = this.getAttribute('data-napomena');
+        });
+    });
+    
+    document.querySelectorAll('.delete-supplier').forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('deleteSupplierName').textContent = this.getAttribute('data-naziv');
+            document.getElementById('delete_supplier_id').value = this.getAttribute('data-id');
+        });
+    });
+});
+</script>
+{% endblock %}

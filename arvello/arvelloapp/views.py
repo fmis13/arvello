@@ -4,6 +4,7 @@ from django.core.cache import cache
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
+from django.db.models import Sum
 from django.contrib import messages
 from django.contrib.auth.models import User, auth
 from django.views.generic import FormView
@@ -19,6 +20,8 @@ from barcode.writer import SVGWriter
 from datetime import datetime
 from calendar import monthrange
 import calendar
+from django.utils import timezone
+
 
 def anonymous_required(function=None, redirect_url=None):
 
@@ -520,28 +523,38 @@ def OutgoingInvoicesBookView(request):
 @login_required
 def expenses(request):
     context = {}
-    expenses_list = Expense.objects.all().order_by('-date')
-    context['expenses'] = expenses_list
-
+    try:
+        expenses_list = Expense.objects.all().order_by('-date')
+        context['expenses'] = expenses_list
+    except Exception as e:
+        messages.error(request, f"Nije moguće prikazati troškove. Greška: {str(e)}")
+        context['expenses'] = []
+    
     if request.method == 'POST':
         expense_id = request.POST.get('expense_id')
         if expense_id:
-            expense = get_object_or_404(Expense, pk=expense_id)
-            if request.FILES:
-                form = ExpenseForm(request.POST, request.FILES, instance=expense)
-            else:
-                form = ExpenseForm(request.POST, instance=expense)
+            try:
+                expense = get_object_or_404(Expense, pk=expense_id)
+                if request.FILES:
+                    form = ExpenseForm(request.POST, request.FILES, instance=expense)
+                else:
+                    form = ExpenseForm(request.POST, instance=expense)
+            except Exception as e:
+                messages.error(request, f"Greška pri učitavanju troška: {str(e)}")
+                form = ExpenseForm(request.POST, request.FILES)
         else:
             form = ExpenseForm(request.POST, request.FILES)
         
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Trošak uspješno spremljen')
-            return redirect('expenses')
+            try:
+                form.save()
+                messages.success(request, 'Trošak uspješno spremljen')
+                return redirect('expenses')
+            except Exception as e:
+                messages.error(request, f"Greška pri spremanju troška: {str(e)}")
         else:
             messages.error(request, 'Problem pri obradi zahtjeva')
-            context['edit_form'] = form  # Return the form with errors
-            return render(request, 'expenses.html', context)
+            context['edit_form'] = form
     
     context['form'] = ExpenseForm()
     context['edit_form'] = ExpenseForm()
@@ -554,3 +567,133 @@ def delete_expense(request, pk):
         expense.delete()
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def suppliers(request):
+    context = {}
+    suppliers_list = Supplier.objects.all().order_by('supplierName')
+    context['suppliers'] = suppliers_list
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            form = SupplierForm(request.POST)
+            if form.is_valid():
+                supplier = form.save()
+                messages.success(request, f'Supplier "{supplier.supplierName}" uspješno je dodan.')
+                return redirect('suppliers')
+            else:
+                context['form'] = form
+        
+        elif action == 'edit':
+            supplier_id = request.POST.get('supplier_id')
+            supplier = get_object_or_404(Supplier, id=supplier_id)
+            form = SupplierForm(request.POST, instance=supplier)
+            if form.is_valid():
+                supplier = form.save()
+                messages.success(request, f'Dobavljač "{supplier.supplierName}" uspješno je ažuriran.')
+                return redirect('suppliers')
+            else:
+                context['edit_form'] = form
+        
+        elif action == 'delete':
+            supplier_id = request.POST.get('supplier_id')
+            supplier = get_object_or_404(Supplier, id=supplier_id)
+            supplier_name = supplier.supplierName
+            
+            related_expenses = Expense.objects.filter(supplier=supplier).count()
+            if related_expenses > 0:
+                messages.error(request, 
+                    f'Dobavljač "{supplier_name}" ne može biti obrisan jer je vezan s {related_expenses} troška.')
+                return redirect('suppliers')
+                
+            supplier.delete()
+            messages.success(request, f'Dobavljač "{supplier_name}" uspješno je obrisan.')
+            return redirect('suppliers')
+    
+    if 'form' not in context:
+        context['form'] = SupplierForm()
+    if 'edit_form' not in context:
+        context['edit_form'] = SupplierForm()
+    
+    return render(request, 'suppliers.html', context)
+
+@login_required
+def incoming_invoice_book(request):
+    if request.method == 'POST':
+        form = IncomingInvoiceBookFilterForm(request.POST)
+        if form.is_valid():
+            company = form.cleaned_data['company']
+            filter_type = form.cleaned_data['filter_type']
+            
+            if filter_type == 'month_year':
+                month = int(form.cleaned_data['month'])
+                year = int(form.cleaned_data['year'])
+                _, last_day = calendar.monthrange(year, month)
+                start_date = datetime(year, month, 1).date()
+                end_date = datetime(year, month, last_day).date()
+            else:
+                start_date = form.cleaned_data['date_from']
+                end_date = form.cleaned_data['date_to']
+            
+            expenses = Expense.objects.filter(
+                subject=company,
+                date__gte=start_date,
+                date__lte=end_date
+            ).order_by('date')
+            
+            total_tax_base_0 = expenses.aggregate(Sum('tax_base_0'))['tax_base_0__sum'] or 0
+            total_tax_base_5 = expenses.aggregate(Sum('tax_base_5'))['tax_base_5__sum'] or 0
+            total_tax_base_13 = expenses.aggregate(Sum('tax_base_13'))['tax_base_13__sum'] or 0
+            total_tax_base_25 = expenses.aggregate(Sum('tax_base_25'))['tax_base_25__sum'] or 0
+            
+            total_tax_5_deductible = expenses.aggregate(Sum('tax_5_deductible'))['tax_5_deductible__sum'] or 0
+            total_tax_5_nondeductible = expenses.aggregate(Sum('tax_5_nondeductible'))['tax_5_nondeductible__sum'] or 0
+            total_tax_13_deductible = expenses.aggregate(Sum('tax_13_deductible'))['tax_13_deductible__sum'] or 0
+            total_tax_13_nondeductible = expenses.aggregate(Sum('tax_13_nondeductible'))['tax_13_nondeductible__sum'] or 0
+            total_tax_25_deductible = expenses.aggregate(Sum('tax_25_deductible'))['tax_25_deductible__sum'] or 0
+            total_tax_25_nondeductible = expenses.aggregate(Sum('tax_25_nondeductible'))['tax_25_nondeductible__sum'] or 0
+            
+            total_tax_base = total_tax_base_0 + total_tax_base_5 + total_tax_base_13 + total_tax_base_25
+            total_tax_deductible = total_tax_5_deductible + total_tax_13_deductible + total_tax_25_deductible
+            total_tax_nondeductible = total_tax_5_nondeductible + total_tax_13_nondeductible + total_tax_25_nondeductible
+            total_tax = total_tax_deductible + total_tax_nondeductible
+            total_amount = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+            total_with_tax = total_amount
+            
+            context = {
+                'form': form,
+                'company': company,
+                'start_date': start_date,
+                'end_date': end_date,
+                'expenses': expenses,
+                'total_tax_base_0': total_tax_base_0,
+                'total_tax_base_5': total_tax_base_5,
+                'total_tax_base_13': total_tax_base_13,
+                'total_tax_base_25': total_tax_base_25,
+                'total_tax_base': total_tax_base,
+                'total_tax_5_deductible': total_tax_5_deductible,
+                'total_tax_5_nondeductible': total_tax_5_nondeductible,
+                'total_tax_13_deductible': total_tax_13_deductible,
+                'total_tax_13_nondeductible': total_tax_13_nondeductible,
+                'total_tax_25_deductible': total_tax_25_deductible,
+                'total_tax_25_nondeductible': total_tax_25_nondeductible,
+                'total_tax_deductible': total_tax_deductible,
+                'total_tax_nondeductible': total_tax_nondeductible,
+                'total_tax': total_tax,
+                'total_amount': total_amount,
+                'total_with_tax': total_with_tax,
+                'show_results': True,
+                'generated_at': timezone.now()
+            }
+            return render(request, 'incoming_invoice_book_print.html', context)
+    else:
+        today = timezone.now().date()
+        form = IncomingInvoiceBookFilterForm(initial={
+            'month': str(today.month),
+            'year': str(today.year),
+            'date_from': today.replace(day=1),
+            'date_to': today
+        })
+    
+    return render(request, 'incoming_invoice_book_print.html', {'form': form, 'show_results': False})

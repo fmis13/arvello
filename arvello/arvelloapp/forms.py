@@ -11,6 +11,10 @@ from crispy_bootstrap5.bootstrap5 import FloatingField, Field
 from django.utils import timezone
 from django.db.models import Min, Max
 import calendar
+from .models import Supplier, Expense
+from django.forms import inlineformset_factory
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Fieldset, ButtonHolder, Submit, Row, Column
 
 class DateInput(forms.DateInput):
     input_type = 'date'
@@ -325,7 +329,7 @@ class InvoiceFilterForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-control'}),
         required=False,
         error_messages={
-            'invalid_choice': 'Odabrani mjesec nije važeći'
+            'invalid_choice': 'Odabrani mjesec nije važeća'
         }
     )
     
@@ -396,3 +400,158 @@ class ExpenseForm(forms.ModelForm):
         widgets = {
             'date': DateInput()
         }
+
+class SupplierForm(forms.ModelForm):
+    class Meta:
+        model = Supplier
+        fields = ['supplierName', 'addressLine1', 'town', 'province', 'postalCode', 
+                 'phoneNumber', 'emailAddress', 'businessType', 'OIB', 'IBAN', 'notes']
+        widgets = {
+            'supplierName': forms.TextInput(attrs={'class': 'form-control'}),
+            'addressLine1': forms.TextInput(attrs={'class': 'form-control'}),
+            'town': forms.TextInput(attrs={'class': 'form-control'}),
+            'province': forms.Select(attrs={'class': 'form-control'}),
+            'postalCode': forms.TextInput(attrs={'class': 'form-control'}),
+            'phoneNumber': forms.TextInput(attrs={'class': 'form-control'}),
+            'emailAddress': forms.EmailInput(attrs={'class': 'form-control'}),
+            'businessType': forms.Select(attrs={'class': 'form-control'}),
+            'OIB': forms.TextInput(attrs={'class': 'form-control'}),
+            'IBAN': forms.TextInput(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            Row(
+                Column('supplierName', css_class='form-group col-md-6 mb-0'),
+                Column('businessType', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Row(
+                Column('addressLine1', css_class='form-group col-md-6 mb-0'),
+                Column('town', css_class='form-group col-md-3 mb-0'),
+                Column('postalCode', css_class='form-group col-md-3 mb-0'),
+                css_class='form-row'
+            ),
+            Row(
+                Column('province', css_class='form-group col-md-6 mb-0'),
+                Column('OIB', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Row(
+                Column('phoneNumber', css_class='form-group col-md-6 mb-0'),
+                Column('emailAddress', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Row(
+                Column('IBAN', css_class='form-group col-md-12 mb-0'),
+                css_class='form-row'
+            ),
+            'notes',
+            ButtonHolder(
+                Submit('submit', 'Save', css_class='btn btn-primary')
+            )
+        )
+
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ['title', 'amount', 'currency', 'date', 'category', 'description', 'subject',
+                 'supplier', 'invoice_number', 'invoice_date', 'receipt',
+                 'tax_base_0', 'tax_base_5', 'tax_base_13', 'tax_base_25',
+                 'tax_5_deductible', 'tax_5_nondeductible',
+                 'tax_13_deductible', 'tax_13_nondeductible',
+                 'tax_25_deductible', 'tax_25_nondeductible']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'currency': forms.Select(attrs={'class': 'form-control'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'category': forms.Select(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'subject': forms.Select(attrs={'class': 'form-control'}),
+            'supplier': forms.Select(attrs={'class': 'form-control'}),
+            'invoice_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'invoice_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'receipt': forms.FileInput(attrs={'class': 'form-control-file'}),
+            'tax_base_0': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_base_5': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_base_13': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_base_25': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_5_deductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_5_nondeductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_13_deductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_13_nondeductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_25_deductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_25_nondeductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        }
+
+
+class IncomingInvoiceBookFilterForm(forms.Form):
+    FILTER_CHOICES = [
+        ('month_year', 'Po mjesecu i godini'),
+        ('date_range', 'Po datumskom rasponu')
+    ]
+    
+    MONTH_CHOICES = [
+        ('1', 'Siječanj'),
+        ('2', 'Veljača'),
+        ('3', 'Ožujak'),
+        ('4', 'Travanj'),
+        ('5', 'Svibanj'),
+        ('6', 'Lipanj'),
+        ('7', 'Srpanj'),
+        ('8', 'Kolovoz'),
+        ('9', 'Rujan'),
+        ('10', 'Listopad'),
+        ('11', 'Studeni'),
+        ('12', 'Prosinac'),
+    ]
+    
+    YEAR_CHOICES = [(str(year), str(year)) for year in range(2020, 2031)]
+    
+    company = forms.ModelChoiceField(
+        queryset=None,
+        required=True,
+        label='Tvrtka',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    filter_type = forms.ChoiceField(
+        choices=FILTER_CHOICES,
+        widget=forms.RadioSelect(),
+        initial='month_year',
+        label='Način filtriranja'
+    )
+    
+    month = forms.ChoiceField(
+        choices=MONTH_CHOICES,
+        label='Mjesec',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    year = forms.ChoiceField(
+        choices=YEAR_CHOICES,
+        label='Godina',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    date_from = forms.DateField(
+        label='Od datuma',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        required=False
+    )
+    
+    date_to = forms.DateField(
+        label='Do datuma',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        required=False
+    )
+    
+    def __init__(self, *args, **kwargs):
+        from .models import Company
+        super().__init__(*args, **kwargs)
+        self.fields['company'].queryset = Company.objects.all()

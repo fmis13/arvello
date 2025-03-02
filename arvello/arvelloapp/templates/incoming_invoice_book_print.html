@@ -1,0 +1,602 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block main %}
+
+<title>Knjiga ulaznih računa</title>
+<link rel="stylesheet" href="{% static 'css/invoice_book_print.css' %}">
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        body {
+            counter-reset: page 1;
+            font-size: 10px !important;
+        }
+        .page-number:after {
+            content: counter(page) "/" counter(pages);
+        }
+        .table {
+            width: 95% !important;
+            table-layout: fixed !important;
+            font-size: 9px !important;
+        }
+        .table td, .table th {
+            padding: 0.15rem !important;
+            text-align: center !important;
+            height: auto !important;
+            vertical-align: middle !important;
+            overflow: visible !important;
+            white-space: nowrap !important;
+        }
+        .table th.multiline {
+            width: 1% !important;
+        }
+        .table th.small-heading {
+            width: 5%;
+            min-width: 50px;
+        }
+        .table th[colspan="2"] {
+            width: 10%;
+            min-width: 100px;
+        }
+        .table th[colspan="6"] {
+            width: 15%;
+        }
+        .table th[colspan="8"] {
+            width: 20%;
+        }
+        .navbar,
+        header.navbar,
+        .sticky-top,
+        .sidebar,
+        .alert {
+            display: none !important;
+        }
+        .main-content,
+        .content-area {
+            margin-left: 0 !important;
+            padding-left: 0 !important;
+        }
+        .main-container,
+        main {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+        .supplier-name-heading {
+            width: 15% !important;
+            min-width: 120px !important;
+            white-space: normal !important;
+            height: auto !important;
+        }
+        
+        .supplier-name-heading br {
+            margin: 0 !important;
+            line-height: 1 !important;
+        }
+        
+        table.invoice-table {
+            table-layout: fixed !important;
+            width: 100% !important;
+        }
+        
+        .invoice-table th.supplier-name-heading,
+        .invoice-table td:nth-child(4) {
+            width: 30% !important;
+        }
+        
+        .invoice-table th:not(.supplier-name-heading),
+        .invoice-table td:not(:nth-child(4)) {
+            width: auto !important;
+            max-width: 6% !important;
+        }
+        
+        .invoice-table th.multiline,
+        .invoice-table td:first-child {
+            width: 2% !important;
+            min-width: 25px !important;
+            max-width: 30px !important;
+            padding: 0.2rem !important;
+            font-weight: normal !important;
+            vertical-align: middle !important;
+            text-align: center !important;
+        }
+        
+        .invoice-table td:nth-child(2),
+        .invoice-table td:nth-child(3) {
+            width: 3% !important;
+            max-width: 50px !important;
+        }
+        
+        .text-end {
+            width: auto !important;
+            white-space: nowrap !important;
+            text-align: right !important;
+        }
+
+        tfoot td.text-end {
+            text-align: right !important;
+            padding-right: 10px !important;
+        }
+
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        
+        .table-container {
+            overflow-x: visible !important;
+            width: 95% !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            display: block !important;
+        }
+        
+        .table {
+            margin: 0 auto !important;
+            width: 100% !important;
+            max-width: none !important;
+        }
+        
+        .container-fluid {
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+        }
+
+        .table td.numeric {
+            text-align: right !important;
+            padding-right: 2px !important;
+            width: 45px !important;
+        }
+
+        .table td.numeric,
+        .invoice-table td.numeric {
+            text-align: right !important;
+            padding-right: 2px !important;
+            width: 45px !important;
+            white-space: nowrap !important;
+        }
+
+        .invoice-table td:first-child { width: 20px !important; }
+        .invoice-table td:nth-child(2) { width: 40px !important; }
+        .invoice-table td:nth-child(3) { width: 45px !important; }
+
+        .supplier-name-heading,
+        .invoice-table td:nth-child(4) {
+            width: auto !important;
+            max-width: 150px !important;
+        }
+
+        .invoice-table td:nth-child(4) {
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            width: 15% !important;
+            min-width: 120px !important;
+            max-width: none !important;
+            height: auto !important;
+            padding: 2px 3px !important;
+            text-align: left !important;
+            line-height: 1.1 !important;
+        }
+
+        .table td:not(:nth-child(4)) {
+            white-space: nowrap !important;
+        }
+
+        .supplier-name-heading {
+            width: 15% !important;
+            min-width: 120px !important;
+            max-width: 180px !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+            white-space: normal !important;
+            font-size: 8px !important;
+            line-height: 1 !important;
+            padding: 2px !important;
+            height: auto !important;
+            vertical-align: middle !important;
+        }
+
+        .invoice-table td:nth-child(4) {
+            width: 15% !important;
+            max-width: 180px !important;
+            word-break: break-word !important;
+            white-space: normal !important;
+            text-align: left !important;
+            padding: 2px !important;
+        }
+
+        .supplier-name-heading {
+            width: 15% !important;
+            min-width: 100px !important;
+            max-width: 150px !important;
+            font-size: 7px !important;
+            line-height: 0.9 !important;
+            word-spacing: -1px !important;
+            letter-spacing: -0.3px !important;
+            padding: 1px !important;
+            word-break: break-all !important;
+            hyphens: auto !important;
+        }
+
+        .supplier-name-heading br {
+            line-height: 0.8 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .page-break {
+            page-break-after: always;
+            height: 0;
+            display: block;
+        }
+
+        .invoice-table td:not(:nth-child(4)),
+        .invoice-table th:not(.supplier-name-heading) {
+            padding: 1px !important;
+            font-size: 8px !important;
+        }
+
+        .supplier-name-heading {
+            width: 15% !important;
+            min-width: 120px !important;
+            max-width: 150px !important;
+            font-size: 8px !important;
+            line-height: 1.2 !important;
+            letter-spacing: normal !important;
+            word-spacing: normal !important;
+            padding: 2px 3px !important;
+            word-break: normal !important;
+            text-align: left !important;
+            white-space: normal !important;
+            font-weight: bold !important;
+            vertical-align: middle !important;
+        }
+
+        .supplier-name-heading br {
+            display: block !important;
+            margin: 1px 0 !important;
+            content: "" !important;
+            line-height: 1.1 !important;
+        }
+
+        table.invoice-table > tbody > tr > td:nth-child(n+6):not(:nth-child(4)),
+        table.invoice-table > tfoot > tr > td.numeric {
+            text-align: right !important;
+            padding-right: 2px !important;
+            width: 45px !important;
+            white-space: nowrap !important;
+            font-size: 8px !important;
+            font-family: monospace !important;
+        }
+
+        .table td.numeric,
+        .numeric,
+        td.numeric {
+            text-align: right !important;
+            padding-right: 2px !important;
+        }
+    }
+
+    @page {
+        size: A4 landscape;
+        counter-increment: page;
+        margin: 0.5cm !important;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+    .small-text {
+        font-size: 0.9em;
+    }
+    .footer-info {
+        position: fixed;
+        bottom: 1cm;
+        left: 1cm;
+        right: 1cm;
+        width: calc(100% - 2cm);
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .footer-left {
+        text-align: left;
+        flex: 0 0 auto;
+    }
+
+    .footer-right {
+        text-align: right;
+        flex: 0 0 auto;
+    }
+
+    .page-number-container {
+        white-space: nowrap;
+    }
+
+    .content-area {
+        width: 100%;
+        position: relative;
+    }
+    .content-wrapper {
+        margin-left: 0;
+        width: 100%;
+        padding: 20px;
+    }
+
+    @media screen {
+        .content-wrapper {
+            margin-left: 250px;
+        }
+        .main-content {
+            padding-left: 250px !important;
+            padding: 20px;
+        }
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .italic-small {
+        font-style: italic;
+        font-size: 0.8em;
+    }
+
+    .page-number-container {
+        justify-self: end;
+        text-align: right;
+        width: 100%;
+    }
+</style>
+
+<main class="col-md-10 col-lg-11 px-md-2 ms-sm-0 main-content">
+    <div class="container-fluid mb-4 no-print">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="my-4">Knjiga primljenih (ulaznih) računa</h2>
+                {% if info_text %}
+                <div class="alert alert-info" role="alert">
+                    {{ info_text }}
+                </div>
+                {% endif %}
+                <form method="post" class="card p-3">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-4">
+                            {{ form.company.label_tag }}
+                            {{ form.company }}
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                {{ form.filter_type.label_tag }}
+                                {% for radio in form.filter_type %}
+                                    <div class="form-check">
+                                        {{ radio.tag }}
+                                        <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                            {{ radio.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3" id="month-year-filters">
+                        <div class="col-md-3">
+                            {{ form.year.label_tag }}
+                            {{ form.year }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.month.label_tag }}
+                            {{ form.month }}
+                        </div>
+                    </div>
+                    <div class="row mt-3" id="date-range-filters" style="display: none;">
+                        <div class="col-md-3">
+                            {{ form.date_from.label_tag }}
+                            {{ form.date_from }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.date_to.label_tag }}
+                            {{ form.date_to }}
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">Prikaži</button>
+                            <button type="button" class="btn btn-secondary" onclick="window.print()">Ispiši</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% if show_results %}
+    <div class="container-fluid">
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h3>{{ company.clientName }}</h3>
+                <p>{{ company.addressLine1 }}, {{ company.postalCode }} {{ company.town }}<br>
+                    OIB: {{ company.OIB }}</p>
+                <h4>Knjiga primljenih (ulaznih) računa - Obrazac U-RA</h4>
+                <p>Razdoblje: {{ start_date|date:"d.m.Y." }} - {{ end_date|date:"d.m.Y." }}</p>
+            </div>
+        </div>
+        <div class="table-container">
+            <table class="table table-bordered table-sm invoice-table">
+                <thead>
+                    <tr>
+                        <th rowspan="3" class="multiline">RED.<br>BR.</th>
+                        <th colspan="2">RAČUN</th>
+                        <th colspan="8">DOBAVLJAČ (ISPORUČITELJ DOBARA ILI USLUGA)</th>
+                        <th colspan="6">PRETPOREZ</th>
+                    </tr>
+                    <tr>
+                        <th rowspan="2" class="small-heading">BROJ</th>
+                        <th rowspan="2" class="small-heading">DATUM</th>
+                        <th rowspan="2" class="small-heading supplier-name-heading">NAZIV - IME<br>I PREZIME<br>I SJEDIŠTE/<br>PREBIVALIŠTE<br>ILI UOBIČAJENO<br>BORAVIŠTE</th>
+                        <th rowspan="2" class="small-heading">(PDV ID.<br>BR./<br>OIB)</th>
+                        <th colspan="6">POREZNA OSNOVICA</th>
+                        <th colspan="2">5%</th>
+                        <th colspan="2">13%</th>
+                        <th colspan="2">25%</th>
+                    </tr>
+                    <tr>
+                        <th class="small-heading">0%</th>
+                        <th class="small-heading">5%</</th>
+                        <th class="small-heading">13%</</th>
+                        <th class="small-heading">25%</</th>
+                        <th class="small-heading">UKUPNI<br>IZNOS<br>RAČUNA<br>S PDV-om</th>
+                        <th class="small-heading">UKUPNO</th>
+                        <th class="small-heading">MOŽE SE<br>ODBITI</th>
+                        <th class="small-heading">NE MOŽE<br>SE ODBITI</th>
+                        <th class="small-heading">MOŽE SE<br>ODBITI</th>
+                        <th class="small-heading">NE MOŽE<br>SE ODBITI</th>
+                        <th class="small-heading">MOŽE SE<br>ODBITI</th>
+                        <th class="small-heading">NE MOŽE<br>SE ODBITI</th>
+                    </tr>
+                    <tr class="text-center italic-small">
+                        <th>1</th>
+                        <th>2</th>
+                        <th>3</th>
+                        <th>4</th>
+                        <th>5</th>
+                        <th>6</th>
+                        <th>7</th>
+                        <th>8</th>
+                        <th>9</th>
+                        <th>10</th>
+                        <th>11</th>
+                        <th>12</th>
+                        <th>13</th>
+                        <th>14</th>
+                        <th>15</th>
+                        <th>16</th>
+                        <th>17</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr{% if forloop.counter|divisibleby:35 and not forloop.last %} class="page-break"{% endif %}>
+                        <td class="text-center">{{ forloop.counter }}</td>
+                        <td>{{ expense.invoice_number|default:"-" }}</td>
+                        <td>{{ expense.date|date:"d.m.Y."|default:"-" }}</td>
+                        <td>{% if expense.supplier %}{{ expense.supplier.supplierName }}{% else %}{{ expense.title }}{% endif %}</td>
+                        <td>{% if expense.supplier %}{{ expense.supplier.OIB|default:"-" }}{% else %}-{% endif %}</td>
+                        <td class="numeric">{{ expense.tax_base_0|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.tax_base_5|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.tax_base_13|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.tax_base_25|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.total_amount|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.total_tax|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.tax_5_deductible|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.tax_5_nondeductible|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.tax_13_deductible|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.tax_13_nondeductible|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.tax_25_deductible|floatformat:2 }}</td>
+                        <td class="numeric">{{ expense.tax_25_nondeductible|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="17" class="text-center">Nema pronađenih troškova za odabrano razdoblje</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="font-weight-bold">
+                        <td colspan="5" class="text-end" style="text-align: right !important;">UKUPNO:</td>
+                        <td class="numeric">{{ total_tax_base_0|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_tax_base_5|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_tax_base_13|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_tax_base_25|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_with_tax|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_tax|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_tax_5_deductible|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_tax_5_nondeductible|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_tax_13_deductible|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_tax_13_nondeductible|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_tax_25_deductible|floatformat:2 }}</td>
+                        <td class="numeric">{{ total_tax_25_nondeductible|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="font-weight-bold">
+                        <td colspan="10" class="text-end" style="text-align: right !important;">UKUPNO ODBITNI PRETPOREZ:</td>
+                        <td class="numeric">{{ total_tax_deductible|floatformat:2 }}</td>
+                        <td colspan="6"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="footer-info">
+            <div class="footer-left">
+                <span class="small-text">
+                    Korisnik: {{request.user.get_full_name}}<br>
+                    Generirano: {{ generated_at|date:"d.m.Y. H:i:s" }}<br>
+                    Napravljeno sukladno čl. 165 Pravilnika o porezu na dodatnu vrijednost ("Narodne novine" br. 79/13., 85/13., 160/13., 35/14., 157/14.,<br>
+                    130/15., 115/16., 1/17., 41/17., 128/17., 106/18., 1/19., 1/20., 138/20., 1/21., 73/21., 41/22., 133/22., 43/23., 1/24., 39/24., 16/25.)
+                </span>
+            </div>
+            <div class="footer-right">
+                <span class="small-text page-number-container">Stranica <span class="page-number"></span></span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</main>
+
+<script src="{% static 'js/bootstrap.min.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterType = document.querySelector('[name="filter_type"]');
+        const monthYearFilters = document.getElementById('month-year-filters');
+        const dateRangeFilters = document.getElementById('date-range-filters');
+
+        function updateFilters() {
+            const selected = document.querySelector('[name="filter_type"]:checked').value;
+            if (selected === 'month_year') {
+                monthYearFilters.style.display = 'flex';
+                dateRangeFilters.style.display = 'none';
+            } else {
+                monthYearFilters.style.display = 'none';
+                dateRangeFilters.style.display = 'flex';
+            }
+        }
+
+        document.querySelectorAll('[name="filter_type"]').forEach(radio => {
+            radio.addEventListener('change', updateFilters);
+        });
+
+        updateFilters();
+    });
+
+    (function() {
+        function countPages() {
+            const style = document.createElement('style');
+            style.textContent = '@page { size: A4 landscape; }';
+            document.head.appendChild(style);
+            
+            const totalRows = document.querySelectorAll('.invoice-table tbody tr').length;
+            const rowsPerPage = 35;
+            const estimatedPages = Math.ceil(totalRows / rowsPerPage);
+            
+            document.documentElement.style.setProperty('--total-pages', estimatedPages);
+            
+            const styleElement = document.createElement('style');
+            styleElement.textContent = `@page { counter-increment: page; } html { counter-reset: pages ${estimatedPages}; }`;
+            document.head.appendChild(styleElement);
+            
+            style.remove();
+        }
+
+        window.addEventListener('beforeprint', countPages);
+    })();
+    
+</script>
+{% endblock %}
