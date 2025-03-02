@@ -502,6 +502,77 @@ class OfferProduct(models.Model):
 #
 #        super(inventory, self).save(*args, **kwargs)
 
+class Supplier(models.Model):    
+    PROVINCES = [
+    ("ZAGREBAČKA ŽUPANIJA", "ZAGREBAČKA ŽUPANIJA"),
+    ("KRAPINSKO-ZAGORSKA ŽUPANIJA", "KRAPINSKO-ZAGORSKA ŽUPANIJA"),
+    ("SISAČKO-MOSLAVAČKA ŽUPANIJA", "SISAČKO-MOSLAVAČKA ŽUPANIJA"),
+    ("KARLOVAČKA ŽUPANIJA", "KARLOVAČKA ŽUPANIJA"),
+    ("VARAŽDINSKA ŽUPANIJA", "VARAŽDINSKA ŽUPANIJA"),
+    ("KOPRIVNIČKO-KRIŽEVAČKA ŽUPANIJA", "KOPRIVNIČKO-KRIŽEVAČKA ŽUPANIJA"),
+    ("BJELOVARSKO-BILOGORSKA ŽUPANIJA", "BJELOVARSKO-BILOGORSKA ŽUPANIJA"),
+    ("PRIMORSKO-GORANSKA ŽUPANIJA", "PRIMORSKO-GORANSKA ŽUPANIJA"),
+    ("LIČKO-SENJSKA ŽUPANIJA", "LIČKO-SENJSKA ŽUPANIJA"),
+    ("VIROVITIČKO-PODRAVSKA ŽUPANIJA", "VIROVITIČKO-PODRAVSKA ŽUPANIJA"),
+    ("POŽEŠKO-SLAVONSKA ŽUPANIJA", "POŽEŠKO-SLAVONSKA ŽUPANIJA"),
+    ("BRODSKO-POSAVSKA ŽUPANIJA", "BRODSKO-POSAVSKA ŽUPANIJA"),
+    ("ZADARSKA ŽUPANIJA", "ZADARSKA ŽUPANIJA"),
+    ("OSJEČKO-BARANJSKA ŽUPANIJA", "OSJEČKO-BARANJSKA ŽUPANIJA"),
+    ("ŠIBENSKO-KNINSKA ŽUPANIJA", "ŠIBENSKO-KNINSKA ŽUPANIJA"),
+    ("VUKOVARSKO-SRIJEMSKA ŽUPANIJA", "VUKOVARSKO-SRIJEMSKA ŽUPANIJA"),
+    ("SPLITSKO-DALMATINSKA ŽUPANIJA", "SPLITSKO-DALMATINSKA ŽUPANIJA"),
+    ("ISTARSKA ŽUPANIJA", "ISTARSKA ŽUPANIJA"),
+    ("DUBROVAČKO-NERETVANSKA ŽUPANIJA", "DUBROVAČKO-NERETVANSKA ŽUPANIJA"),
+    ("MEĐIMURSKA ŽUPANIJA", "MEĐIMURSKA ŽUPANIJA"),
+    ("GRAD ZAGREB", "GRAD ZAGREB"),
+    ("INOZEMSTVO / NIJE PRIMJENJIVO", "INOZEMSTVO / NIJE PRIMJENJIVO")
+    ]
+
+    businessTypes = [
+    ("Fizička osoba", "Fizička osoba"),
+    ("Pravna osoba", "Pravna osoba"),
+    ]
+
+    supplierName = models.CharField(verbose_name="Naziv", null=False, blank=False, max_length=200)
+    addressLine1 = models.CharField(verbose_name="Adresa", null=False, blank=False, max_length=200, default="")
+    town = models.CharField(verbose_name="Grad", null=False, blank=False, max_length=100, default="")
+    province = models.CharField(verbose_name="Županija", choices=PROVINCES, blank=False, max_length=100, default="GRAD ZAGREB")
+    postalCode = models.CharField(verbose_name="Poštanski broj", null=False, blank=False, max_length=5, default="10000")
+    phoneNumber = models.CharField(verbose_name="Telefonski broj", null=True, blank=True, max_length=40, validators=[validate_phone_number])
+    emailAddress = models.EmailField(verbose_name="E-pošta", null=True, blank=True, max_length=100)
+    businessType = models.CharField(verbose_name="Vrsta osobe", choices=businessTypes, blank=False, max_length=40, default="Pravna osoba")
+    OIB = models.CharField(verbose_name="OIB", null=True, blank=True, max_length=11, validators=[RegexValidator(r'^\d{11}$', 'OIB must contain exactly 11 digits.')])
+    IBAN = models.CharField(verbose_name="IBAN", null=True, blank=True, max_length=34)
+    notes = models.TextField(verbose_name="Bilješke", null=True, blank=True)
+    
+    uniqueId = models.CharField(null=True, blank=True, max_length=100)
+    slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
+    date_created = models.DateTimeField(verbose_name="Date Created", blank=True, null=True)
+    last_updated = models.DateTimeField(verbose_name="Last Updated", blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Dobavljač"
+        verbose_name_plural = "Dobavljači"
+        ordering = ['supplierName']
+
+    def __str__(self):
+        return '{}'.format(self.supplierName)
+
+    def get_absolute_url(self):
+        return reverse('supplier_detail', kwargs={'slug': self.slug})
+
+    def save(self, *args, **kwargs):
+        if self.date_created is None:
+            self.date_created = timezone.localtime(timezone.now())
+        if self.uniqueId is None:
+            self.uniqueId = str(uuid4()).split('-')[4]
+            self.slug = slugify('{} {}'.format(self.supplierName, self.uniqueId))
+
+        self.slug = slugify('{} {}'.format(self.supplierName, self.uniqueId))
+        self.last_updated = timezone.localtime(timezone.now())
+
+        super(Supplier, self).save(*args, **kwargs)
+
 class Expense(models.Model):
     EXPENSE_CATEGORIES = [
         ('office', 'Uredski troškovi'),
@@ -518,18 +589,55 @@ class Expense(models.Model):
         ('£', 'GBP'),
     ]
 
-    title = models.CharField(null=False, blank=False, max_length=200)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
-    currency = models.CharField(choices=CURRENCY, default='€', max_length=3)
-    date = models.DateField(null=False, blank=False)
-    category = models.CharField(choices=EXPENSE_CATEGORIES, max_length=50, null=False, blank=False)
-    description = models.TextField(null=True, blank=True)
-    subject = models.ForeignKey(Company, blank=False, null=False, on_delete=models.DO_NOTHING)
-    receipt = models.FileField(upload_to='receipts/', null=True, blank=True)
+    title = models.CharField(verbose_name="Naslov", null=False, blank=False, max_length=200)
+    amount = models.DecimalField(verbose_name="Ukupan iznos", max_digits=10, decimal_places=2, null=False, blank=False)
+    currency = models.CharField(verbose_name="Valuta", choices=CURRENCY, default='€', max_length=3)
+    date = models.DateField(verbose_name="Datum", null=False, blank=False)
+    category = models.CharField(verbose_name="Kategorija", choices=EXPENSE_CATEGORIES, max_length=50, null=False, blank=False)
+    description = models.TextField(verbose_name="Opis", null=True, blank=True)
+    subject = models.ForeignKey(Company, verbose_name="Subjekt", blank=False, null=False, on_delete=models.DO_NOTHING)
+    supplier = models.ForeignKey(Supplier, verbose_name='Dobavljač', on_delete=models.SET_NULL, null=True, blank=True)
+    receipt = models.FileField(verbose_name="Račun (slika/PDF)", upload_to='receipts/', null=True, blank=True)
     uniqueId = models.CharField(null=True, blank=True, max_length=100, unique=True)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
     date_created = models.DateTimeField(blank=True, null=True)
     last_updated = models.DateTimeField(blank=True, null=True)
+
+    invoice_number = models.CharField(max_length=30, blank=True, null=True, verbose_name='Broj računa')
+    invoice_date = models.DateField(null=True, blank=True, verbose_name='Datum računa')
+    
+    pretax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    tax_base_0 = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, verbose_name='Porezna osnovica 0%')
+    tax_base_5 = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, verbose_name='Porezna osnovica 5%')
+    tax_base_13 = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, verbose_name='Porezna osnovica 13%')
+    tax_base_25 = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, verbose_name='Porezna osnovica 25%')
+    
+    tax_5_deductible = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, verbose_name='PDV 5% (odbitni)')
+    tax_13_deductible = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, verbose_name='PDV 13% (odbitni)')
+    tax_25_deductible = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, verbose_name='PDV 25% (odbitni)')
+    tax_5_nondeductible = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, verbose_name='PDV 5% (neodbitni)')
+    tax_13_nondeductible = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, verbose_name='PDV 13% (neodbitni)')
+    tax_25_nondeductible = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, verbose_name='PDV 25% (neodbitni)')
+    
+    def total_tax_base(self):
+        return self.tax_base_0 + self.tax_base_5 + self.tax_base_13 + self.tax_base_25
+    
+    def total_tax_deductible(self):
+        return self.tax_5_deductible + self.tax_13_deductible + self.tax_25_deductible
+    
+    def total_tax_nondeductible(self):
+        return self.tax_5_nondeductible + self.tax_13_nondeductible + self.tax_25_nondeductible
+    
+    def total_tax(self):
+        return self.total_tax_deductible() + self.total_tax_nondeductible()
+    
+    def total_amount(self):
+        return self.amount
+    
+    class Meta:
+        verbose_name = "Trošak"
+        verbose_name_plural = "Troškovi"
+        ordering = ['-date']
 
     def __str__(self):
         return f'{self.title} - {self.amount} {self.currency}'

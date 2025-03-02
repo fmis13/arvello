@@ -1,8 +1,9 @@
+<!DOCTYPE html>
 {% load static %}
 {% load crispy_forms_tags %}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
-<!doctype html>
+
 <html lang="hr">
   <head>
     <meta charset="UTF-8">
@@ -200,6 +201,12 @@
                   </a>
                 </li>
                 <li class="nav-item align-navitem">
+                  <a class="nav-link black-text" href="{% url 'suppliers' %}">
+                    <span class="material-symbols-outlined align-icon">local_shipping</span>
+                    Dobavljači
+                  </a>
+                </li>
+                <li class="nav-item align-navitem">
                   <div class="nav-link btn-group dropend nav-item black-text">
                     <button type="button" class="btn dropdown-toggle dropdown-fix" data-bs-toggle="dropdown" aria-expanded="false">
                       <span class="material-symbols-outlined align-icon"> lab_profile </span>
@@ -207,7 +214,7 @@
                     </button>            
                     <ul class="dropdown-menu">
                       <li><button class="dropdown-item" type="button" ><a class="black-text" href="{% url 'outgoing_invoices_book_view' %}" style="text-decoration: none;">Knjiga izlaznih računa</a></button></li>
-                      <li><button class="dropdown-item disabled" type="button" aria-disabled="true">Knjiga ulaznih računa</button></li>
+                      <li><button class="dropdown-item" type="button" ><a class="black-text" href="{% url 'incoming_invoice_book' %}" style="text-decoration: none;">Knjiga ulaznih računa</a></button></li>
                     </ul>
                   </div>
                 </li>
