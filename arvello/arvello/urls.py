@@ -45,6 +45,8 @@ urlpatterns = [
     path('outgoing_invoices_book_view/', views.OutgoingInvoicesBookView, name='outgoing_invoices_book_view'),
     path('expenses/', views.expenses, name='expenses'),
     path('expenses/delete/<int:pk>/', views.delete_expense, name='delete_expense'),
+    path('suppliers/', views.suppliers, name='suppliers'),
+    path('incoming-invoice-book/', views.incoming_invoice_book, name='incoming_invoice_book'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 admin.site.site_header = "Arvello backend administracija"
