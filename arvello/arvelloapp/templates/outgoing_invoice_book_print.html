@@ -4,7 +4,6 @@
 
 <title>Knjiga izlaznih računa</title>
 <style>
-    /* Print-specific styles */
     @media print {
         .no-print {
             display: none !important;
@@ -37,13 +36,11 @@
         }
     }
 
-    /* Page settings */
     @page {
         size: A4 landscape;
         margin: 1cm;
     }
 
-    /* General layout */
     .table-container {
         overflow-x: auto;
         width: 100%;
@@ -59,7 +56,6 @@
         width: calc(100% - 2cm);
     }
 
-    /* Content positioning */
     .content-area {
         padding-left: 280px;
         width: 100%;
@@ -71,7 +67,6 @@
         padding: 20px;
     }
 
-    /* Screen-specific styles */
     @media screen {
         .content-wrapper {
             margin-left: 250px;
@@ -236,7 +231,6 @@
         updateFilters();
     });
 
-    // Broj stranica
     (function() {
         let pageNum = 1;
 

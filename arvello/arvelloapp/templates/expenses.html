@@ -80,7 +80,6 @@
         </div>
     </div>
 
-    <!-- Modal za dodavanje novog troška -->
     <div class="modal modal-sheet py-5" tabindex="-1" id="addExpenseModal">
         <div class="modal-dialog">
             <div class="modal-content rounded-6 shadow">
@@ -130,7 +129,6 @@
         </div>
     </div>
 
-    <!-- Delete confirmation modal -->
     <div class="modal fade" id="deleteExpenseModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -154,15 +152,12 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Edit expense handler
     document.querySelectorAll('.edit-expense').forEach(button => {
         button.addEventListener('click', function() {
             const form = document.getElementById('edit-expense-form');
             
-            // Set the id in the hidden field
             form.querySelector('input[name="expense_id"]').value = this.getAttribute('data-id');
             
-            // Set each form field value
             const fields = {
                 'title': this.getAttribute('data-title'),
                 'amount': this.getAttribute('data-amount'),
@@ -182,7 +177,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Delete expense handler
     let expenseToDelete = null;
     
     document.querySelectorAll('.delete-expense').forEach(button => {
