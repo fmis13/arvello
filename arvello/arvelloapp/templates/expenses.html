@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 {% block main %}
+{% load history_extras %}
 
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -10,6 +11,10 @@
                 {% comment %}
                 <button type="button" class="btn btn-sm btn-outline-secondary">Print</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary">Export</button> {% endcomment %}
+                <a href="{% get_history_url 'Expense' %}" class="btn btn-primary">
+                    <span class="material-symbols-outlined align-icon">history</span>
+                    Povijest promjena</a>
+                  <div class="vr mx-1"></div>
                 <button href="#addExpenseModal" type="button" class="btn btn-primary" data-bs-toggle="modal">Novi trošak</button>
               </div>
             </div>

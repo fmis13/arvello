@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Porezne promjene od 2025. godine</h1>
+        <a href="{% url 'salaries' %}" class="btn btn-outline-secondary">
+            <span class="material-symbols-outlined align-icon">arrow_back</span> Povratak na plaće
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Ukidanje prireza porezu na dohodak</h5>
+                </div>
+                <div class="card-body">
+                    <p>Od 1. siječnja 2025. godine <strong>ukida se prirez porezu na dohodak</strong> koji su do sada mogle propisivati jedinice lokalne samouprave. Umjesto toga, uvodi se novi sustav utvrđivanja poreznih stopa na lokalnoj razini.</p>
+                    
+                    <p>Prema novom sustavu, gradovi i općine mogu same odrediti stope poreza na dohodak unutar zakonski propisanih raspona, i to:</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Vrsta jedinice lokalne samouprave</th>
+                                    <th>Niža stopa (%)</th>
+                                    <th>Viša stopa (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Općine</td>
+                                    <td>15 - 20</td>
+                                    <td>25 - 30</td>
+                                </tr>
+                                <tr>
+                                    <td>Gradovi</td>
+                                    <td>15 - 21</td>
+                                    <td>25 - 31</td>
+                                </tr>
+                                <tr>
+                                    <td>Veliki gradovi i sjedišta županija</td>
+                                    <td>15 - 22</td>
+                                    <td>25 - 32</td>
+                                </tr>
+                                <tr>
+                                    <td>Grad Zagreb</td>
+                                    <td>15 - 23</td>
+                                    <td>25 - 33</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <p>Ako jedinica lokalne samouprave ne donese odluku o svojim poreznim stopama, primjenjuju se najniže stope iz raspona.</p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Razredi poreza na dohodak</h5>
+                </div>
+                <div class="card-body">
+                    <p>Porez na dohodak se obračunava u dva razreda:</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Razred</th>
+                                    <th>Mjesečna porezna osnovica</th>
+                                    <th>Stopa</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1.</td>
+                                    <td>Do 3.400,00 €</td>
+                                    <td>15-23% (ovisno o JLS)</td>
+                                </tr>
+                                <tr>
+                                    <td>2.</td>
+                                    <td>Iznad 3.400,00 €</td>
+                                    <td>25-33% (ovisno o JLS)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Osobni odbitak</h5>
+                </div>
+                <div class="card-body">
+                    <p>Osnovni osobni odbitak iznosi <strong>600,00 € mjesečno</strong> (7.200,00 € godišnje).</p>
+                    
+                    <p>Osobni odbitak se može uvećati primjenom propisanih koeficijenata za uzdržavane članove obitelji:</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Osnova za uvećanje</th>
+                                    <th>Koeficijent</th>
+                                    <th>Mjesečni iznos (€)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Osnovni osobni odbitak</td>
+                                    <td>1,0</td>
+                                    <td>600,00</td>
+                                </tr>
+                                <tr>
+                                    <td>Uzdržavani član uže obitelji</td>
+                                    <td>0,5</td>
+                                    <td>300,00</td>
+                                </tr>
+                                <tr>
+                                    <td>1. dijete</td>
+                                    <td>0,5</td>
+                                    <td>300,00</td>
+                                </tr>
+                                <tr>
+                                    <td>2. dijete</td>
+                                    <td>0,7</td>
+                                    <td>420,00</td>
+                                </tr>
+                                <tr>
+                                    <td>3. dijete</td>
+                                    <td>1,0</td>
+                                    <td>600,00</td>
+                                </tr>
+                                <tr>
+                                    <td>4. dijete</td>
+                                    <td>1,4</td>
+                                    <td>840,00</td>
+                                </tr>
+                                <tr>
+                                    <td>5. dijete</td>
+                                    <td>1,9</td>
+                                    <td>1.140,00</td>
+                                </tr>
+                                <tr>
+                                    <td>Invalidnost poreznog obveznika ili uzdržavanog člana</td>
+                                    <td>0,3</td>
+                                    <td>180,00</td>
+                                </tr>
+                                <tr>
+                                    <td>100% invalidnost ili pravo na tuđu pomoć i njegu</td>
+                                    <td>1,0</td>
+                                    <td>600,00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Mirovinski sustav</h5>
+                </div>
+                <div class="card-body">
+                    <h6>I. stup (obvezni)</h6>
+                    <p>15% bruto plaće za osiguranike u oba stupa<br>
+                    20% bruto plaće za osiguranike samo u I. stupu</p>
+                    
+                    <h6>II. stup (obvezni)</h6>
+                    <p>5% bruto plaće</p>
+                    
+                    <h6>III. stup (dobrovoljni)</h6>
+                    <p>Prema osobnom izboru osiguranika</p>
+                    
+                    <p><small>Za više informacija pogledajte <a href="{% url 'pension_info' %}" target="_blank">detalje o mirovinskom sustavu</a>.</small></p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Neoporezivi primici</h5>
+                </div>
+                <div class="card-body">
+                    <p>Neki od najčešćih neoporezivih primitaka:</p>
+                    <ul class="small">
+                        <li>Naknada za troškove prijevoza - stvarni troškovi</li>
+                        <li>Dnevnice za službeni put (tuzemstvo) - do 30 €</li>
+                        <li>Prigodne nagrade (božićnica, regres) - do 700 € godišnje</li>
+                        <li>Nagrade za radne rezultate - do 1.200 € godišnje</li>
+                        <li>Naknade za korištenje privatnog automobila u službene svrhe - 0,50 € po km</li>
+                        <li>Darovi djeci do 15 godina - do 140 € godišnje</li>
+                        <li>Potpore za novorođenče - do 1.500 €</li>
+                    </ul>
+                    <p><small>Za detaljniji popis i aktualne iznose konzultirajte Pravilnik o porezu na dohodak.</small></p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Doprinosi na plaću</h5>
+                </div>
+                <div class="card-body">
+                    <p>Poslodavac na bruto plaću plaća sljedeće doprinose:</p>
+                    <ul>
+                        <li>Doprinos za zdravstveno osiguranje: <strong>16,5%</strong></li>
+                    </ul>
+                    <p>Ukupni trošak poslodavca = bruto plaća + doprinosi na plaću</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Novi sadržaj - usporedba poreznih sustava -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Usporedba poreznog sustava 2023./2024. i 2025.</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Element</th>
+                                    <th>Sustav 2023./2024.</th>
+                                    <th>Sustav 2025.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Prirez porezu na dohodak</td>
+                                    <td>Da (0-18%, ovisno o gradu/općini)</td>
+                                    <td><strong>Ukinut</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Osnovni osobni odbitak</td>
+                                    <td>530,90 €</td>
+                                    <td><strong>600,00 €</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Porezni razredi</td>
+                                    <td>
+                                        Do 3.981,69 € - 20%<br>
+                                        Iznad 3.981,69 € - 30%
+                                    </td>
+                                    <td>
+                                        <strong>
+                                        Do 3.400,00 € - 15-23%<br>
+                                        Iznad 3.400,00 € - 25-33%
+                                        </strong><br>
+                                        (ovisno o jedinici lokalne samouprave)
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Mirovinski doprinosi (I. i II. stup)</td>
+                                    <td>20% (15% + 5%)</td>
+                                    <td>Nepromijenjeno - 20% (15% + 5%)</td>
+                                </tr>
+                                <tr>
+                                    <td>Zdravstveno osiguranje</td>
+                                    <td>16,5%</td>
+                                    <td>Nepromijenjeno - 16,5%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Ukidanje prireza porezu na dohodak</h5>
+                </div>
+                <div class="card-body">
+                    <p>Od 1. siječnja 2025. godine <strong>ukida se prirez porezu na dohodak</strong> koji su do sada mogle propisivati jedinice lokalne samouprave. Umjesto toga, uvodi se novi sustav utvrđivanja poreznih stopa na lokalnoj razini.</p>
+                    
+                    <p>Prema novom sustavu, gradovi i općine mogu same odrediti stope poreza na dohodak unutar zakonski propisanih raspona, i to:</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Vrsta jedinice lokalne samouprave</th>
+                                    <th>Niža stopa (%)</th>
+                                    <th>Viša stopa (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Općine</td>
+                                    <td>15 - 20</td>
+                                    <td>25 - 30</td>
+                                </tr>
+                                <tr>
+                                    <td>Gradovi</td>
+                                    <td>15 - 21</td>
+                                    <td>25 - 31</td>
+                                </tr>
+                                <tr>
+                                    <td>Veliki gradovi i sjedišta županija</td>
+                                    <td>15 - 22</td>
+                                    <td>25 - 32</td>
+                                </tr>
+                                <tr>
+                                    <td>Grad Zagreb</td>
+                                    <td>15 - 23</td>
+                                    <td>25 - 33</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Primjer usporedbe obračuna</h5>
+                </div>
+                <div class="card-body">
+                    <p>Za bruto plaću od 1.500 € u gradu s prirezom 18% (Zagreb):</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Element</th>
+                                <th>2023./2024.</th>
+                                <th>2025.</th>
+                            </tr>
+                            <tr>
+                                <td>Bruto plaća</td>
+                                <td>1.500,00 €</td>
+                                <td>1.500,00 €</td>
+                            </tr>
+                            <tr>
+                                <td>MIO I. i II. stup (20%)</td>
+                                <td>300,00 €</td>
+                                <td>300,00 €</td>
+                            </tr>
+                            <tr>
+                                <td>Dohodak</td>
+                                <td>1.200,00 €</td>
+                                <td>1.200,00 €</td>
+                            </tr>
+                            <tr>
+                                <td>Osobni odbitak</td>
+                                <td>530,90 €</td>
+                                <td>600,00 €</td>
+                            </tr>
+                            <tr>
+                                <td>Porezna osnovica</td>
+                                <td>669,10 €</td>
+                                <td>600,00 €</td>
+                            </tr>
+                            <tr>
+                                <td>Porez</td>
+                                <td>133,82 €</td>
+                                <td>138,00 € (23%)</td>
+                            </tr>
+                            <tr>
+                                <td>Prirez</td>
+                                <td>24,09 €</td>
+                                <td>0,00 €</td>
+                            </tr>
+                            <tr>
+                                <td>Neto plaća</td>
+                                <td>1.042,09 €</td>
+                                <td>1.062,00 €</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <p class="small text-muted">Napomena: Navedeni primjer je ilustrativan i može se razlikovati ovisno o stvarnim parametrima.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

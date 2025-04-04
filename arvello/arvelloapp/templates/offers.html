@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load crispy_forms_tags %}
-{% include 'invoice_form.html' %}
+{% load history_extras %}
 
 
 {% block main %}
@@ -10,6 +10,10 @@
     <h1 class="h2">Ponude</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
       <div class="btn-group me-2">
+        <a href="{% get_history_url 'Offer' %}" class="btn btn-primary">
+          <span class="material-symbols-outlined align-icon">history</span>
+          Povijest promjena</a>
+        <div class="vr mx-1"></div>
         <a href="{% url 'create_offer' %}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Nova ponuda</a>
       </div>
     </div>

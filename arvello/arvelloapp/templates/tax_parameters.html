@@ -1,0 +1,468 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Porezni parametri</h1>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <ul class="nav nav-tabs mb-4" id="taxTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link active" id="parameters-tab" data-bs-toggle="tab" href="#parameters" role="tab" 
+               aria-controls="parameters" aria-selected="true">Porezni parametri</a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" id="localtax-tab" data-bs-toggle="tab" href="#localtax" role="tab" 
+               aria-controls="localtax" aria-selected="false">Porez na dohodak</a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" id="non-taxable-tab" data-bs-toggle="tab" href="#non-taxable" role="tab" 
+               aria-controls="non-taxable" aria-selected="false">Neoporezivi primici</a>
+        </li>
+    </ul>
+    
+    <div class="tab-content" id="taxTabsContent">
+        <!-- Tab za porezne parametre -->
+        <div class="tab-pane fade show active" id="parameters" role="tabpanel" aria-labelledby="parameters-tab">
+            <div class="d-flex justify-content-end mb-2">
+                <button href="#addParameterModal" type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal">
+                    <span class="material-symbols-outlined">add</span> Novi parametar
+                </button>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Vrsta parametra</th>
+                            <th>Godina</th>
+                            <th>Vrijednost</th>
+                            <th>Opis</th>
+                            <th>Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for param in tax_parameters %}
+                        <tr>
+                            <td>{{ param.get_parameter_type_display }}</td>
+                            <td>{{ param.year }}</td>
+                            <td>{{ param.value|floatformat:6 }}{% if param.parameter_type != 'tax_threshold' %}%{% endif %}</td>
+                            <td>{{ param.description|default:'' }}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-warning edit-parameter"
+                                       data-id="{{ param.id }}"
+                                       data-parameter-type="{{ param.parameter_type }}"
+                                       data-year="{{ param.year }}"
+                                       data-value="{{ param.value }}"
+                                       data-description="{{ param.description|default:'' }}"
+                                       data-bs-toggle="modal" 
+                                       data-bs-target="#editParameterModal">
+                                    <span class="material-symbols-outlined">edit</span>
+                                </button>
+                                
+                                <form method="post" class="d-inline" onsubmit="return confirm('Jeste li sigurni da želite izbrisati ovaj parametar?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_parameter">
+                                    <input type="hidden" name="parameter_id" value="{{ param.id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <span class="material-symbols-outlined">delete</span>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">Nema unesenih poreznih parametara</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Tab za ex. prireze, sadašnje lokalne porezne stope -->
+        <div class="tab-pane fade" id="localtax" role="tabpanel" aria-labelledby="localtax-tab">
+            <div class="d-flex justify-content-between mb-2">
+                <form method="post" enctype="multipart/form-data" class="d-inline" id="import-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="import_tax_rates">
+                    <div class="input-group" style="width: 150%;">
+                        <input type="number" name="year" class="form-control form-control-sm" value="{{ current_year }}" min="2023" max="2050" placeholder="Godina">
+                        <input type="file" name="tax_rates_file" id="tax_rates_file" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" style="width: 65%;">
+                        <button type="submit" class="btn btn-primary">
+                            <span class="material-symbols-outlined align-icon">upload</span> Uvezi
+                        </button>
+                    </div>
+                </form>
+                
+                <button href="#addLocalTaxModal" type="button" class="btn btn-primary" data-bs-toggle="modal">
+                    <span class="material-symbols-outlined align-icon">add</span> Novi unos
+                </button>
+            </div>
+            
+            <div class="alert alert-info">
+                <h5>Informacije o poreznim stopama</h5>
+                <p>Od 2024. godine ukinut je prirez, a gradovi i općine mogu odrediti vlastite stope poreza na dohodak. 
+                Uvezite podatke iz Excel tablice ili ručno unesite stope za pojedine gradove.</p>
+                <ul>
+                    <li>Niža stopa se primjenjuje na godišnji dohodak do 50.400 EUR (mjesečno 4.200 EUR)</li>
+                    <li>Viša stopa se primjenjuje na dio godišnjeg dohotka iznad 50.400 EUR</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-info">
+                <h5>Informacije o poreznim stopama 2025.</h5>
+                <p>Od 1. siječnja 2025. uvode se sljedeće promjene u poreznom sustavu:</p>
+                <ul>
+                    <li>Povećan je neoporezivi dio dohotka na 600€ mjesečno (7.200€ godišnje)</li>
+                    <li>Povećan je prag za primjenu više stope poreza na dohodak na 60.000€ godišnje</li>
+                    <li>Stope poreza na dohodak ovise o vrsti jedinice lokalne samouprave:</li>
+                </ul>
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Jedinica lokalne samouprave</th>
+                            <th>Niža stopa</th>
+                            <th>Viša stopa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Općina</td>
+                            <td>od 15% do 20%</td>
+                            <td>od 25% do 30%</td>
+                        </tr>
+                        <tr>
+                            <td>Grad</td>
+                            <td>od 15% do 21%</td>
+                            <td>od 25% do 31%</td>
+                        </tr>
+                        <tr>
+                            <td>Veliki grad i sjedište županije</td>
+                            <td>od 15% do 22%</td>
+                            <td>od 25% do 32%</td>
+                        </tr>
+                        <tr>
+                            <td>Grad Zagreb</td>
+                            <td>od 15% do 23%</td>
+                            <td>od 25% do 33%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Grad/Općina</th>
+                            <th>Šifra</th>
+                            <th>Niža stopa (%)</th>
+                            <th>Viša stopa (%)</th>
+                            <th>Vrijedi od</th>
+                            <th>NN</th>
+                            <th>Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tax in local_taxes %}
+                        <tr>
+                            <td>{{ tax.city_name }}</td>
+                            <td>{{ tax.city_code|default:"-" }}</td>
+                            <td>{{ tax.tax_rate_lower|floatformat:2 }}%</td>
+                            <td>{{ tax.tax_rate_higher|floatformat:2 }}%</td>
+                            <td>{{ tax.valid_from|date:"d.m.Y." }}</td>
+                            <td>{{ tax.official_gazette|default:"-" }}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-warning edit-local-tax"
+                                       data-id="{{ tax.id }}"
+                                       data-city-name="{{ tax.city_name }}"
+                                       data-city-code="{{ tax.city_code|default:'' }}"
+                                       data-tax-rate="{{ tax.tax_rate }}"
+                                       data-tax-rate-lower="{{ tax.tax_rate_lower }}"
+                                       data-tax-rate-higher="{{ tax.tax_rate_higher }}"
+                                       data-valid-from="{{ tax.valid_from|date:'Y-m-d' }}"
+                                       data-account-number="{{ tax.account_number|default:'' }}"
+                                       data-official-gazette="{{ tax.official_gazette|default:'' }}"
+                                       data-bs-toggle="modal" 
+                                       data-bs-target="#editLocalTaxModal">
+                                    <span class="material-symbols-outlined">edit</span>
+                                </button>
+                                
+                                <form method="post" class="d-inline" onsubmit="return confirm('Jeste li sigurni da želite izbrisati ovu poreznu stopu?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_local_tax">
+                                    <input type="hidden" name="tax_id" value="{{ tax.id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <span class="material-symbols-outlined">delete</span>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">Nema unesenih stopa poreza</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab za Neoporezive primitke -->
+        <div class="tab-pane fade" id="non-taxable" role="tabpanel" aria-labelledby="non-taxable-tab">
+            <h2>Neoporezivi primici</h2>
+            <div class="card mb-3">
+                <div class="card-header">Dodaj novu vrstu neoporezivog primitka</div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_non_taxable_type">
+                        {% crispy non_tax_form %} 
+                        <button type="submit" class="btn btn-primary mt-2">Spremi vrstu primitka</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th>Naziv</th>
+                            <th>Šifra</th>
+                            <th>Opis</th>
+                            <th>Mjesečni limit (€)</th>
+                            <th>Godišnji limit (€)</th>
+                            <th>Aktivan</th>
+                            <th>Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ntpt in non_taxable_types %}
+                        <tr>
+                            <td>{{ ntpt.name }}</td>
+                            <td>{{ ntpt.code }}</td>
+                            <td>{{ ntpt.description|default:"-" }}</td>
+                            <td>{{ ntpt.max_monthly_amount|floatformat:2|default:"-" }}</td>
+                            <td>{{ ntpt.max_annual_amount|floatformat:2|default:"-" }}</td>
+                            <td>{% if ntpt.active %}<span class="material-symbols-outlined text-success align-middle">check_circle</span>{% else %}<span class="material-symbols-outlined text-danger align-middle">cancel</span>{% endif %}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning disabled" title="Uređivanje nije implementirano"><span class="material-symbols-outlined align-middle">edit</span></button>
+                                <button class="btn btn-sm btn-danger disabled" title="Brisanje nije implementirano"><span class="material-symbols-outlined align-middle">delete</span></button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center">Nema definiranih vrsta neoporezivih primitaka.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div> 
+
+    </div>
+
+    <!-- Modal za dodavanje poreznog parametra -->
+    <div class="modal modal-sheet py-5" tabindex="-1" id="addParameterModal">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-6 shadow">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_parameter">
+                    
+                    <div class="modal-header border-bottom-0">
+                        <h5 class="modal-title">Novi porezni parametar</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                    </div>
+                    
+                    <div class="modal-body py-0">
+                        {{ param_form|crispy }}
+                    </div>
+                    
+                    <div class="modal-footer flex-column border-top-0">
+                        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi</button>
+                        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal za uređivanje poreznog parametra -->
+    <div class="modal fade" id="editParameterModal" tabindex="-1" aria-labelledby="editParamTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editParamTitle">Uredi parametar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" id="edit-parameter-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="edit_parameter">
+                        <input type="hidden" name="parameter_id" id="edit_parameter_id">
+                        
+                        <div class="modal-header border-bottom-0">
+                            <h5 class="modal-title">Uredi porezni parametar</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                        </div>
+                        
+                        <div class="modal-body py-0">
+                            {{ edit_param_form|crispy }}
+                        </div>
+                        
+                        <div class="modal-footer flex-column border-top-0">
+                            <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi promjene</button>
+                            <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal za dodavanje prireza -->
+    <div class="modal modal-sheet py-5" tabindex="-1" id="addLocalTaxModal">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-6 shadow">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_local_tax">
+                    
+                    <div class="modal-header border-bottom-0">
+                        <h5 class="modal-title">Nova stopa prireza</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                    </div>
+                    
+                    <div class="modal-body py-0">
+                        {{ tax_form|crispy }}
+                    </div>
+                    
+                    <div class="modal-footer flex-column border-top-0">
+                        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi</button>
+                        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal za uređivanje prireza -->
+    <div class="modal fade" id="editLocalTaxModal" tabindex="-1" aria-labelledby="editTaxTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTaxTitle">Uredi stopu prireza</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" id="edit-local-tax-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="edit_local_tax">
+                        <input type="hidden" name="tax_id" id="edit_tax_id">
+                        
+                        <div class="modal-header border-bottom-0">
+                            <h5 class="modal-title">Uredi stopu prireza</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                        </div>
+                        
+                        <div class="modal-body py-0">
+                            {{ edit_tax_form|crispy }}
+                        </div>
+                        
+                        <div class="modal-footer flex-column border-top-0">
+                            <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi promjene</button>
+                            <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fix for Bootstrap modal initialization
+    const modalElements = document.querySelectorAll('.modal');
+    modalElements.forEach(function(modalElement) {
+        // Manually initialize each modal to avoid conflicts
+        new bootstrap.Modal(modalElement);
+    });
+    
+    document.querySelectorAll('.edit-param').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const paramId = this.getAttribute('data-id');
+            const paramType = this.getAttribute('data-type');
+            const paramYear = this.getAttribute('data-year');
+            const paramValue = this.getAttribute('data-value');
+            const paramDesc = this.getAttribute('data-description');
+            
+            document.getElementById('edit_parameter_id').value = paramId;
+            document.getElementById('editParamTitle').textContent = paramType + ' (' + paramYear + ')';
+            
+            const form = document.getElementById('edit-param-form');
+            form.querySelector('#id_parameter_type').value = paramType;
+            form.querySelector('#id_year').value = paramYear;
+            form.querySelector('#id_value').value = paramValue;
+            form.querySelector('#id_description').value = paramDesc;
+        });
+    });
+    
+    document.querySelectorAll('.edit-tax').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const taxId = this.getAttribute('data-id');
+            const cityName = this.getAttribute('data-city-name');
+            const cityCode = this.getAttribute('data-city-code') || '';
+            const cityType = this.getAttribute('data-city-type');
+            const taxRateLower = this.getAttribute('data-tax-rate-lower');
+            const taxRateHigher = this.getAttribute('data-tax-rate-higher');
+            
+            document.getElementById('edit_tax_id').value = taxId;
+            document.getElementById('editTaxTitle').textContent = cityName;
+            
+            const form = document.getElementById('edit-tax-form');
+            form.querySelector('#id_city_name').value = cityName;
+            form.querySelector('#id_city_code').value = cityCode;
+            form.querySelector('#id_city_type').value = cityType;
+            form.querySelector('#id_tax_rate_lower').value = taxRateLower;
+            form.querySelector('#id_tax_rate_higher').value = taxRateHigher;
+        });
+    });
+    
+    document.querySelectorAll('.delete-param').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const paramId = this.getAttribute('data-id');
+            const paramName = this.getAttribute('data-name');
+            
+            document.getElementById('deleteParamName').textContent = paramName;
+            document.getElementById('delete_parameter_id').value = paramId;
+        });
+    });
+    
+    document.querySelectorAll('.delete-tax').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const taxId = this.getAttribute('data-id');
+            const cityName = this.getAttribute('data-city-name');
+            
+            document.getElementById('deleteTaxName').textContent = cityName;
+            document.getElementById('delete_tax_id').value = taxId;
+        });
+    });
+});
+</script>
+{% endblock %}

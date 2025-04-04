@@ -1,0 +1,605 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load employee_filters %}
+{% load history_extras %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Plaće</h1>
+        <div class="btn-toolbar btn-group mb-2 mb-md-0">
+            <a href="{% get_history_url 'Salary' %}" class="btn btn-primary">
+                <span class="material-symbols-outlined align-icon">history</span>
+                Povijest promjena</a>
+            <div class="vr mx-1"></div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSalaryModal">
+                Nova plaća
+            </button>
+            <div class="vr mx-1"></div>
+            <a href="{% url 'joppd_report' %}" class="btn btn-outline-secondary">
+                JOPPD izvještaj
+            </a>
+            <div class="vr mx-1"></div>
+            <a href="{% url 'tax_changes_2025' %}" class="btn btn-outline-secondary" target="_blank">
+                <i class="material-symbols-outlined align-icon">info</i> Porezne promjene 2025
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter forma -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Filter plaća</h5>
+                    <form method="get" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="month" class="form-label">Mjesec</label>
+                            <select name="month" id="month" class="form-select">
+                                {% for month_num, month_name in months %}
+                                <option value="{{ month_num }}" {% if month_num == selected_month %}selected{% endif %}>{{ month_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="year" class="form-label">Godina</label>
+                            <select name="year" id="year" class="form-select">
+                                {% for year_val in years %}
+                                <option value="{{ year_val }}" {% if year_val == selected_year %}selected{% endif %}>{{ year_val }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">Filtriraj</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Podsjetnik</h5>
+                    <p class="small">
+                        <strong>Bruto plaća</strong> = Redovni rad + Godišnji odmor + Prekovremeni rad + Stimulacija + Dodatak za staž<br>
+                        <strong>Neto plaća</strong> = Bruto - MIO doprinosi - Porez na dohodak<br>
+                        Od 2025. godine lokalne stope poreza zamijenile su prijašnji prirez.
+                    </p>
+                    <p class="small mb-0">
+                        <a href="{% url 'pension_info' %}" target="_blank" class="text-decoration-none">
+                            <i class="material-symbols-outlined align-icon" style="font-size: 18px;">info</i> Više o mirovinskom sustavu
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablica plaća -->
+    <div class="table-responsive">
+        <h3>Plaće za {{ month_name }} {{ selected_year }}</h3>
+        {% if salaries %}
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th>Zaposlenik</th>
+                    <th>Bruto</th>
+                    <th>MIO I</th>
+                    <th>MIO II</th>
+                    <th>Porez</th>
+                    <th>Neto</th>
+                    <th>Zdravstveno osiguranje</th>
+                    <th>Ukupni trošak</th>
+                    <th>Datum isplate</th>
+                    <th>JOPPD</th>
+                    <th>Akcije</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for salary in salaries %}
+                <tr>
+                    <td>{{ salary.employee.get_full_name }}</td>
+                    <td>{{ salary.gross_salary|floatformat:2 }} €</td>
+                    <td>{{ salary.pension_pillar_1|floatformat:2 }} €</td>
+                    <td>{{ salary.pension_pillar_2|floatformat:2 }} €</td>
+                    <td>{{ salary.income_tax|floatformat:2 }} €</td>
+                    <td class="fw-bold">{{ salary.net_salary|floatformat:2 }} €</td>
+                    <td>{{ salary.health_insurance|floatformat:2 }} €</td>
+                    <td>{{ salary.total_cost|floatformat:2 }} €</td>
+                    <td>{{ salary.payment_date|default:"-"|date:"d.m.Y" }}</td>
+                    <td>
+                        {% if salary.joppd_status %}
+                        <span class="badge bg-success">Da</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">Ne</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                          
+                            <a href="{% url 'salary_payslip' salary.id %}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">description</span>
+                            </a>
+                            
+                            <a href="{% url 'salary_payslip' salary.id %}?format=pdf" class="btn btn-sm btn-outline-danger">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">picture_as_pdf</span>
+                            </a>
+                            
+                            {% if not salary.joppd_status %}
+                            <button class="btn btn-sm btn-outline-danger delete-salary" 
+                                data-id="{{ salary.id }}"
+                                data-employee="{{ salary.employee.get_full_name }}"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#deleteSalaryModal">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="alert alert-info">
+            Nema plaća za odabrani period. Odaberite drugi period ili kreirajte nove plaće.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Zaposlenici koji nemaju plaću za odabrani period -->
+    <div class="mt-4">
+        <h3>Zaposlenici bez plaće za {{ month_name }} {{ selected_year }}</h3>
+        {% with salaries_employees=salaries|map_attr:"employee_id"|join:"," %}
+        {% with remaining_employees=employees|filter_not_in:salaries_employees %}
+        
+        {% if remaining_employees %}
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            {% for employee in remaining_employees %}
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ employee.get_full_name }}</h5>
+                        <p class="card-text">
+                            <strong>Radno mjesto:</strong> {{ employee.job_title }}<br>
+                            <strong>Satnica:</strong> {{ employee.hourly_rate }} €<br>
+                            <strong>Staž:</strong> {{ employee.work_experience_percentage }}%
+                        </p>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-primary btn-sm create-salary-btn" 
+                                data-id="{{ employee.id }}"
+                                data-name="{{ employee.get_full_name }}"
+                                data-hourly-rate="{{ employee.hourly_rate }}"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#addSalaryModal">
+                            Kreiraj plaću
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            Svi zaposlenici imaju kreiranu plaću za odabrani period.
+        </div>
+        {% endif %}
+        
+        {% endwith %}
+        {% endwith %}
+    </div>
+
+    <!-- Modal za kreiranje nove plaće -->
+    <div class="modal fade" id="addSalaryModal" tabindex="-1" aria-labelledby="addSalaryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addSalaryModalLabel">Nova plaća</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" id="createSalaryForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_salary">
+                    
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="employee_id" class="form-label">Zaposlenik</label>
+                                    <select name="employee_id" id="employee_id" class="form-select" required onchange="fetchEmployeeDetails()">
+                                        <option value="">Odaberite zaposlenika</option>
+                                        {% for employee in employees %}
+                                        <option value="{{ employee.id }}" 
+                                                data-hourly-rate="{{ employee.hourly_rate|floatformat:2 }}" 
+                                                data-exp-percent="{{ employee.work_experience_percentage }}"
+                                                data-tax-coefficient="{{ employee.tax_deduction_coefficient }}"
+                                                data-coefficient="{{ coefficient|default:600 }}">
+                                            {{ employee.get_full_name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="payment_date" class="form-label">Datum isplate</label>
+                                    <input type="date" class="form-control" id="payment_date" name="payment_date" required value="{{ today|date:'Y-m-d' }}">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="hours_worked" class="form-label">Odrađeni sati</label>
+                                    <input type="number" class="form-control" id="hours_worked" name="hours_worked" min="0" step="0.5" required value="160" onchange="calculateSalary()">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="bonus" class="form-label">Stimulacija (EUR)</label>
+                                    <input type="number" class="form-control" id="bonus" name="bonus" min="0" step="0.01" value="0" onchange="calculateSalary()">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="overtime_hours" class="form-label">Prekovremeni sati</label>
+                                    <input type="number" class="form-control" id="overtime_hours" name="overtime_hours" min="0" step="0.5" value="0" onchange="calculateSalary()">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="overtime_rate_increase" class="form-label">Postotak uvećanja za prekovremeni rad (%)</label>
+                                    <input type="number" class="form-control" id="overtime_rate_increase" name="overtime_rate_increase" min="0" max="100" step="1" value="50" onchange="calculateSalary()" required>
+                                    <div class="form-text">Sukladno čl. 94 Zakona o radu, postotak uvećanja određuje se kolektivnim ugovorom, pravilnikom o radu ili ugovorom o radu.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">                                
+                                <div class="mb-3">
+                                    <label for="annual_leave_days" class="form-label">Korišteni dani godišnjeg odmora</label>
+                                    <input type="number" class="form-control" id="annual_leave_days" name="annual_leave_days" min="0" max="30" value="0" onchange="calculateVacationAndWorkingHours()">
+                                    <div class="form-text" id="remaining_vacation_info"></div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="annual_leave_hours" class="form-label">Korišteni sati godišnjeg odmora</label>
+                                    <input type="number" class="form-control" id="annual_leave_hours" name="annual_leave_hours" min="0" step="0.5" value="0" onchange="calculateSalary()">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="sick_leave_days" class="form-label">Bolovanje (dani)</label>
+                                    <input type="number" class="form-control" id="sick_leave_days" name="sick_leave_days" min="0" step="0.5" value="0" onchange="calculateSickHours()">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="sick_leave_hours" class="form-label">Bolovanje (sati)</label>
+                                    <input type="number" class="form-control" id="sick_leave_hours" name="sick_leave_hours" min="0" step="0.5" value="0" onchange="calculateSalary()">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="sick_leave_rate" class="form-label">% klas. sat. koja se isplaćuje kao sat. bol.</label>
+                                    <input type="number" class="form-control" id="sick_leave_rate" name="sick_leave_rate" min="0" step="0.5" value="70" onchange="calculateSalary()">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Napomene</label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title">Izračun plaće</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-1">Redovni rad: <span id="regular_work_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1">Godišnji odmor: <span id="annual_leave_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1">Prekovremeni rad: <span id="overtime_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1">Bolovanje: <span id="sick_leave_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1">Stimulacija: <span id="bonus_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1">Dodatak za staž (<span id="experience_percent" class="small">0</span>%): <span id="experience_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1 fw-bold">BRUTO plaća: <span id="bruto_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1">MIO I. stup (15%): <span id="pension1_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1">MIO II. stup (5%): <span id="pension2_calc" class="small">0.00 €</span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1">Osobni odbitak: <span id="deduction_calc" class="small">600.00 €</span></p>
+                                        <p class="mb-1">Porez na dohodak: <span id="tax_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1 fw-bold">NETO plaća: <span id="neto_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1">ZO (16,5%): <span id="health_insurance_calc" class="small">0.00 €</span></p>
+                                        {% if non_taxable_limits %}
+                                        <p class="mb-1">Neoporezive naknade:</p>
+                                        <ul>
+                                            {% for limit in non_taxable_limits %}
+                                            <li>{{ limit.name }}: <span id="non_taxable_{{ limit.code }}_calc" class="small">0.00 €</span></li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% endif %}
+                                        <p class="mb-1 fw-bold">Za isplatu: <span id="total_payment_calc" class="small">0.00 €</span></p>
+                                        <p class="mb-1 fw-bold">Ukupni trošak plaće: <span id="cost_calc" class="small">0.00 €</span></p>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Neoporezive naknade -->
+                        <div class="mt-3">
+                            <h5>Neoporezive naknade</h5>
+                            <div class="row row-cols-1 row-cols-md-2 g-3">
+                                {% for limit in non_taxable_limits %}
+                                <div class="col">
+                                    <div class="mb-3">
+                                        <label for="non_taxable_{{ limit.code }}" class="form-label">
+                                            {{ limit.name }}
+                                            {% if limit.max_monthly_amount %}
+                                            <small class="text-muted">(do {{ limit.max_monthly_amount }} EUR mjesečno)</small>
+                                            {% elif limit.max_annual_amount %}
+                                            <small class="text-muted">(do {{ limit.max_annual_amount }} EUR godišnje)</small>
+                                            {% endif %}
+                                        </label>
+                                        <input type="number" class="form-control" id="non_taxable_{{ limit.code }}" name="non_taxable_{{ limit.code }}" min="0" step="0.01" value="0" onchange="calculateSalary()">
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                        <button type="submit" class="btn btn-primary">Spremi</button>
+                        <button type="submit" class="btn btn-success" name="generate_pdf" value="1">Spremi i preuzmi PDF</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modali za pregled i brisanje plaće -->
+    <!-- ... Ostali modalni prozori za pregled i brisanje plaće ... -->
+</main>
+{% endblock %}
+
+{# 
+Ovaj JavaScript kod implementira funkcionalnosti za izračun plaće zaposlenika na temelju različitih parametara. 
+Glavne funkcionalnosti uključuju:
+
+1. fetchEmployeeDetails:
+    - Dohvaća detalje o zaposleniku na temelju odabranog ID-a zaposlenika.
+    - Postavlja satnicu i postotak iskustva iz atributa odabranog elementa.
+    - Dohvaća dodatne podatke o zaposleniku putem API poziva (npr. preostali godišnji odmor).
+    - Ažurira prikaz podataka i pokreće izračun plaće.
+
+2. calculateVacationAndWorkingHours:
+    - Comfort feature.
+    - Izračunava sate godišnjeg odmora na temelju unesenih dana.
+    - Ažurira ukupne sate rada oduzimajući sate godišnjeg odmora.
+    - Pokreće izračun plaće.
+
+3. calculateSickHours:
+    - Comfort feature.
+    - Izračunava sate bolovanja na temelju unesenih dana.
+    - Ažurira ukupne sate rada oduzimajući sate bolovanja.
+    - Pokreće izračun plaće.
+
+4. calculateSalary:
+    - Izračunava različite komponente plaće:
+      - Redovni rad
+      - Godišnji odmor
+      - Prekovremeni rad
+      - Stimulacija
+      - Dodatak za staž
+      - Bolovanje
+    - Izračunava bruto iznos, doprinose (mirovinsko 1. i 2. stup), poreznu osnovicu, porez i neto iznos.
+    - Ažurira prikaz svih izračunatih vrijednosti na stranici.
+
+5. Inicijalizacija:
+    - Postavlja event listenere za gumbe za kreiranje plaće.
+    - Pokreće inicijalni izračun plaće pri učitavanju stranice.
+
+Napomena:
+- Kod koristi lokalne porezne stope i osnovni osobni odbitak za 2025. godinu.
+- Pretpostavlja da je radni dan 8 sati za izračun godišnjeg odmora i bolovanja.
+- Rukuje greškama prilikom dohvaćanja podataka putem API-ja.
+#}
+{% block scripts %}
+<script>
+    // Funkcije za izračun plaće
+    let hourlyRate = 0;
+    let expPercentage = 0;
+    let taxDeductionCoefficient = 1.0;
+    // Globalne varijable za porezne stope i prag
+    let lowerTaxRate = 0.20; // Default 20%
+    let higherTaxRate = 0.30; // Default 30%
+    let monthlyThreshold = 4200.00; // Default threshold
+
+    function fetchEmployeeDetails() {
+        const employeeSelect = document.getElementById('employee_id');
+        const selectedOption = employeeSelect.options[employeeSelect.selectedIndex];
+
+        if (selectedOption.value) {
+            // Osiguraj da se koristi decimalni separator točka
+            hourlyRate = parseFloat(selectedOption.dataset.hourlyRate.replace(',', '.'));
+            expPercentage = parseFloat(selectedOption.dataset.expPercent.replace(',', '.'));
+            taxDeductionCoefficient = parseFloat(selectedOption.dataset.taxCoefficient?.replace(',', '.') || "1.0");
+
+            document.getElementById('experience_percent').textContent = expPercentage;
+
+            // Dohvati dodatne podatke putem API-ja, uključujući porezne stope
+            fetch(`/employee-api/${selectedOption.value}/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('remaining_vacation_info').textContent =
+                        `Preostalo dana GO: ${data.vacation_days} / ${data.total_vacation_days}`;
+                    if (data.tax_deduction_coefficient) {
+                        taxDeductionCoefficient = parseFloat(data.tax_deduction_coefficient.replace(',', '.'));
+                    }
+                    // Postavi dohvaćene porezne stope i prag
+                    if (data.lower_tax_rate) {
+                        lowerTaxRate = parseFloat(data.lower_tax_rate.replace(',', '.')) / 100;
+                    }
+                    if (data.higher_tax_rate) {
+                        higherTaxRate = parseFloat(data.higher_tax_rate.replace(',', '.')) / 100;
+                    }
+                    if (data.monthly_threshold) {
+                        monthlyThreshold = parseFloat(data.monthly_threshold.replace(',', '.'));
+                    }
+
+                    calculateSalary(); // Ponovno izračunaj s novim stopama
+                })
+                .catch(error => console.error('Error fetching employee data:', error));
+
+            // calculateSalary(); // Izračunaj odmah s podacima iz data atributa, API će ažurirati kasnije
+        } else {
+             // Resetiraj vrijednosti ako nije odabran zaposlenik
+             hourlyRate = 0;
+             expPercentage = 0;
+             taxDeductionCoefficient = 1.0;
+             lowerTaxRate = 0.20;
+             higherTaxRate = 0.30;
+             monthlyThreshold = 4200.00;
+             calculateSalary();
+        }
+    }
+
+    function calculateVacationAndWorkingHours() {
+        const days = parseFloat(document.getElementById('annual_leave_days').value || 0);
+        const vacationHours = Math.round(days * 8);
+        document.getElementById('annual_leave_hours').value = vacationHours;
+        const currentHoursWorked = parseFloat(document.getElementById('hours_worked').value || 0);
+        const totalHoursWorked = Math.max(0, currentHoursWorked - vacationHours);
+        document.getElementById('hours_worked').value = totalHoursWorked;
+        calculateSalary();
+    }
+
+    function calculateSickHours() {
+        const days = parseFloat(document.getElementById('sick_leave_days').value || 0);
+        const sickHours = Math.round(days * 8);
+        document.getElementById('sick_leave_hours').value = sickHours;
+        const currentHoursWorked = parseFloat(document.getElementById('hours_worked').value || 0);
+        const totalHoursWorked = Math.max(0, currentHoursWorked - sickHours);
+        document.getElementById('hours_worked').value = totalHoursWorked;
+        calculateSalary();
+    }
+
+    function calculateSalary() {
+        // Dohvati unesene vrijednosti
+        const hours = parseFloat(document.getElementById('hours_worked').value || 0);
+        const vacationHours = parseFloat(document.getElementById('annual_leave_hours').value || 0);
+        const overtimeHours = parseFloat(document.getElementById('overtime_hours').value || 0);
+        const overtimeRateIncrease = parseFloat(document.getElementById('overtime_rate_increase').value || 50) / 100;
+        const bonus = parseFloat(document.getElementById('bonus').value || 0);
+        const sick_leave_hours = parseFloat(document.getElementById('sick_leave_hours').value || 0);
+        const sick_leave_rate = parseFloat(document.getElementById('sick_leave_rate').value || 70) / 100;
+
+        // Izračunaj komponente plaće
+        const regularAmount = hours * hourlyRate;
+        const vacationAmount = vacationHours * hourlyRate;
+        const overtimeAmount = overtimeHours * hourlyRate * (1 + overtimeRateIncrease);
+        const sickLeaveHoursAmount = sick_leave_hours * hourlyRate * sick_leave_rate;
+        const experienceBase = regularAmount + vacationAmount + overtimeAmount + sickLeaveHoursAmount + bonus;
+        const expAmount = experienceBase * (expPercentage / 100);
+        const grossAmount = experienceBase + expAmount;
+        
+        // Doprinosi
+        const pension1 = grossAmount * 0.15;
+        const pension2 = grossAmount * 0.05;
+        // Doprinosi za zdravstveno osiguranje
+        const healthInsuranceContribution = grossAmount * 0.165; // 16.5% zdravstveno osiguranje
+
+        // Dohvati osnovni osobni odbitak iz poreznih parametara
+        const baseDeduction = parseFloat("{{ tax_parameters.base_deduction|default:600 }}") || 600;
+        const deduction = baseDeduction * taxDeductionCoefficient;
+
+        const income = grossAmount - pension1 - pension2;
+        const taxBase = Math.max(0, income - deduction);
+
+        // Porez - koristi dohvaćene stope i prag
+        let tax = 0;
+        let lowerTaxAmount = 0;
+        let higherTaxAmount = 0;
+        if (taxBase <= monthlyThreshold) {
+            tax = taxBase * lowerTaxRate;
+            lowerTaxAmount = tax;
+        } else {
+            lowerTaxAmount = monthlyThreshold * lowerTaxRate;
+            higherTaxAmount = (taxBase - monthlyThreshold) * higherTaxRate;
+            tax = lowerTaxAmount + higherTaxAmount;
+        }
+
+        // Neto
+        const netoAmount = income - tax;
+
+        // Neoporezivi dodaci - izračunaj prije ukupnog troška
+        let nonTaxableTotal = 0;
+        document.querySelectorAll('input[id^="non_taxable_"]').forEach(input => {
+            const amount = parseFloat(input.value.replace(',', '.')) || 0;
+            nonTaxableTotal += amount;
+            // Prikaz pojedinačnih neoporezivih u izračunu
+            const calcSpanId = input.id + '_calc';
+            const calcSpan = document.getElementById(calcSpanId);
+            if (calcSpan) {
+                calcSpan.textContent = amount.toFixed(2) + ' €';
+            }
+        });
+
+        // Ukupni trošak plaće (Neto plaća + Doprinos za zdravstveno + Neoporezivi dodaci)
+        const totalCost = netoAmount + healthInsuranceContribution + nonTaxableTotal;
+
+        // Za isplatu (Neto + Neoporezivi)
+        const totalPayment = netoAmount + nonTaxableTotal;
+
+        // Prikaži rezultate
+        document.getElementById('regular_work_calc').textContent = '(' + hourlyRate.toFixed(2) + '€ × ' + hours + 'h) = ' + regularAmount.toFixed(2) + '\xa0€';
+        document.getElementById('annual_leave_calc').textContent = '(' + hourlyRate.toFixed(2) + '€ × ' + vacationHours + 'h) = ' + vacationAmount.toFixed(2) + '\xa0€';
+        document.getElementById('overtime_calc').textContent = '(' + hourlyRate.toFixed(2) + '€ × ' + overtimeHours + 'h + ' + (100 * overtimeRateIncrease) + '%) = ' + overtimeAmount.toFixed(2) + '\xa0€';
+        document.getElementById('sick_leave_calc').textContent = '(' + hourlyRate.toFixed(2) + '€ × ' + sick_leave_hours + 'h × ' + (sick_leave_rate * 100).toFixed(0) + '%) = ' + sickLeaveHoursAmount.toFixed(2) + '\xa0€';
+        document.getElementById('bonus_calc').textContent = bonus.toFixed(2) + '\xa0€';
+        document.getElementById('experience_calc').textContent = '(' + experienceBase.toFixed(2) + '€ × ' + expPercentage + '%) = ' + expAmount.toFixed(2) + '\xa0€';
+        document.getElementById('bruto_calc').textContent = grossAmount.toFixed(2) + '\xa0€';
+        
+        document.getElementById('pension1_calc').textContent = '(' + grossAmount.toFixed(2) + '€ × 15%) = ' + pension1.toFixed(2) + '\xa0€';
+        document.getElementById('pension2_calc').textContent = '(' + grossAmount.toFixed(2) + '€ × 5%) = ' + pension2.toFixed(2) + '\xa0€';
+        document.getElementById('deduction_calc').textContent = deduction.toFixed(2) + '\xa0€';
+        document.getElementById('tax_calc').textContent = tax.toFixed(2) + ' €';
+        document.getElementById('neto_calc').textContent = netoAmount.toFixed(2) + ' €';
+        document.getElementById('health_insurance_calc').textContent = healthInsuranceContribution.toFixed(2) + ' €';
+        document.getElementById('cost_calc').textContent = totalCost.toFixed(2) + ' €'; // Display corrected total cost
+        document.getElementById('total_payment_calc').textContent = totalPayment.toFixed(2) + ' €';
+    }
+
+    // Postavi inicijalne vrijednosti pri učitavanju stranice
+    document.addEventListener('DOMContentLoaded', function() {
+        // Postavi listener za kreiraj plaću buttone
+        document.querySelectorAll('.create-salary-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const employeeId = this.dataset.id;
+                // Postavi odabranog zaposlenika u dropdown
+                const employeeSelect = document.getElementById('employee_id');
+                employeeSelect.value = employeeId;
+                // Pokreni dohvaćanje podataka
+                fetchEmployeeDetails();
+                // Otvori modal (ako je potrebno)
+                // const salaryModal = new bootstrap.Modal(document.getElementById('createSalaryModal'));
+                // salaryModal.show();
+            });
+        });
+
+        // Dodaj listener za promjenu zaposlenika u dropdownu
+        const employeeSelect = document.getElementById('employee_id');
+        if (employeeSelect) {
+             employeeSelect.addEventListener('change', fetchEmployeeDetails);
+             // Inicijalno dohvati podatke ako je zaposlenik već odabran
+             if (employeeSelect.value) {
+                 fetchEmployeeDetails();
+             }
+        }
+
+        // Inicijalni izračun ako nema odabranog zaposlenika
+        if (!employeeSelect || !employeeSelect.value) {
+             calculateSalary();
+        }
+    });
+</script>
+{% endblock %}
