@@ -10,3 +10,4 @@ arvelloapp/migrations
 .idea
 .vscode
 *media/*
+arvello/arvelloapp/migrations/*

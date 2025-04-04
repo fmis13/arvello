@@ -3,52 +3,102 @@ URL configuration for arvello project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from django.urls import path
-from arvelloapp.views import *
 from arvelloapp import views
 from django.contrib import admin
+from django.urls import path
+from django.shortcuts import redirect
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 
-urlpatterns = [
-    path('', login, name='login'),
-    path('login/', login, name='login'),
-    path('accounts/login/', login, name='login'),
+# Auth URL-ovi
+auth_patterns = [
+    path('', auth_views.LoginView.as_view(template_name='login.html', next_page='invoices'), name='login'),
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html', next_page='invoices'), name='login_alt'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+]
+
+# Ključni poslovni URL-ovi
+core_patterns = [
     path('invoices/', views.invoices, name='invoices'),
     path('offers/', views.offers, name='offers'),
-    path('invoice_pdf/<int:pk>/', invoice_pdf, name='invoice_pdf'),
-    path('offer_pdf/<int:pk>/', offer_pdf, name='offer_pdf'),
-    path('login/', login, name='login'),
-    path('admin/', admin.site.urls),
-    path('logout/', auth_views.logout_then_login, name='logout'),
     path('products/', views.products, name='products'),
     path('clients/', views.clients, name='clients'),
     path('companies/', views.companies, name='companies'),
     path('inventory/', views.inventory, name='inventory'),
+]
+
+# URL-ovi za dokumente
+document_patterns = [
     path('create_invoice/', views.create_invoice, name='create_invoice'),
     path('create_offer/', views.create_offer, name='create_offer'),
-    path('inventory_label/<int:pk>/', inventory_label, name='inventory_label'),
-    path('product_label/<int:pk>/', product_label, name='product_label'),
-    path('outgoing_invoices_book_view/', views.OutgoingInvoicesBookView, name='outgoing_invoices_book_view'),
+    path('invoice_pdf/<int:pk>/', views.invoice_pdf, name='invoice_pdf'),
+    path('offer_pdf/<int:pk>/', views.offer_pdf, name='offer_pdf'),
+    path('inventory_label/<int:pk>/', views.inventory_label, name='inventory_label'),
+    path('product_label/<int:pk>/', views.product_label, name='product_label'),
+    path('invoices/send_email/<int:invoice_id>/', views.send_invoice_email, name='send_invoice_email'),
+
+]
+
+# Financijski URL-ovi
+finance_patterns = [
     path('expenses/', views.expenses, name='expenses'),
     path('expenses/delete/<int:pk>/', views.delete_expense, name='delete_expense'),
     path('suppliers/', views.suppliers, name='suppliers'),
+    path('tax-parameters/', views.tax_parameters, name='tax_parameters'),
+]
+
+# HR/Plaće URL-ovi
+hr_patterns = [
+    path('employees/', views.employees, name='employees'),
+    path('salaries/', views.salaries, name='salaries'),
+    path('payslip/<int:salary_id>/', views.salary_payslip, name='salary_payslip'),
+    path('employee-api/<int:employee_id>/', views.employee_api, name='employee_api'),
+]
+
+# Izvještajni URL-ovi
+report_patterns = [
+    path('outgoing_invoices_book_view/', views.OutgoingInvoicesBookView, name='outgoing_invoices_book_view'),
     path('incoming-invoice-book/', views.incoming_invoice_book, name='incoming_invoice_book'),
+    path('joppd-report/', views.joppd_report, name='joppd_report'),
+]
+
+# URL-ovi za povijest
+history_patterns = [
+    path('history/<str:model_name>/<int:object_id>/', views.view_history, name='view_history_detail'),
+    path('history/<str:model_name>/', views.view_history, name='view_history_model'),
+    path('history/user/<int:user_id>/', views.view_history, {'model_name': 'user'}, name='view_history_user'),
+    path('history/general/', views.view_history, {'model_name': 'general'}, name='view_history'),
+]
+
+# Informativni URL-ovi
+info_patterns = [
+    path('pension-info/', views.pension_info, name='pension_info'),
+    path('tax-changes-2025/', views.tax_changes_2025, name='tax_changes_2025'),
+]
+
+# API URL-ovi
+api_patterns = [
+    path('local-tax-data/<int:tax_id>/', views.get_local_tax_data, name='get_local_tax_data'),
+]
+
+# Kombinirani URL-ovi
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    *auth_patterns,
+    *core_patterns,
+    *document_patterns,
+    *finance_patterns,
+    *hr_patterns,
+    *report_patterns,
+    *history_patterns,
+    *info_patterns,
+    *api_patterns,
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+# Admin site customization
 admin.site.site_header = "Arvello backend administracija"
 admin.site.site_title = "Arvello backend"
 admin.site.index_title = "Dobrodošli u Arvello backend"

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platna lista</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .email-header {
+            background: #007bff;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .email-body {
+            padding: 20px;
+        }
+        .email-body p {
+            margin: 0 0 10px;
+        }
+        .email-footer {
+            background: #f1f1f1;
+            color: #666;
+            text-align: center;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>Platna lista</h1>
+        </div>
+        <div class="email-body">
+            <p>Poštovani {{ employee_name|default:"zaposleniče" }},</p>
+            <p>U privitku se nalazi Vaša platna lista za period <strong>{{ period_month|default:"-" }}/{{ period_year|default:"-" }}</strong>.</p>
+            <p>Za dodatne informacije slobodno nas kontaktirajte.</p>
+            <p>Srdačan pozdrav,</p>
+            <p><strong>{{ issued_by_name|default:"Nepoznato ime" }} u ime {{ company_name|default:"Vaš poslodavac" }}</strong></p>
+        </div>
+        <div class="email-footer">
+            <p>Ova poruka je automatski generirana. Molimo ne odgovarajte na nju.</p>
+            <p>&copy; Arvello</p>
+            </div>
+    </div>
+    <p class="small" style="font-size: x-small; max-width: 600px; margin: 20px auto 0; text-align: center; color: #666;">
+        <strong>Napomena:</strong> Ova elektronička poruka i njeni prilozi mogu sadržavati povjerljive i/ili povlaštene informacije, a namijenjena je isključivo za upotrebu naznačenog primatelja.
+        Ako ste ovu poruku primili greškom, molimo Vas da o tome bez odlaganja obavijestite pošiljatelja, da uništite izvornu poruku i njene priloge i bez odlaganja poruku i njene priloge izbrišete iz Vašeg sistema.
+        Neovlaštena uporaba, distribucija, otkrivanje, umnožavanje ili izmjena ove poruke je zabranjena. {{ company_name }} ne daje niti ne prihvaća pravno obvezujuće izjave putem elektroničkih poruka osim ukoliko drugačije nije izričito navedeno.
+        Budući da komunikacija internetom nije zaštićena, {{ company_name }} ne prihvaća odgovornost za sadržaj ove poruke, kao ni za eventualnu štetu nastalu zbog zaraženosti ove poruke virusom ili drugim štetnim programom, te zbog eventualnih tehničkih problema prilikom dostave ove poruke.
+    </p>
+
+</body>
+</html>

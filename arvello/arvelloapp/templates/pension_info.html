@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Mirovinski sustav Republike Hrvatske</h1>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mt-4 mb-3">Mirovinski sustav Republike Hrvatske</h2>
+                
+                <div class="alert alert-info">
+                    <strong>Obavijest o promjenama za 2025.</strong>
+                    <p>Od 1. siječnja 2025. povećan je neoporezivi dio dohotka na 600€ mjesečno (7.200€ godišnje).</p>
+                </div>
+                
+                <div class="accordion" id="accordionPension">
+                    <div class="accordion-item">
+                        <h3 class="accordion-header" id="headingOne">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                I. stup - Obvezno mirovinsko osiguranje
+                            </button>
+                        </h3>
+                        <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionPension">
+                            <div class="accordion-body">
+                                <p>Prvi stup je <strong>obvezno</strong> mirovinsko osiguranje na temelju generacijske solidarnosti i uređen je Zakonom o mirovinskom osiguranju. Sredstva doprinosa za I. stup se ne kapitaliziraju, ne individualiziraju, već se troše za isplatu mirovina sadašnjim umirovljenicima.</p>
+                                
+                                <p>Doprinosi za I. stup:</p>
+                                <ul>
+                                    <li>Za osiguranike koji su osigurani samo u I. stupu: <strong>20%</strong> bruto plaće</li>
+                                    <li>Za osiguranike koji su osigurani u I. i II. stupu: <strong>15%</strong> bruto plaće</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h3 class="accordion-header" id="headingTwo">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                II. stup - Obvezno mirovinsko osiguranje
+                            </button>
+                        </h3>
+                        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionPension">
+                            <div class="accordion-body">
+                                <p>Drugi stup je također <strong>obvezno</strong> mirovinsko osiguranje i uređen je Zakonom o obveznim mirovinskim fondovima i Zakonom o mirovinskim osiguravajućim društvima. Njima upravljaju posebna mirovinska društva koja su u privatnom vlasništvu, a pod nadzorom Hrvatske agencije za nadzor financijskih usluga (Hanfa).</p>
+                                
+                                <p><strong>Napomena: I. i II. stup su obvezni za većinu zaposlenika.</strong> Samo zaposlenici koji su 2002. godine bili stariji od 50 godina ili su tada imali između 40-50 godina i nisu se dobrovoljno uključili u II. stup ostaju samo u I. stupu.</p>
+                                
+                                <p>Stopa doprinosa za osiguranike I. i II. stupa za obvezno mirovinsko osiguranje na temelju generacijske solidarnosti iznosi <strong>15%</strong>, a stopa doprinosa za obvezno mirovinsko osiguranje na temelju individualne kapitalizirane štednje iznosi <strong>5%</strong> bruto plaće.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h3 class="accordion-header" id="headingThree">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                III. stup - Dobrovoljno mirovinsko osiguranje
+                            </button>
+                        </h3>
+                        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionPension">
+                            <div class="accordion-body">
+                                <p>Treći stup je <strong>dobrovoljno</strong> mirovinsko osiguranje na temelju individualne kapitalizirane štednje. Članstvo u trećem stupu je dobrovoljno za sve građane, a mogu se učlaniti pojedinačno, putem poslodavaca, ili udruženja/sindikata.</p>
+                                
+                                <p>Prednosti III. stupa:</p>
+                                <ul>
+                                    <li>Državni poticaji u iznosu od 15% na godišnje uplate do 750 eura</li>
+                                    <li>Mogućnost izbora dinamike i visine uplata</li>
+                                    <li>Sredstva su nasljedna</li>
+                                    <li>Isplata moguća već s 55 godina</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const accordionButtons = document.querySelectorAll('.accordion-button');
+    
+    accordionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const target = document.querySelector(this.getAttribute('data-bs-target'));
+            if (target) {
+                const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                this.setAttribute('aria-expanded', !isExpanded);
+                
+                if (isExpanded) {
+                    target.classList.remove('show');
+                } else {
+                    document.querySelectorAll('.accordion-collapse.show').forEach(panel => {
+                        if (panel !== target) {
+                            panel.classList.remove('show');
+                            const btn = document.querySelector('[data-bs-target="#' + panel.id + '"]');
+                            if (btn) btn.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                    
+                    target.classList.add('show');
+                }
+            }
+        });
+    });
+});
+</script>

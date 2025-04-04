@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load history_extras %}
+
+{% block title %}Povijest promjena{% endblock %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">{{ title }}</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary">
+                <span class="material-symbols-outlined align-icon">arrow_back</span> Povratak
+            </a>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th>Vrijeme</th>
+                    <th>Korisnik</th>
+                    {% if history_type != 'model or object' %}
+                    <th>Model</th>
+                    {% endif %}
+                    <th>Objekt</th>
+                    <th>Akcija</th>
+                    <th>Detalji</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for current, previous in history_records %}
+                <tr>
+                    <td>{{ current.history_date|date:"d.m.Y H:i:s" }}</td>
+                    <td>
+                        {% if current.history_user %}
+                            {{ current.history_user.get_full_name|default:current.history_user.username }}
+                        {% else %}
+                            <em>Sustav</em>
+                        {% endif %}
+                    </td>
+                    {% if history_type != 'model or object' %}
+                    <td>
+                        {{ current.model_name }}
+                    </td>
+                    {% endif %}
+                    <td>
+                        {% if current.instance_name %}
+                            {{ current.instance_name }}
+                        {% else %}
+                            {{ current }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if current.history_type == '+' %}
+                            <span class="badge bg-success">Dodano</span>
+                        {% elif current.history_type == '-' %}
+                            <span class="badge bg-danger">Obrisano</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Izmijenjeno</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detailsModal{{ current.history_id }}">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">visibility</span>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Detalji modali -->
+    {% for current, previous in history_records %}
+    <div class="modal fade" id="detailsModal{{ current.history_id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalji promjene</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Osnovni podaci -->
+                    <div class="card mb-3">
+                        <div class="card-header">Osnovne informacije</div>
+                        <div class="card-body">
+                            <p><strong>Objekt:</strong> 
+                                {% if current.instance_name %}
+                                    {{ current.instance_name }}
+                                {% else %}
+                                    {{ current }}
+                                {% endif %}
+                            </p>
+                            <p><strong>Akcija:</strong> 
+                                {% if current.history_type == '+' %}
+                                    <span class="badge bg-success">Dodano</span>
+                                {% elif current.history_type == '-' %}
+                                    <span class="badge bg-danger">Obrisano</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Izmijenjeno</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Vrijeme:</strong> {{ current.history_date|date:"d.m.Y H:i:s" }}</p>
+                            <p><strong>Korisnik:</strong> 
+                                {% if current.history_user %}
+                                    {{ current.history_user.get_full_name|default:current.history_user.username }}
+                                {% else %}
+                                    <em>Sustav</em>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Tablice s podacima -->
+                    {% if previous and current.history_type == '~' %}
+                    <div class="card mb-3">
+                        <div class="card-header">Promijenjene vrijednosti</div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Polje</th>
+                                            <th>Stara vrijednost</th>
+                                            <th>Nova vrijednost</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for field_name, old_value, new_value in current.changes_display %}
+                                        {% if old_value != new_value %}
+                                        <tr>
+                                            <td><strong>{{ field_name }}</strong></td>
+                                            <td class="bg-light">{{ old_value|default:"-prazno-" }}</td>
+                                            <td class="bg-light">{{ new_value|default:"-prazno-" }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="3" class="text-center">Nema zabilježenih promjena</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif current.history_type == '+' %}
+                    <div class="card mb-3">
+                        <div class="card-header">Inicijalne vrijednosti</div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Polje</th>
+                                            <th>Vrijednost</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for field, value in current.initial_values %}
+                                        <tr>
+                                            <td><strong>{{ field }}</strong></td>
+                                            <td>{{ value|default:"-prazno-" }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="2" class="text-center">Nema dostupnih podataka</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zatvori</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</main>
+{% endblock %}
