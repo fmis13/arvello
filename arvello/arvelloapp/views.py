@@ -72,7 +72,7 @@ def products(request):
     # Prikazuje stranicu s proizvodima/uslugama i omogućuje dodavanje novih
     context = {}
     products = Product.objects.all()
-    product = Product.objects.all() # Ovo izgleda kao duplikat, vjerojatno nepotrebno
+    # Removed redundant query for Product.objects.all()
     context['product'] = products
 
     if request.method == 'GET':
@@ -236,7 +236,7 @@ def create_offer(request):
             return redirect('offers')
         if not offer_formset.is_valid():
             # Ako formset nije ispravan, prikaži greške
-            print(offer_formset.errors)
+            logger.error(f"Offer formset errors: {offer_formset.errors}")
             messages.error(request, 'Problem pri obradi zahtjeva')
             for field, errors in offer_form.errors.items():
                 for error in errors:
@@ -275,7 +275,7 @@ def companies(request):
         form = CompanyForm(request.POST, request.FILES)
         if form.errors:
                 # Ispiši greške forme u konzolu za debugiranje
-                print(f"Form validation errors: {form.errors}")
+                logger.error(f"Form validation errors: {form.errors}")
         
         if form.is_valid():
             # Ako je forma ispravna, spremi tvrtku
