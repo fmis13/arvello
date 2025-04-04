@@ -1,0 +1,450 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load history_extras %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Zaposlenici</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <a href="{% get_history_url 'Employee' %}" class="btn btn-primary">
+                    <span class="material-symbols-outlined align-icon">history</span>
+                    Povijest promjena</a>
+                  <div class="vr mx-1"></div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                    <span class="material-symbols-outlined align-middle">person_add</span> Novi zaposlenik
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Ime i prezime</th>
+                    <th>Tvrtka</th>
+                    <th>OIB</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Akcije</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in employees %}
+                <tr class="{% if not employee.is_active %}table-secondary{% endif %}">
+                    <td>{{ employee.get_full_name }}</td>
+                    <td>{{ employee.company.clientName }}</td>
+                    <td>{{ employee.oib }}</td>
+                    <td>{{ employee.email|default:"-" }}</td>
+                    <td>
+                        <span class="badge {% if employee.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ employee.is_active|yesno:"Aktivan,Neaktivan" }}
+                        </span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-info view-employee" 
+                                data-id="{{ employee.id }}"
+                                data-first-name="{{ employee.first_name }}"
+                                data-last-name="{{ employee.last_name }}"
+                                data-oib="{{ employee.oib }}"
+                                data-email="{{ employee.email|default:'' }}"
+                                data-phone="{{ employee.phone|default:'' }}"
+                                data-address="{{ employee.address }}"
+                                data-city="{{ employee.city }}"
+                                data-postal-code="{{ employee.postal_code }}"
+                                data-company="{{ employee.company.id }}"
+                                data-job-title="{{ employee.job_title }}"
+                                data-employment-type="{{ employee.employment_type }}"
+                                data-iban="{{ employee.iban }}"
+                                data-hourly-rate="{{ employee.hourly_rate }}"
+                                data-experience="{{ employee.work_experience_percentage }}"
+                                data-vacation="{{ employee.annual_vacation_days }}"
+                                data-birth="{{ employee.date_of_birth|date:'Y-m-d' }}"
+                                data-employment="{{ employee.date_of_employment|date:'Y-m-d' }}"
+                                data-pension="{{ employee.pension_pillar }}"
+                                data-pension3="{{ employee.pension_pillar_3|yesno:'true,false' }}"
+                                data-tax="{{ employee.tax_deduction_coefficient }}"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#viewEmployeeModal">
+                            <span class="material-symbols-outlined">visibility</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-warning edit-employee"
+                                data-id="{{ employee.id }}"
+                                data-first-name="{{ employee.first_name }}"
+                                data-last-name="{{ employee.last_name }}"
+                                data-oib="{{ employee.oib }}"
+                                data-email="{{ employee.email|default:'' }}"
+                                data-phone="{{ employee.phone|default:'' }}"
+                                data-address="{{ employee.address }}"
+                                data-city="{{ employee.city }}"
+                                data-postal-code="{{ employee.postal_code }}"
+                                data-company="{{ employee.company.id }}"
+                                data-job-title="{{ employee.job_title }}"
+                                data-employment-type="{{ employee.employment_type }}"
+                                data-iban="{{ employee.iban }}"
+                                data-hourly-rate="{{ employee.hourly_rate }}"
+                                data-experience="{{ employee.work_experience_percentage }}"
+                                data-vacation="{{ employee.annual_vacation_days }}"
+                                data-birth="{{ employee.date_of_birth|date:'Y-m-d' }}"
+                                data-employment="{{ employee.date_of_employment|date:'Y-m-d' }}"
+                                data-pension="{{ employee.pension_pillar }}"
+                                data-pension3="{{ employee.pension_pillar_3|yesno:'true,false' }}"
+                                data-tax="{{ employee.tax_deduction_coefficient }}"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#editEmployeeModal">
+                            <span class="material-symbols-outlined">edit</span>
+                        </button>
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="toggle_active">
+                            <input type="hidden" name="employee_id" value="{{ employee.id }}">
+                            <button type="submit" class="btn btn-sm {% if employee.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                                <span class="material-symbols-outlined">
+                                    {% if employee.is_active %}person_off{% else %}person{% endif %}
+                                </span>
+                            </button>
+                        </form>
+                        <a href="{% get_history_url 'Employee' employee.id %}" 
+                           class="btn btn-sm btn-outline-secondary" 
+                           title="Povijest promjena">
+                            <span class="material-symbols-outlined">history</span>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">Nema zaposlenika</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal za dodavanje -->
+    <div class="modal fade" id="addEmployeeModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Novi zaposlenik</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">{{ form.first_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.last_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.oib|as_crispy_field }}</div>
+                            
+                            <div class="col-md-6">{{ form.email|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.phone|as_crispy_field }}</div>
+                            
+                            <div class="col-12">{{ form.address|as_crispy_field }}</div>
+                            
+                            <div class="col-md-8">{{ form.city|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.postal_code|as_crispy_field }}</div>
+                            
+                            <div class="col-md-6">{{ form.company|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.job_title|as_crispy_field }}</div>
+                            
+                            <div class="col-md-6">{{ form.employment_type|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.iban|as_crispy_field }}</div>
+                            
+                            <div class="col-md-4">{{ form.hourly_rate|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.work_experience_percentage|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.annual_vacation_days|as_crispy_field }}</div>
+                            
+                            <div class="col-md-6">{{ form.date_of_birth|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.date_of_employment|as_crispy_field }}</div>
+                            
+                            <div class="col-md-6">{{ form.pension_pillar|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.pension_pillar_3|as_crispy_field }}</div>
+                            
+                            <div class="col-12">{{ form.tax_deduction_coefficient|as_crispy_field }}</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                        <button type="submit" class="btn btn-primary">Spremi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal za pregled -->
+    <div class="modal fade" id="viewEmployeeModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Pregled zaposlenika: <span id="viewEmployeeTitle"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <strong>Ime i prezime:</strong>
+                            <p id="viewEmployeeName" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>OIB:</strong>
+                            <p id="viewEmployeeOIB" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Email:</strong>
+                            <p id="viewEmployeeEmail" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Telefon:</strong>
+                            <p id="viewEmployeePhone" class="mb-0"></p>
+                        </div>
+                        <div class="col-12">
+                            <strong>Adresa:</strong>
+                            <p id="viewEmployeeAddress" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-8">
+                            <strong>Grad:</strong>
+                            <p id="viewEmployeeCity" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Poštanski broj:</strong>
+                            <p id="viewEmployeePostal" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Radno mjesto:</strong>
+                            <p id="viewEmployeeJob" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Vrsta zaposlenja:</strong>
+                            <p id="viewEmployeeType" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>IBAN:</strong>
+                            <p id="viewEmployeeIBAN" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Satnica:</strong>
+                            <p><span id="viewEmployeeRate" class="mb-0"></span> EUR</p>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Dodatak za staž:</strong>
+                            <p><span id="viewEmployeeExperience" class="mb-0"></span>%</p>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Godišnji odmor:</strong>
+                            <p><span id="viewEmployeeVacation" class="mb-0"></span> dana</p>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Koeficijent odbitka:</strong>
+                            <p id="viewEmployeeTax" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Datum rođenja:</strong>
+                            <p id="viewEmployeeBirth" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Datum zaposlenja:</strong>
+                            <p id="viewEmployeeEmployment" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Mirovinski stup:</strong>
+                            <p id="viewEmployeePension" class="mb-0"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>III. mirovinski stup:</strong>
+                            <p id="viewEmployeePension3" class="mb-0"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zatvori</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal za uređivanje -->
+    <div class="modal fade" id="editEmployeeModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Uredi zaposlenika: <span id="editEmployeeTitle"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="employee_id" id="edit_employee_id">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">{{ form.first_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.last_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.oib|as_crispy_field }}</div>
+                            
+                            <div class="col-md-6">{{ form.email|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.phone|as_crispy_field }}</div>
+                            
+                            <div class="col-12">{{ form.address|as_crispy_field }}</div>
+                            
+                            <div class="col-md-8">{{ form.city|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.postal_code|as_crispy_field }}</div>
+                            
+                            <div class="col-md-6">{{ form.company|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.job_title|as_crispy_field }}</div>
+                            
+                            <div class="col-md-6">{{ form.employment_type|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.iban|as_crispy_field }}</div>
+                            
+                            <div class="col-md-4">{{ form.hourly_rate|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.work_experience_percentage|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.annual_vacation_days|as_crispy_field }}</div>
+                            
+                            <div class="col-md-6">{{ form.date_of_birth|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.date_of_employment|as_crispy_field }}</div>
+                            
+                            <div class="col-md-6">{{ form.pension_pillar|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.pension_pillar_3|as_crispy_field }}</div>
+                            
+                            <div class="col-12">{{ form.tax_deduction_coefficient|as_crispy_field }}</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                        <button type="submit" class="btn btn-primary">Spremi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handler za pregled
+    document.querySelectorAll('.view-employee').forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('viewEmployeeTitle').textContent = 
+                this.getAttribute('data-first-name') + ' ' + this.getAttribute('data-last-name');
+            document.getElementById('viewEmployeeName').textContent = 
+                this.getAttribute('data-first-name') + ' ' + this.getAttribute('data-last-name');
+            document.getElementById('viewEmployeeOIB').textContent = this.getAttribute('data-oib') || '-';
+            document.getElementById('viewEmployeeEmail').textContent = this.getAttribute('data-email') || '-';
+            document.getElementById('viewEmployeePhone').textContent = this.getAttribute('data-phone') || '-';
+            document.getElementById('viewEmployeeAddress').textContent = this.getAttribute('data-address');
+            document.getElementById('viewEmployeeCity').textContent = this.getAttribute('data-city');
+            document.getElementById('viewEmployeePostal').textContent = this.getAttribute('data-postal-code');
+            document.getElementById('viewEmployeeJob').textContent = this.getAttribute('data-job-title');
+            document.getElementById('viewEmployeeType').textContent = this.getAttribute('data-employment-type');
+            document.getElementById('viewEmployeeIBAN').textContent = this.getAttribute('data-iban');
+            document.getElementById('viewEmployeeRate').textContent = this.getAttribute('data-hourly-rate');
+            document.getElementById('viewEmployeeExperience').textContent = this.getAttribute('data-experience');
+            document.getElementById('viewEmployeeVacation').textContent = this.getAttribute('data-vacation');
+            document.getElementById('viewEmployeeTax').textContent = this.getAttribute('data-tax');
+            document.getElementById('viewEmployeeBirth').textContent = this.getAttribute('data-birth');
+            document.getElementById('viewEmployeeEmployment').textContent = this.getAttribute('data-employment');
+            document.getElementById('viewEmployeePension').textContent = 
+                this.getAttribute('data-pension') === '1' ? 'Samo I. stup' : 'I. i II. stup';
+            document.getElementById('viewEmployeePension3').textContent = 
+                this.getAttribute('data-pension3') === 'true' ? 'Da' : 'Ne';
+        });
+    });
+
+    // Handler za uređivanje
+    document.querySelectorAll('.edit-employee').forEach(button => {
+        button.addEventListener('click', function() {
+            const form = document.querySelector('#editEmployeeModal form');
+            document.getElementById('edit_employee_id').value = this.getAttribute('data-id');
+            document.getElementById('editEmployeeTitle').textContent = 
+                this.getAttribute('data-first-name') + ' ' + this.getAttribute('data-last-name');
+
+            // Popuni form polja
+            form.querySelector('[name="first_name"]').value = this.getAttribute('data-first-name');
+            form.querySelector('[name="last_name"]').value = this.getAttribute('data-last-name');
+            form.querySelector('[name="oib"]').value = this.getAttribute('data-oib');
+            form.querySelector('[name="email"]').value = this.getAttribute('data-email');
+            form.querySelector('[name="phone"]').value = this.getAttribute('data-phone');
+            form.querySelector('[name="address"]').value = this.getAttribute('data-address');
+            form.querySelector('[name="city"]').value = this.getAttribute('data-city');
+            form.querySelector('[name="postal_code"]').value = this.getAttribute('data-postal-code');
+            form.querySelector('[name="company"]').value = this.getAttribute('data-company');
+            form.querySelector('[name="job_title"]').value = this.getAttribute('data-job-title');
+            form.querySelector('[name="employment_type"]').value = this.getAttribute('data-employment-type');
+            form.querySelector('[name="iban"]').value = this.getAttribute('data-iban');
+            form.querySelector('[name="hourly_rate"]').value = this.getAttribute('data-hourly-rate');
+            form.querySelector('[name="work_experience_percentage"]').value = this.getAttribute('data-experience');
+            form.querySelector('[name="annual_vacation_days"]').value = this.getAttribute('data-vacation');
+            form.querySelector('[name="date_of_birth"]').value = this.getAttribute('data-birth');
+            form.querySelector('[name="date_of_employment"]').value = this.getAttribute('data-employment');
+            form.querySelector('[name="pension_pillar"]').value = this.getAttribute('data-pension');
+            form.querySelector('[name="pension_pillar_3"]').checked = this.getAttribute('data-pension3') === 'true';
+            form.querySelector('[name="tax_deduction_coefficient"]').value = this.getAttribute('data-tax');
+        });
+    });
+});
+</script>
+
+<!-- Tooltip stil -->
+<style>
+.tax-info {
+    position: relative;
+    display: inline-block;
+    margin-left: 5px;
+}
+.tax-info .info-icon {
+    cursor: help;
+    color: #0d6efd;
+}
+.tax-info .info-tooltip {
+    display: none;
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    width: 400px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 1000;
+    font-size: 0.9em;
+}
+.tax-info:hover .info-tooltip {
+    display: block;
+}
+</style>
+
+<!-- Izmjena tooltipa za tax_deduction_coefficient -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const taxField = document.querySelector('[for="id_tax_deduction_coefficient"]');
+    if (taxField) {
+        taxField.innerHTML += `
+            <span class="tax-info">
+                <span class="info-icon">ⓘ</span>
+                <div class="info-tooltip">
+                    <table class="table table-sm">
+                        <tr><th>Osnova</th><th>Koef.</th><th>Mjesečno (EUR)</th></tr>
+                        <tr><td>Osnovni osobni odbitak</td><td>1,0</td><td>600,00</td></tr>
+                        <tr><td>Uzdržavani član</td><td>0,5</td><td>300,00</td></tr>
+                        <tr><td>Prvo dijete</td><td>0,5</td><td>300,00</td></tr>
+                        <tr><td>Drugo dijete</td><td>0,7</td><td>420,00</td></tr>
+                        <tr><td>Treće dijete</td><td>1,0</td><td>600,00</td></tr>
+                        <tr><td>Četvrto dijete</td><td>1,4</td><td>840,00</td></tr>
+                        <tr><td>Peto dijete</td><td>1,9</td><td>1.140,00</td></tr>
+                        <tr><td>Šesto dijete</td><td>2,5</td><td>1.500,00</td></tr>
+                        <tr><td>Sedmo dijete</td><td>3,2</td><td>1.920,00</td></tr>
+                        <tr><td>Osmo dijete</td><td>4,0</td><td>2.400,00</td></tr>
+                        <tr><td>Deveto dijete</td><td>4,9</td><td>2.940,00</td></tr>
+                        <tr><td>Invalidnost (< 100%)</td><td>0,3</td><td>180,00</td></tr>
+                        <tr><td>Invalidnost 100%*</td><td>1,0</td><td>600,00</td></tr>
+                    </table>
+                    <small>* 100% invalidnost isključuje mogućnost korištenja uvećanja za djelomičnu invalidnost</small>
+                </div>
+            </span>`;
+    }
+});
+</script>
+{% endblock %}

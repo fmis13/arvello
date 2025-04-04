@@ -25,6 +25,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+    - name: Make Migrations
+      run: |
+          python arvello/manage.py makemigrations
+    - name: Apply Migrations
+      run: |
+        python arvello/manage.py migrate
     - name: Run Tests
       run: |
-        python arvello/manage.py test arvelloapp
+        python arvello/manage.py test arvelloapp.tests

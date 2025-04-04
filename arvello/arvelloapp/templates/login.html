@@ -1,8 +1,13 @@
 {% load static %}
 {% load crispy_forms_tags %}
 
+{% if user.is_authenticated %}
+<header>
+  <meta http-equiv="refresh" content="0; url={% url 'invoices' %}" />
+{% endif %}
+
 <!doctype html>
-<html lang="en">
+<html lang="hr">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,72 +21,96 @@
 
     <style>
       body {
-      background-image: url('/static/img/bg/bg.jpg');
-      background-repeat: no-repeat;
-      background-attachment: fixed;
-      background-size: 100% 100%;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background-image: url('/static/img/bg/bg.jpg');
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-size: cover;
       }
-      @media (min-width: 768px) {
-        .bd-placeholder-img-lg {
-          font-size: 3.5rem;
-        }
+      .form-signin {
+        width: 100%;
+        max-width: 400px;
+        padding: 2rem;
+        margin: auto;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
       }
-      button {
-      margin-left: 73.5%;
+      .form-signin img {
+        display: block;
+        margin: 0 auto 1.5rem;
       }
-      h1 {
-      font-size: 3.5em;
-    }
+      .form-floating {
+        margin-bottom: 1rem;
+      }
+      .btn-primary {
+        width: 100%;
+        margin: 1rem 0;
+      }
+      .copyright {
+        margin-top: 2rem;
+        color: #6c757d;
+      }
+      .login-label {
+        text-align: left !important;
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+      /* Override crispy-forms default styling */
+      .form-group {
+        text-align: left;
+        margin-bottom: 1.5rem;
+      }
       
+      label {
+        display: block;
+        text-align: left;
+        margin-bottom: 0.5rem;
+        font-weight: normal;
+      }
+      
+      .form-control {
+        margin-bottom: 0;
+        height: 45px;
+        padding: 10px 15px;
+      }
+      
+      /* Remove asterisk and fix alignment */
+      .asteriskField {
+        display: none;
+      }
+      
+      /* Clean up spacing */
+      .form-group:last-of-type {
+        margin-bottom: 1rem;
+      }
     </style>
-
-
-
   </head>
   <body class="text-center">
+    <main class="form-signin">
+      <form method="post">
+        <img src="{% static '/img/FS_Arvello_nobg_Final.png' %}" alt="Arvello Logo" width="230" height="115">
+        <h1 class="h3 mb-3 fw-normal">Prijava</h1>
+        
+        {% csrf_token %}
 
-<main class="form-signin">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+              {{message}}
+            </div>
+          {% endfor %}
+        {% endif %}
 
-
-  <form action="#" method="post">
-    <img class="mb-4" src="{% static '/img/FS_Arvello_nobg_Final.png' %}" alt="" width="230" height="115">
-    <h1 class="h3 mb-3 fw-normal">Prijava</h1>
-
-    {% csrf_token %}
-
-
-    {% if messages %}
-    {% for message in messages %}
-
-    {% if message.tags == 'error' %}
-    <div class="alert alert-danger">
-    {{message}}
-    </div>
-    {% else %}
-    <div class="alert alert-{{message.tags}}">
-    {{message}}
-    </div>
-    {% endif %}
-
-    {% endfor %}
-    {% endif %}
-
-
-
-    <div style="width: 35em; margin: auto;">
-      <div class="form-floating">
-        {{form.username}}
-        <label for="floatingInput">Korisničko ime</label>
-      </div>
-      <div class="form-floating">
-        {{form.password}}
-        <label for="floatingPassword">Zaporka</label>
-      </div>
-    </div>
-
-    <button class="w-35 btn btn-lg btn-primary" type="submit" style="margin: auto; margin-left: 23em;">Dalje ></button>
-    <p class="mt-5 mb-3 text-muted" style="margin: auto;">&copy; 2024 Frano Mišković</p>
-  </form>
-</main>
+        {{ form|crispy }}
+        
+        <button class="btn btn-lg btn-primary w-100 mt-3" type="submit">Dalje ></button>
+        <p class="copyright">&copy; 2023. - 2025. Arvello</p>
+      </form>
+    </main>
   </body>
 </html>
