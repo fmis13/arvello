@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <title>Račun</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .email-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .email-header h1 {
+            font-size: 24px;
+            color: #007bff;
+            margin: 0;
+        }
+        .email-body {
+            margin-bottom: 20px;
+        }
+        .email-body p {
+            margin: 0 0 10px;
+        }
+        .email-footer {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>Račun</h1>
+        </div>
+        <div class="email-body">
+            <p>Poštovani {{ client_name }},</p>
+            <p>U privitku Vam šaljemo račun broj <strong>{{ invoice_number }}</strong>.</p>
+            <p>Molimo Vas da iznos od <strong>{{ total_amount }} EUR</strong> podmirite do <strong>{{ due_date }}</strong>.</p>
+            <p>Za dodatne informacije slobodno nas kontaktirajte.</p>
+            <p>Srdačan pozdrav,<br> {{ sender_name }} </p>
+        </div>
+        <div class="email-footer">
+            <p>Ova poruka je automatski generirana. Molimo ne odgovarajte na nju.</p>
+            <p>&copy; Arvello</p>
+            </div>
+    </div>
+    </div>
+    <p class="small" style="font-size: x-small; max-width: 600px; margin: 20px auto 0; text-align: center; color: #666;">
+        <strong>Napomena:</strong> Ova elektronička poruka i njeni prilozi mogu sadržavati povjerljive i/ili povlaštene informacije, a namijenjena je isključivo za upotrebu naznačenog primatelja.
+        Ako ste ovu poruku primili greškom, molimo Vas da o tome bez odlaganja obavijestite pošiljatelja, da uništite izvornu poruku i njene priloge i bez odlaganja poruku i njene priloge izbrišete iz Vašeg sistema.
+        Neovlaštena uporaba, distribucija, otkrivanje, umnožavanje ili izmjena ove poruke je zabranjena. {{ sender_name }} ne daje niti ne prihvaća pravno obvezujuće izjave putem elektroničkih poruka osim ukoliko drugačije nije izričito navedeno.
+        Budući da komunikacija internetom nije zaštićena, {{ sender_name }} ne prihvaća odgovornost za sadržaj ove poruke, kao ni za eventualnu štetu nastalu zbog zaraženosti ove poruke virusom ili drugim štetnim programom, te zbog eventualnih tehničkih problema prilikom dostave ove poruke.
+    </p>
+</body>
+</html>

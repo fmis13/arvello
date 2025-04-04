@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load crispy_forms_tags %}
+{% load history_extras %}
 
 
 
@@ -13,6 +14,10 @@
         {% comment %}
         <button type="button" class="btn btn-sm btn-outline-secondary">Print</button>
         <button type="button" class="btn btn-sm btn-outline-secondary">Export</button> {% endcomment %}
+        <a href="{% get_history_url 'Product' %}" class="btn btn-primary">
+          <span class="material-symbols-outlined align-icon">history</span>
+          Povijest promjena</a>
+        <div class="vr mx-1"></div>
         <button href="#addProductModal" type="button" class="btn btn-primary" data-bs-toggle="modal">Nova usluga/proizvod</button>
       </div>
     </div>

@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block main %}
+
+<style>
+    /* Screen styles */
+    .payslip-table {
+        border-collapse: collapse;
+        width: 100%;
+        border: 1px solid #dee2e6;
+        margin-bottom: 1rem;
+        font-size: 0.9em; /* Slightly smaller font */
+    }
+    .payslip-table td, .payslip-table th {
+        border: 1px solid #dee2e6;
+        padding: 6px 8px; /* Adjusted padding */
+        vertical-align: top;
+    }
+    .payslip-table th {
+        background-color: #f8f9fa; /* Light background for headers */
+        font-weight: bold;
+    }
+    .payslip-table .description-col {
+        width: 50%; /* Define width for description column */
+    }
+    .payslip-table .calculation-col {
+        width: 25%; /* Define width for calculation column */
+        font-style: italic;
+        color: #6c757d;
+    }
+    .payslip-table .amount-col {
+        width: 25%; /* Define width for amount column */
+        text-align: right;
+    }
+    .payslip-table .total-row td {
+        font-weight: bold;
+        background-color: #e9ecef; /* Highlight total rows */
+    }
+    .text-end {
+        text-align: right;
+    }
+    .text-center {
+        text-align: center;
+    }
+    .footer-info {
+        margin-top: 20px;
+        font-size: 0.85em;
+        color: #6c757d;
+    }
+    .signature-box {
+        border: 1px solid #dee2e6;
+        height: 80px;
+        width: 180px;
+        margin: 10px auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 0.8em;
+    }
+    .signature-line {
+        border-top: 1px solid #dee2e6;
+        margin-top: 5px;
+        padding-top: 3px;
+        text-align: center;
+        height: auto;
+        font-size: 0.8em;
+    }
+    .header {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-bottom: 2px solid #dee2e6;
+        margin-bottom: 1rem;
+    }
+    .section-title {
+        background-color: #e9ecef;
+        font-weight: bold;
+        padding: 5px 8px;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Print styles */
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 0.8cm; /* Slightly adjusted margins */
+        }
+        body {
+            font-size: 9pt !important;
+            font-family: Arial, sans-serif;
+            color: #000 !important;
+            background-color: #fff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            margin: 0;
+            padding: 0;
+        }
+        .no-print, .btn-toolbar, #sidebarMenu, .navbar  {
+            display: none !important;
+        }
+        main {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .header, .section-title, .footer-info {
+            color: #000 !important;
+            background-color: #fff !important;
+            border: none !important;
+            padding: 3px 0 !important;
+            margin-bottom: 5px !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .header h1 {
+            font-size: 14pt !important;
+            margin-bottom: 5px !important;
+        }
+        .header p, .footer-info p {
+            margin-bottom: 2px !important;
+            line-height: 1.2 !important;
+        }
+        .section-title {
+             font-size: 10pt !important;
+             font-weight: bold !important;
+             margin-top: 8px !important;
+             background-color: #f1f1f1 !important; /* Lighter gray for print section titles */
+        }
+        .payslip-table {
+            border: 1px solid #000 !important;
+            border-collapse: collapse !important;
+            width: 100% !important;
+            margin-top: 5px !important;
+            margin-bottom: 8px !important;
+        }
+        .payslip-table td, .payslip-table th {
+            border: 1px solid #000 !important;
+            padding: 3px 5px !important; /* Adjusted padding */
+            text-align: left !important;
+            color: #000 !important;
+            background-color: #fff !important;
+            vertical-align: top !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            word-wrap: break-word;
+        }
+        .payslip-table th {
+             background-color: #f1f1f1 !important; /* Lighter gray for print headers */
+             font-weight: bold !important;
+        }
+        .payslip-table .description-col { width: 50% !important; }
+        .payslip-table .calculation-col { width: 25% !important; font-style: italic !important; color: #333 !important; }
+        .payslip-table .amount-col { width: 25% !important; text-align: right !important; }
+        .payslip-table .total-row td {
+            font-weight: bold !important;
+            background-color: #e0e0e0 !important; /* Slightly darker gray for print totals */
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .payslip-table td ul {
+            list-style: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .payslip-table td ul li {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .text-end {
+            text-align: right !important;
+        }
+        .text-center {
+            text-align: center !important;
+        }
+        .signature-section table {
+             width: 100% !important;
+             margin-top: 1cm !important;
+             border: none !important;
+        }
+        .signature-section td {
+            width: 50% !important;
+            text-align: center !important;
+            vertical-align: bottom !important;
+            border: none !important;
+            padding: 0 !important;
+        }
+        .signature-box {
+            border: 1px solid #000 !important;
+            height: 3cm !important;
+            width: 90% !important;
+            margin: 0 auto 5px auto !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            font-size: 8pt !important;
+        }
+        .signature-line {
+            border-top: 1px solid #000 !important;
+            margin-top: 5px !important;
+            padding-top: 3px !important;
+            text-align: center !important;
+            height: auto !important;
+            font-size: 8pt !important;
+        }
+        .payslip-table {
+            page-break-inside: avoid;
+        }
+        tr {
+             page-break-inside: avoid;
+             page-break-after: auto;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tfoot {
+            display: table-footer-group;
+        }
+    }
+
+    @media screen {
+        .no-screen {
+            display: none;
+        }
+    }
+</style>
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="no-print">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Platna lista</h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+                <button onclick="window.print();" class="btn btn-sm btn-outline-secondary me-2">
+                    <span class="material-symbols-outlined">print</span> Ispiši
+                </button>
+                <a href="{% url 'salaries' %}" class="btn btn-sm btn-outline-secondary">
+                    <span class="material-symbols-outlined">arrow_back</span> Natrag
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <table class="payslip-table">
+        <tr>
+            <td style="width: 60%;">
+                <strong>{{ company.clientName }}</strong><br>
+                {{ company.town }}, {{ company.addressLine1 }}<br>
+                OIB: {{ company.OIB }}<br>
+                IBAN: {{ company.IBAN }}
+            </td>
+            <td style="width: 40%; text-align: right; vertical-align: top;">
+                <strong>Platna lista</strong><br>
+                Za {{ salary.period_month|add:"-1" }}/{{ salary.period_year|stringformat:"s"|slice:"-2:" }}<br>
+                Datum obračuna: {{ generated_at|date:"d.m.Y." }}
+            </td>
+        </tr>
+    </table>
+
+    <table class="payslip-table">
+        <tr>
+            <td style="width: 60%;">
+                Zaposlenik: {{ employee.get_full_name }}<br>
+                Adresa: {{ employee.address }}<br>
+                Grad: {{ employee.postal_code }} {{ employee.city }}
+            </td>
+            <td style="width: 40%;">
+                OIB: {{ employee.oib }}<br>
+                Radno mjesto: {{ employee.job_title }}<br>
+                IBAN: {{ employee.iban }}
+            </td>
+        </tr>
+    </table>
+
+    <h4 class="text-center my-3 section-title">OBRAČUN PLAĆE</h4>
+
+    <table class="payslip-table">
+        <thead>
+            <tr>
+                <th class="description-col">Opis</th>
+                <th class="calculation-col">Izračun</th>
+                <th class="amount-col">Iznos (EUR)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="total-row">
+                <td colspan="2"><strong>1. BRUTO PLAĆA</strong></td>
+                <td class="amount-col"><strong>{{ salary.gross_salary|floatformat:2 }}</strong></td>
+            </tr>
+            <tr>
+                <td class="description-col">1.1. Redovan rad</td>
+                <td class="calculation-col">{{ salary.regular_hours }} h x {{ employee.hourly_rate|floatformat:2 }} €</td>
+                <td class="amount-col">{{ salary.regular_amount|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td class="description-col">1.2. Godišnji odmor</td>
+                <td class="calculation-col">{{ salary.vacation_hours }} h x {{ employee.hourly_rate|floatformat:2 }} €</td>
+                <td class="amount-col">{{ salary.vacation_amount|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td class="description-col">1.3. Prekovremeni rad</td>
+                <td class="calculation-col">{{ salary.overtime_hours }} h x {{ employee.hourly_rate|floatformat:2 }} € x {{ salary.overtime_rate_increase|add:"100" }}%</td>
+                <td class="amount-col">{{ salary.overtime_amount|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td class="description-col">1.4. Stimulacija</td>
+                <td class="calculation-col">{{ salary.bonus|floatformat:2 }} €</td>
+                <td class="amount-col">{{ salary.bonus|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td class="description-col">1.5. Bolovanje</td>
+                <td class="calculation-col">{{ salary.sick_leave_hours }} h × {{ employee.hourly_rate|floatformat:2 }} € × {{ salary.sick_rate_100|default:70 }}%</td>
+                <td class="amount-col">{{ salary.sick_leave_amount|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td class="description-col">1.6. Staž</td>
+                <td class="calculation-col">{{ salary.regular_amount|add:salary.vacation_amount|add:salary.sick_leave_amount|add:salary.bonus|add:salary.overtime_amount|floatformat:2 }} € × {{ employee.work_experience_percentage }} %</td>
+                <td class="amount-col">{{ salary.experience_bonus_amount|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="payslip-table">
+        <tbody>
+            <tr class="total-row">
+                <td><strong>2. DOPRINOSI</strong></td>
+                <td class="amount-col"><strong>{{ total_contributions|floatformat:2 }}</strong></td>
+            </tr>
+            <tr>
+                <td class="description-col">2.1. MIO I. stup</td>
+                <td class="amount-col">{{ salary.pension_pillar_1|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td class="description-col">2.2. MIO II. stup</td>
+                <td class="amount-col">{{ salary.pension_pillar_2|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="payslip-table">
+        <tbody>
+            <tr class="total-row">
+                <td colspan="2"><strong>3. POREZ (ZA {{ employee.city }})</strong></td>
+                <td class="amount-col"><strong>{{ salary.income_tax|floatformat:2 }}</strong></td>
+            </tr>
+            <tr>
+                <td class="description-col">3.1. Plaća bez doprinosa / dohodak</td>
+                <td class="calculation-col">{{ salary.gross_salary|floatformat:2 }} - {{ total_contributions|floatformat:2 }}</td>
+                <td class="amount-col">{{ income|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td class="description-col">3.2. Ukupni osobni odbitak</td>
+                <td class="calculation-col">{{ base_deduction|floatformat:2 }} × {{ salary.employee.tax_deduction_coefficient|floatformat:2 }}</td>
+                <td class="amount-col">{{ salary.tax_deduction|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td class="description-col">3.3. Porezna osnovica</td>
+                <td class="calculation-col"></td>
+                <td class="amount-col">{{ salary.income_tax_base|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td class="description-col">3.4. Porez na dohodak – niža stopa</td>
+                <td class="calculation-col">{{ lower_tax_base|floatformat:2 }} x {{ lower_tax_rate }}%</td>
+                <td class="amount-col">{{ lower_tax_amount|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <td class="description-col">3.5. Porez na dohodak – viša stopa</td>
+                <td class="calculation-col">{{ higher_tax_base|floatformat:2 }} x {{ higher_tax_rate }}%</td>
+                <td class="amount-col">{{ higher_tax_amount|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="payslip-table">
+        <tbody>
+            <tr class="total-row">
+                <td><strong>4. NETO PLAĆA – UK. PRIMANJA</strong></td>
+                <td class="amount-col"><strong>{{ salary.net_salary|floatformat:2 }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% if non_taxable_items %} 
+    <table class="payslip-table">
+        <tbody>
+            <tr class="total-row">
+                <td><strong>5. NEOPOREZIVI DODACI</strong></td>
+                <td class="calculation-col"></td> 
+                <td class="amount-col"><strong>{{ non_taxable_total|floatformat:2 }}</strong></td>
+            </tr>
+            {# Iteriraj kroz listu non_taxable_items #}
+            {% for item in non_taxable_items %} 
+            <tr>
+                {# Prikaži numeraciju (5.1, 5.2, ...) i opis #}
+                <td class="description-col">5.{{ forloop.counter }}. {{ item.description }}</td> 
+                <td class="calculation-col"></td> 
+                <td class="amount-col">{{ item.amount|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <table class="payslip-table">
+        <tbody>
+            <tr class="total-row">
+                <td><strong>ZA ISPLATU:</strong></td>
+                <td class="amount-col"><strong>{{ salary.net_salary|add:non_taxable_total|floatformat:2 }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer-info">
+        <p>Ispis: {{ generated_at|date:"d.m.Y. H:i" }}<br>
+        Datum predaje dokumenta: {{ generated_at|date:"d.m.Y." }}<br>
+        Odgovorna osoba poslodavca: {{ salary.created_by.get_full_name }}</p>
+    </div>
+
+    <!-- Signature section for print -->
+    <div class="signature-section no-screen">
+        <table style="width: 100%; border: none;">
+            <tr>
+                <!-- Lijeva kućica -->
+                <td style="width: 50%; text-align: center; vertical-align: bottom; border: none;">
+                    <div style="position: fixed; left: 0.2cm; bottom: 0.45cm; width: 7.9cm; height: 4cm; background-color: #e9ecef; border-radius: 15px;"></div>
+                    <div style="position: fixed; left: 0.2cm; bottom: -0.05cm; width: 7.9cm; text-align: center; font-size: 0.7em;">
+                        <br>
+                        {{ salary.created_by.get_full_name }} u ime {{ company.clientName }}
+                    </div>
+                </td>
+                <!-- Desna kućica -->
+                <td style="width: 50%; text-align: center; vertical-align: bottom; border: none;">
+                    <div style="position: fixed; right: 0.2cm; bottom: 0.45cm; width: 7.9cm; height: 4cm; background-color: #e9ecef; border-radius: 15px;"></div>
+                    <div style="position: fixed; right: 0.2cm; bottom: -0.05cm; width: 7.9cm; text-align: center; font-size: 0.7em;">
+                        <br>
+                        {{ employee.get_full_name }}
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+</main>
+{% endblock %}
