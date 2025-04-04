@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load crispy_forms_tags %}
+{% load employee_filters %} {# Add this line to load custom filters #}
 
 {% block main %}
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -113,12 +114,12 @@
                             <tfoot>
                                 <tr>
                                     <th colspan="2" class="text-end">Ukupno:</th>
-                                    <th class="text-end">{{ selected_salaries|sum:"gross_salary"|floatformat:2 }}</th>
-                                    <th class="text-end">{{ selected_salaries|sum:"pension_pillar_1"|floatformat:2 }}</th>
-                                    <th class="text-end">{{ selected_salaries|sum:"pension_pillar_2"|floatformat:2 }}</th>
-                                    <th class="text-end">{{ selected_salaries|sum:"income_tax"|floatformat:2 }}</th>
-                                    <th class="text-end">{{ selected_salaries|sum:"net_salary"|floatformat:2 }}</th>
-                                    <th class="text-end">{{ selected_salaries|sum:"health_insurance"|floatformat:2 }}</th>
+                                    <th class="text-end">{{ total_gross_salary|floatformat:2 }}</th>
+                                    <th class="text-end">{{ total_pension_pillar_1|floatformat:2 }}</th>
+                                    <th class="text-end">{{ total_pension_pillar_2|floatformat:2 }}</th>
+                                    <th class="text-end">{{ total_income_tax|floatformat:2 }}</th>
+                                    <th class="text-end">{{ total_net_salary|floatformat:2 }}</th>
+                                    <th class="text-end">{{ total_health_insurance|floatformat:2 }}</th>
                                 </tr>
                             </tfoot>
                         </table>

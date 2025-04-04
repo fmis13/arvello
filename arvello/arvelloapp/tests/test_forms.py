@@ -1,11 +1,12 @@
 from django.test import TestCase
 from django.utils import timezone
-from arvelloapp.forms import ClientForm, ProductForm, InvoiceForm, ExpenseForm
-from arvelloapp.models import Client, Company
+from arvelloapp.forms import ClientForm, ProductForm, InvoiceForm, ExpenseForm, OfferForm, SalaryForm
+from arvelloapp.models import Client, Company, Employee  # Dodan import za model Employee
+from decimal import Decimal  # Dodan import za Decimal
 
 class ClientFormTest(TestCase):
     def test_valid_client_form(self):
-        """Test that form validates with correct data"""
+        """Provjera da je forma ispravna s točnim podacima"""
         form_data = {
             'clientName': 'Test Client',
             'addressLine1': 'Test Address',
@@ -24,7 +25,7 @@ class ClientFormTest(TestCase):
         self.assertTrue(form.is_valid())
     
     def test_invalid_client_form(self):
-        """Test that form validation fails with incorrect data"""
+        """Provjera da je forma neispravna s pogrešnim podacima"""
         form_data = {
             'clientName': '',
             'addressLine1': 'Test Address',
@@ -35,7 +36,7 @@ class ClientFormTest(TestCase):
 
 class ProductFormTest(TestCase):
     def test_valid_product_form(self):
-        """Test that form validates with correct data"""
+        """Provjera da je forma ispravna s točnim podacima"""
         form_data = {
             'title': 'Test Product',
             'description': 'Test Description',
@@ -50,7 +51,7 @@ class ProductFormTest(TestCase):
         self.assertTrue(form.is_valid())
     
     def test_invalid_product_form(self):
-        """Test that form validation fails with incorrect data"""
+        """Provjera da je forma neispravna s pogrešnim podacima"""
         form_data = {
             'title': '',
             'price': 'not-a-number',
@@ -90,7 +91,7 @@ class InvoiceFormTest(TestCase):
         )
     
     def test_valid_invoice_form(self):
-        """Test that form validates with correct data"""
+        """Provjera da je forma ispravna s točnim podacima"""
         form_data = {
             'title': 'Test Invoice',
             'number': '1-1-25',
@@ -106,7 +107,7 @@ class InvoiceFormTest(TestCase):
         self.assertTrue(form.is_valid())
     
     def test_invalid_invoice_form(self):
-        """Test that form validation fails with incorrect data"""
+        """Provjera da je forma neispravna s pogrešnim podacima"""
         form_data = {
             'title': 'Test Invoice',
         }

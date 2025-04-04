@@ -82,6 +82,7 @@ info_patterns = [
 # API URL-ovi
 api_patterns = [
     path('local-tax-data/<int:tax_id>/', views.get_local_tax_data, name='get_local_tax_data'),
+    path('invoices/<int:invoice_id>/mark-paid/', views.mark_invoice_paid, name='mark_invoice_paid'),
 ]
 
 # Kombinirani URL-ovi

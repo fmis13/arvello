@@ -33,4 +33,4 @@ jobs:
         python arvello/manage.py migrate
     - name: Run Tests
       run: |
-        python arvello/manage.py test arvelloapp
+        python arvello/manage.py test arvelloapp.tests

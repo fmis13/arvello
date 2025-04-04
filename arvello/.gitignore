@@ -11,3 +11,4 @@ arvelloapp/migrations
 .vscode
 *media/*
 arvello/arvelloapp/migrations/*
+*/__pycache__/*
