@@ -16,6 +16,13 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset, ButtonHolder, Submit, Row, Column
 from decimal import Decimal, InvalidOperation
 
+CROATIAN_MONTHS = [
+    ('1', 'Siječanj'), ('2', 'Veljača'), ('3', 'Ožujak'),
+    ('4', 'Travanj'), ('5', 'Svibanj'), ('6', 'Lipanj'),
+    ('7', 'Srpanj'), ('8', 'Kolovoz'), ('9', 'Rujan'),
+    ('10', 'Listopad'), ('11', 'Studeni'), ('12', 'Prosinac')
+]
+
 class DateInput(forms.DateInput):
     # Widget za unos datuma koji koristi HTML5 type="date"
     input_type = 'date'
@@ -370,12 +377,7 @@ class InvoiceFilterForm(forms.Form):
     )
     
     month = forms.ChoiceField(
-        choices=[
-            ('1', 'Siječanj'), ('2', 'Veljača'), ('3', 'Ožujak'),
-            ('4', 'Travanj'), ('5', 'Svibanj'), ('6', 'Lipanj'),
-            ('7', 'Srpanj'), ('8', 'Kolovoz'), ('9', 'Rujan'),
-            ('10', 'Listopad'), ('11', 'Studeni'), ('12', 'Prosinac')
-        ],
+        choices=CROATIAN_MONTHS, # Use Croatian months
         label='Mjesec',
         widget=forms.Select(attrs={'class': 'form-control'}),
         required=False, # Obavezno samo ako je filter_type 'month_year'
@@ -555,20 +557,7 @@ class IncomingInvoiceBookFilterForm(forms.Form):
         ('date_range', 'Po datumskom rasponu')
     ]
     
-    MONTH_CHOICES = [
-        ('1', 'Siječanj'),
-        ('2', 'Veljača'),
-        ('3', 'Ožujak'),
-        ('4', 'Travanj'),
-        ('5', 'Svibanj'),
-        ('6', 'Lipanj'),
-        ('7', 'Srpanj'),
-        ('8', 'Kolovoz'),
-        ('9', 'Rujan'),
-        ('10', 'Listopad'),
-        ('11', 'Studeni'),
-        ('12', 'Prosinac'),
-    ]
+    MONTH_CHOICES = CROATIAN_MONTHS # Use Croatian months
     
     # Godine od 2020 do 2030
     YEAR_CHOICES = [(str(year), str(year)) for year in range(2020, 2031)]
@@ -662,7 +651,7 @@ class SalaryCreationForm(forms.Form):
         empty_label='Odaberite zaposlenika' # Prazna opcija
     )
     period_month = forms.ChoiceField(
-        choices=[(i, calendar.month_name[i]) for i in range(1, 13)], # Mjeseci 1-12
+        choices=CROATIAN_MONTHS, # Use Croatian months
         label='Mjesec'
     )
     period_year = forms.ChoiceField(
@@ -739,7 +728,7 @@ class SalaryCreationForm(forms.Form):
 class SalaryFilterForm(forms.Form):
     # Forma za filtriranje pregleda plaća po mjesecu i godini
     month = forms.ChoiceField(
-        choices=[(i, calendar.month_name[i]) for i in range(1, 13)],
+        choices=CROATIAN_MONTHS, # Use Croatian months
         label='Mjesec',
         initial=timezone.now().month # Inicijalno trenutni mjesec
     )
@@ -897,7 +886,7 @@ class LocalIncomeTaxForm(forms.ModelForm):
 class SalaryPeriodFilterForm(forms.Form):
     # Forma za filtriranje plaća po periodu (mjesec, godina) i zaposleniku
     month = forms.ChoiceField(
-        choices=[(i, calendar.month_name[i]) for i in range(1, 13)],
+        choices=CROATIAN_MONTHS, # Use Croatian months
         required=False, # Mjesec nije obavezan (može se filtrirati samo po godini)
         label='Mjesec',
         widget=forms.Select(attrs={'class': 'form-control'})
@@ -939,7 +928,7 @@ class SalaryPeriodFilterForm(forms.Form):
 class JOPPDGenerationForm(forms.Form):
     # Forma za odabir perioda za generiranje JOPPD obrasca
     month = forms.ChoiceField(
-        choices=[(i, calendar.month_name[i]) for i in range(1, 13)],
+        choices=CROATIAN_MONTHS, # Use Croatian months
         required=True,
         label='Mjesec',
         widget=forms.Select(attrs={'class': 'form-control'})

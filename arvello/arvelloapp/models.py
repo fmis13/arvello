@@ -362,7 +362,12 @@ class Product(models.Model):
 class Offer(models.Model):
     # Model za ponudu
     title = models.CharField(null=True, blank=True, max_length=30)
-    number = models.CharField(null=False, blank=False, max_length=20, validators=[MinValueValidator(6, 'Broj računa mora sadržavati više od 5 karaktera.')])
+    number = models.CharField(
+        null=False, 
+        blank=False, 
+        max_length=20, 
+        validators=[MinLengthValidator(6, 'Broj računa mora sadržavati više od 5 karaktera.')]
+    )
     dueDate = models.DateField(null=True, blank=False)
     notes = models.TextField(null=True, blank=True)
     client = models.ForeignKey(Client, blank=False, null=False, on_delete=models.DO_NOTHING)
@@ -456,6 +461,9 @@ class Offer(models.Model):
 
 
 
+from django.utils.timezone import now
+from datetime import timedelta
+
 class Invoice(models.Model):
     # Model za račun
     title = models.CharField(null=True, blank=True, max_length=30)
@@ -470,6 +478,8 @@ class Invoice(models.Model):
     date = models.DateField(blank=False, null=True)
     last_updated = models.DateTimeField(blank=True, null=True)
     history = HistoricalRecords()
+    is_paid = models.BooleanField(default=False, verbose_name="Plaćen")
+    payment_date = models.DateField(null=True, blank=True, verbose_name="Datum plaćanja")
 
     def poziv_na_broj(self):
         # Generira poziv na broj za račun
@@ -550,6 +560,18 @@ class Invoice(models.Model):
             return True
         else:
             return False
+
+    def get_overdue_status(self):
+        """Vraća status zakašnjenja računa."""
+        if self.is_paid:
+            return None
+        today = now().date()
+        if self.dueDate < today - timedelta(days=5):
+            return "danger"  # Preko 5 dana zakašnjenja
+        elif self.dueDate < today:
+            return "warning"  # Do 5 dana zakašnjenja
+        return None
+
 class Inventory(models.Model):
     # Model za inventar
     title= models.CharField(null=True, blank=True, max_length=100)
@@ -1143,7 +1165,7 @@ class Salary(HistoryMixin, models.Model):
 
     @property
     def total_cost(self):
-        """Calculate the total cost of the salary including net salary, health insurance, and non-taxable payments."""
+        """Izračunava ukupne troškove plaće uključujući bruto plaću, doprinose i neoporezive naknade."""
         return self.net_salary + self.health_insurance + Decimal(sum(self.non_taxable_payments.values()))
 
     def sick_rate_100(self):

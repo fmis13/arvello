@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Count
 from django.contrib import messages
 from django.contrib.auth.models import User, auth
 from django.views.generic import FormView
@@ -12,7 +12,6 @@ from django.utils import timezone
 from django.apps import apps
 from io import BytesIO
 from .forms import *
-from .models import *
 import requests
 import json
 import base64
@@ -33,12 +32,13 @@ import re
 import pandas as pd
 from decimal import Decimal, InvalidOperation
 import datetime
-from .utils.joppd_generator import generate_joppd_xml, validate_joppd_xml
+from .utils.joppd_generator import generate_joppd_xml, validate_joppd_xml, mark_salaries_as_reported
 from django.template.loader import render_to_string, get_template
 from weasyprint import HTML, CSS
 from .utils.email_utils import send_email_with_attachment
 from django.conf import settings # Dodaj import
 import os # Dodaj import
+from django.utils.timezone import now
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,7 @@ def anonymous_required(function=None):
         return _view
 
     if function:
+        return _dec(function)
         return _dec(function)
     return _dec
 
@@ -1418,80 +1419,105 @@ def salary_payslip(request, salary_id):
 def joppd_report(request):
     """Generiranje JOPPD izvještaja (XML)"""
     context = {}
-    
+    selected_salaries = None
+    total_count = 0
+    # Inicijaliziraj sve potrebne varijable
+    total_gross_salary = Decimal('0.00')
+    total_pension_pillar_1 = Decimal('0.00')
+    total_pension_pillar_2 = Decimal('0.00')
+    total_income_tax = Decimal('0.00')
+    total_net_salary = Decimal('0.00')
+    total_health_insurance = Decimal('0.00')
+    month = None
+    year = None
+
     if request.method == 'POST':
-        action = request.POST.get('action')
-        
-        if action == 'generate_xml':
-            # Prikupi podatke za izvještaj
-            month = int(request.POST.get('month'))
-            year = int(request.POST.get('year'))
-            
-            # Dohvati plaće za odabrani period koje još nisu prijavljene
-            salaries = Salary.objects.filter(
-                period_month=month, 
-                period_year=year,
-                joppd_status=False  
-            )
-            
-            if not salaries.exists():
-                messages.warning(request, f"Nema neprijavljenih plaća za {calendar.month_name[month]} {year}.")
-                return redirect('joppd_report')
-            
-            # Pripremi podatke za JOPPD XML
-            data = {
-                "author": request.user.get_full_name(),
-                "report_date": datetime.now().strftime("%Y-%m-%d"),
-                "report_id": f"{year}{month:02d}",
-                "report_type": "1",
-                "submitter": {
-                    "name": "Tvrtka d.o.o.",
-                    "address": {"city": "Zagreb", "street": "Ilica", "number": "1"},
-                    "email": "info@tvrtka.hr",
-                    "oib": "12345678901",
-                    "label": "1"
-                },
-                "contributions": {
-                    "P1": salaries.aggregate(Sum('pension_pillar_1'))['pension_pillar_1__sum'] or Decimal('0.00'),
-                    "P2": salaries.aggregate(Sum('pension_pillar_2'))['pension_pillar_2__sum'] or Decimal('0.00'),
-                    "P3": salaries.aggregate(Sum('health_insurance'))['health_insurance__sum'] or Decimal('0.00')
-                },
-                "recipients": [
-                    {
-                        "P1": idx + 1,
-                        "P2": salary.employee.city_code,
-                        "P3": salary.employee.city_code,
-                        "P4": salary.employee.oib,
-                        "P5": salary.employee.get_full_name(),
-                        "P11": salary.gross_salary,
-                        "P12": salary.tax_base,
-                        "P121": salary.pension_pillar_1,
-                        "P122": salary.pension_pillar_2,
-                        "P123": salary.health_insurance,
-                        "P17": salary.net_salary
-                    }
-                    for idx, salary in enumerate(salaries)
-                ]
-            }
+        form = JOPPDGenerationForm(request.POST)
+        if form.is_valid():
+            month = int(form.cleaned_data['month'])
+            year = int(form.cleaned_data['year'])
 
-            # Generiraj XML
-            xml_content = generate_joppd_xml(data)
+            selected_salaries = Salary.objects.filter(
+                payment_date__month=month,
+                payment_date__year=year
+            ).select_related('employee', 'employee__company')
 
-            # Validiraj XML
-            xsd_path = "/home/frano/Downloads/JOPPD_XSD_Schema_2020/JOPPD/ObrazacJOPPD-v1-1.xsd"
-            if not validate_joppd_xml(xml_content, xsd_path):
-                messages.error(request, "Generirani XML nije ispravan prema XSD shemi.")
-                return redirect('joppd_report')
+            if not selected_salaries.exists():
+                messages.warning(request, f"Nema kreiranih plaća s datumom isplate u {month}/{year} za generiranje JOPPD.")
+                context = {'form': form, 'month': month, 'year': year}
+                return render(request, 'joppd_report.html', context)
 
-            # Vrati XML kao odgovor
-            response = HttpResponse(xml_content, content_type="application/xml")
-            response["Content-Disposition"] = f'attachment; filename=JOPPD_{year}_{month:02d}.xml'
-            return response
+            # Generiraj ukupne iznose za prikaz
+            try:
+                # Pretpostavi da su svi potrebni iznosi u decimalnom formatu
+                if selected_salaries:
+                    first_employee = selected_salaries.first().employee
+                    if not first_employee or not first_employee.company:
+                         raise ValueError("Nema zaposlenika ili tvrtke za odabrani period.")
+                    company_subject = first_employee.company
+                else:
+                     raise ValueError("Nema zaposlenika za odabrani period.")
 
-    # Ako je GET zahtjev, prikaži praznu formu za odabir perioda
-    form = JOPPDGenerationForm()
-    context['form'] = form
+
+                xml_content_str = generate_joppd_xml(selected_salaries, year, month, company_subject)
+
+                # Validate XML (optional but recommended)
+                # is_valid, errors = validate_joppd_xml(xml_content_str) # Assuming validate takes string
+                # if not is_valid:
+                #     logger.error(f"Generated JOPPD XML is invalid: {errors}")
+                #     messages.error(request, f"Generirani JOPPD XML nije ispravan: {errors}")
+                #     context = {'form': form, 'month': month, 'year': year} # Pass form and period back
+                #     return render(request, 'joppd_report.html', context)
+
+                # Prepare response for XML download
+                response = HttpResponse(xml_content_str, content_type='application/xml; charset=utf-8') # Ensure UTF-8
+                filename = f"JOPPD_{company_subject.OIB}_{year}_{month:02d}.xml"
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+                # Označi plaće kao prijavljene nakon uspješnog generiranja
+                try:
+                    marked_count = mark_salaries_as_reported(selected_salaries, filename)
+                    messages.success(request, f"JOPPD obrazac {filename} uspješno generiran. {marked_count} plaća označeno kao prijavljeno.")
+                except Exception as mark_error:
+                    logger.error(f"Greška pri označavanju plaća kao prijavljenih: {mark_error}")
+                    messages.warning(request, f"JOPPD obrazac {filename} je generiran, ali došlo je do greške pri označavanju plaća kao prijavljenih.")
+
+
+                return response
+
+            except Exception as e:
+                logger.exception(f"Greška pri generiranju JOPPD XML-a za {month}/{year}: {e}") # Log full traceback
+                messages.error(request, f"Došlo je do greške prilikom generiranja JOPPD XML datoteke: {e}")
+                context = {'form': form, 'month': month, 'year': year} # Pass form and period back
+                return render(request, 'joppd_report.html', context)
+
+        else: # Form is invalid
+             # Calculate totals for display even if form is invalid, if salaries were potentially filtered before validation failed (unlikely here)
+             # Or just pass the invalid form back
+             context = {'form': form}
+             return render(request, 'joppd_report.html', context)
+
+    else: # GET request
+        form = JOPPDGenerationForm()
+        # Optionally pre-calculate totals for the default month/year on GET if needed for display
+
+    # Prepare context for GET request or if POST fails before download
+    context.update({
+        'form': form,
+        'selected_salaries': selected_salaries, # Will be None on initial GET
+        'month': month, # Will be None on initial GET
+        'year': year,   # Will be None on initial GET
+        'total_count': total_count,
+        'total_gross_salary': total_gross_salary,
+        'total_pension_pillar_1': total_pension_pillar_1,
+        'total_pension_pillar_2': total_pension_pillar_2,
+        'total_income_tax': total_income_tax,
+        'total_net_salary': total_net_salary,
+        'total_health_insurance': total_health_insurance,
+    })
     return render(request, 'joppd_report.html', context)
+
+# ... rest of the views ...
 
 @login_required
 def pension_info(request):
@@ -1922,3 +1948,14 @@ def send_invoice_email(request, invoice_id):
         # Ako nije POST, preusmjeri ili vrati grešku
         messages.error(request, "Neispravan zahtjev.")
         return redirect('invoices')
+
+@login_required
+def mark_invoice_paid(request, invoice_id):
+    """Označava račun kao plaćen i postavlja datum plaćanja na trenutni dan."""
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    if request.method == "POST":
+        invoice.is_paid = True
+        invoice.payment_date = now().date()
+        invoice.save()
+        messages.success(request, f"Račun {invoice.number} je označen kao plaćen.")
+    return redirect('invoices')

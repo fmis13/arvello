@@ -38,7 +38,13 @@
       <tbody>
 
         {% for invoice in invoices %}
-      <tr>
+      <tr 
+        {% if invoice.get_overdue_status == "warning" %}
+          class="table-warning"
+        {% elif invoice.get_overdue_status == "danger" %}
+          class="table-danger"
+        {% endif %}
+      >
         {% if invoice.title == None %}
         <td>∅</td>
         {% else %}
@@ -51,10 +57,10 @@
         <td>{{invoice.notes}}</td>
         <td><a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn"><img src="{% static 'img/download.svg' %}" alt="Preuzmi" title="Preuzmi" width="16" height="16"></button></a></td>
         <td>
-          <form method="post" action="{% url 'send_invoice_email' invoice.id %}">
+          <form method="post" action="{% url 'mark_invoice_paid' invoice.id %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-primary">
-              <span class="material-symbols-outlined">email</span> Pošalji e-mail
+            <button type="submit" class="btn btn-sm {% if invoice.is_paid %}btn-success{% else %}btn-outline-secondary{% endif %}">
+              <span class="material-symbols-outlined align-icon">check</span>
             </button>
           </form>
         </td>
