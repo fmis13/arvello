@@ -1716,7 +1716,7 @@ def view_history(request, model_name='general', object_id=None, user_id=None):
                 current_record.changes_display = []
                 
                 # Dohvati sva polja modela (osim internih polja povijesti)
-                fields = {f.name: f.verbosename or f.name for f in model._meta.fields 
+                fields = {f.name: f.verbose_name or f.name for f in model._meta.fields 
                 if f.name not in ['id', 'history_id', 'history_date', 'history_type', 'history_user_id', 'last_updated']}
                 
                 # Usporedi vrijednosti za svako polje
