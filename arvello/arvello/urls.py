@@ -65,12 +65,14 @@ report_patterns = [
     path('joppd-report/', views.joppd_report, name='joppd_report'),
 ]
 
-# URL-ovi za povijest
+# URL-ovi za povijest - provjeriti jesu li ispravno postavljeni
 history_patterns = [
+    # Izmjene u konfiguraciji URL-ova za povijest
+    path('history/user/<int:user_id>/', views.view_history, {'model_name': 'user'}, name='history_user'),
     path('history/<str:model_name>/<int:object_id>/', views.view_history, name='view_history_detail'),
-    path('history/<str:model_name>/', views.view_history, name='view_history_model'),
-    path('history/user/<int:user_id>/', views.view_history, {'model_name': 'user'}, name='view_history_user'),
+    path('history/<str:model_name>/', views.view_history, name='history_model'),
     path('history/general/', views.view_history, {'model_name': 'general'}, name='view_history'),
+    path('history/', views.view_history, name='history_general'),
 ]
 
 # Informativni URL-ovi

@@ -129,13 +129,11 @@
                                     </thead>
                                     <tbody>
                                         {% for field_name, old_value, new_value in current.changes_display %}
-                                        {% if old_value != new_value %}
                                         <tr>
                                             <td><strong>{{ field_name }}</strong></td>
                                             <td class="bg-light">{{ old_value|default:"-prazno-" }}</td>
                                             <td class="bg-light">{{ new_value|default:"-prazno-" }}</td>
                                         </tr>
-                                        {% endif %}
                                         {% empty %}
                                         <tr>
                                             <td colspan="3" class="text-center">Nema zabilježenih promjena</td>
