@@ -377,7 +377,7 @@ class InvoiceFilterForm(forms.Form):
     )
     
     month = forms.ChoiceField(
-        choices=CROATIAN_MONTHS, # Use Croatian months
+        choices=CROATIAN_MONTHS, # Mjeseci na hrvatskom
         label='Mjesec',
         widget=forms.Select(attrs={'class': 'form-control'}),
         required=False, # Obavezno samo ako je filter_type 'month_year'
@@ -651,7 +651,7 @@ class SalaryCreationForm(forms.Form):
         empty_label='Odaberite zaposlenika' # Prazna opcija
     )
     period_month = forms.ChoiceField(
-        choices=CROATIAN_MONTHS, # Use Croatian months
+        choices=CROATIAN_MONTHS, # Mjeseci na hrvatskom
         label='Mjesec'
     )
     period_year = forms.ChoiceField(
@@ -886,7 +886,7 @@ class LocalIncomeTaxForm(forms.ModelForm):
 class SalaryPeriodFilterForm(forms.Form):
     # Forma za filtriranje plaća po periodu (mjesec, godina) i zaposleniku
     month = forms.ChoiceField(
-        choices=CROATIAN_MONTHS, # Use Croatian months
+        choices=CROATIAN_MONTHS, # Mjeseci na hrvatskom
         required=False, # Mjesec nije obavezan (može se filtrirati samo po godini)
         label='Mjesec',
         widget=forms.Select(attrs={'class': 'form-control'})

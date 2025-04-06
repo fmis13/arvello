@@ -35,8 +35,8 @@ from .utils.joppd_generator import generate_joppd_xml, validate_joppd_xml, mark_
 from django.template.loader import render_to_string, get_template
 from weasyprint import HTML, CSS
 from .utils.email_utils import send_email_with_attachment
-from django.conf import settings # Dodaj import
-import os # Dodaj import
+from django.conf import settings
+import os
 from django.utils.timezone import now
 
 logger = logging.getLogger(__name__)
@@ -1391,20 +1391,15 @@ def salary_payslip(request, salary_id):
 
     # Ako je zatražen PDF format, koristi pdf_generator
     if request.GET.get('format') == 'pdf':
-        # Import moved here to potentially avoid top-level issues,
-        # although the main circular dependency is resolved by moving the context function.
         try:
             from .utils.pdf_generator import generate_payslip_pdf
             # Proslijedi request objekt ako je potreban unutar generate_payslip_pdf
             return generate_payslip_pdf(salary, request) 
         except ImportError:
              messages.error(request, "Greška pri generiranju PDF-a: pdf_generator nije pronađen.")
-             # Redirect to a safe place, e.g., salary detail or list view
-             # Replace 'salary_detail' with your actual view name if different
              return redirect('salaries') 
         except Exception as e:
              messages.error(request, f"Greška pri generiranju PDF-a: {e}")
-             # Redirect to a safe place
              return redirect('salaries')
 
 
@@ -1459,15 +1454,6 @@ def joppd_report(request):
 
                 xml_content_str = generate_joppd_xml(selected_salaries, year, month, company_subject)
 
-                # Validate XML (optional but recommended)
-                # is_valid, errors = validate_joppd_xml(xml_content_str) # Assuming validate takes string
-                # if not is_valid:
-                #     logger.error(f"Generated JOPPD XML is invalid: {errors}")
-                #     messages.error(request, f"Generirani JOPPD XML nije ispravan: {errors}")
-                #     context = {'form': form, 'month': month, 'year': year} # Pass form and period back
-                #     return render(request, 'joppd_report.html', context)
-
-                # Prepare response for XML download
                 response = HttpResponse(xml_content_str, content_type='application/xml; charset=utf-8') # Ensure UTF-8
                 filename = f"JOPPD_{company_subject.OIB}_{year}_{month:02d}.xml"
                 response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -1489,22 +1475,18 @@ def joppd_report(request):
                 context = {'form': form, 'month': month, 'year': year} # Pass form and period back
                 return render(request, 'joppd_report.html', context)
 
-        else: # Form is invalid
-             # Calculate totals for display even if form is invalid, if salaries were potentially filtered before validation failed (unlikely here)
-             # Or just pass the invalid form back
+        else:
              context = {'form': form}
              return render(request, 'joppd_report.html', context)
 
     else: # GET request
         form = JOPPDGenerationForm()
-        # Optionally pre-calculate totals for the default month/year on GET if needed for display
 
-    # Prepare context for GET request or if POST fails before download
     context.update({
         'form': form,
-        'selected_salaries': selected_salaries, # Will be None on initial GET
-        'month': month, # Will be None on initial GET
-        'year': year,   # Will be None on initial GET
+        'selected_salaries': selected_salaries,
+        'month': month,
+        'year': year,
         'total_count': total_count,
         'total_gross_salary': total_gross_salary,
         'total_pension_pillar_1': total_pension_pillar_1,
@@ -1515,7 +1497,6 @@ def joppd_report(request):
     })
     return render(request, 'joppd_report.html', context)
 
-# ... rest of the views ...
 
 @login_required
 def pension_info(request):
