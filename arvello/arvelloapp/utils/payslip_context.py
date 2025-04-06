@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 def get_payslip_context(salary):
     """Generira kontekst za platnu listu."""
     # Osiguraj da su osnovni izračuni na salary objektu ažurni
-    # update_salary_with_calculations(salary) # Privremeno zakomentirano za testiranje
 
     # Izračunaj dodatne vrijednosti za kontekst
     non_taxable_total = sum(Decimal(str(v)) for v in salary.non_taxable_payments.values()) if salary.non_taxable_payments else Decimal('0.00')
@@ -41,7 +40,7 @@ def get_payslip_context(salary):
     lower_tax_base = min(salary.income_tax_base, monthly_threshold)
     higher_tax_base = max(salary.income_tax_base - monthly_threshold, Decimal('0.00'))
     
-    # --- Ponovno dohvati porezne stope za prikaz ---
+    # Ponovno dohvati porezne stope za prikaz
     display_lower_tax_rate = Decimal('20.00') # Default stopa za prikaz
     display_higher_tax_rate = Decimal('30.00') # Default stopa za prikaz
     try:
@@ -57,9 +56,9 @@ def get_payslip_context(salary):
         logger.warning(f"Nisu pronađene lokalne porezne stope za {salary.employee.city} na datum {payment_date_obj}. Prikazuju se default stope.")
     except Exception as e:
         logger.error(f"Greška pri dohvaćanju lokalnih poreznih stopa za prikaz: {e}")
-    # --- Kraj dohvaćanja stopa za prikaz ---
+    # Kraj dohvaćanja stopa za prikaz
 
-    # --- Pripremi listu neoporezivih primitaka s opisima ---
+    # Pripremi listu neoporezivih primitaka s opisima
     non_taxable_items = []
     if salary.non_taxable_payments:
         # Dohvati sve relevantne podatke (code, description, name) za aktivne tipove
@@ -84,13 +83,13 @@ def get_payslip_context(salary):
                 'description': display_text, # Koristi display_text koji sadrži opis, naziv ili kod
                 'amount': Decimal(str(amount)) # Osiguraj da je Decimal
             })
-    # --- Kraj pripreme neoporezivih primitaka ---
+    # Kraj pripreme neoporezivih primitaka
 
-    # --- Izračunaj iznose poreza direktno ovdje za prikaz ---
+    # Izračunaj iznose poreza direktno ovdje za prikaz
     # Koristi dohvaćene stope i izračunate osnovice
     calculated_lower_tax_amount = (lower_tax_base * display_lower_tax_rate / Decimal('100.00')).quantize(Decimal('0.01'))
     calculated_higher_tax_amount = (higher_tax_base * display_higher_tax_rate / Decimal('100.00')).quantize(Decimal('0.01'))
-    # --- Kraj izračuna iznosa poreza ---
+    # Kraj izračuna iznosa poreza
     
     # Ukupni doprinosi iz bruto plaće (već izračunati i spremljeni)
     total_contributions = salary.pension_pillar_1 + salary.pension_pillar_2
@@ -118,5 +117,5 @@ def get_payslip_context(salary):
         'non_taxable_items': non_taxable_items, # Dodaj pripremljenu listu u kontekst
     }
     
-    # Vrati RJEČNIK konteksta
+    # Vrati rječnik konteksta
     return context

@@ -397,10 +397,8 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Fix for Bootstrap modal initialization
     const modalElements = document.querySelectorAll('.modal');
     modalElements.forEach(function(modalElement) {
-        // Manually initialize each modal to avoid conflicts
         new bootstrap.Modal(modalElement);
     });
     

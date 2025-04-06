@@ -1,8 +1,8 @@
 from django.test import TestCase
 from django.utils import timezone
 from arvelloapp.forms import ClientForm, ProductForm, InvoiceForm, ExpenseForm, OfferForm, SalaryForm
-from arvelloapp.models import Client, Company, Employee  # Dodan import za model Employee
-from decimal import Decimal  # Dodan import za Decimal
+from arvelloapp.models import Client, Company, Employee
+from decimal import Decimal
 
 class ClientFormTest(TestCase):
     def test_valid_client_form(self):

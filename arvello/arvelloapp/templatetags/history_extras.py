@@ -133,7 +133,7 @@ def get_history_url(model_name, object_id=None):
     if object_id:
         return reverse('view_history_detail', kwargs={'model_name': model_slug, 'object_id': object_id})
     # Inače, generiraj URL za prikaz povijesti cijelog modela
-    return reverse('view_history_model', kwargs={'model_name': model_slug})
+    return reverse('history_model', kwargs={'model_name': model_slug})
 
 @register.simple_tag
 def get_user_history_url(user_id):

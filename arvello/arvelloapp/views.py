@@ -17,7 +17,7 @@ import json
 import base64
 from barcode import Code128
 from barcode.writer import SVGWriter
-from datetime import datetime
+from datetime import datetime, date
 from calendar import monthrange
 import calendar
 from django.utils import timezone
@@ -31,13 +31,12 @@ import os
 import re
 import pandas as pd
 from decimal import Decimal, InvalidOperation
-import datetime
 from .utils.joppd_generator import generate_joppd_xml, validate_joppd_xml, mark_salaries_as_reported
 from django.template.loader import render_to_string, get_template
 from weasyprint import HTML, CSS
 from .utils.email_utils import send_email_with_attachment
-from django.conf import settings # Dodaj import
-import os # Dodaj import
+from django.conf import settings
+import os
 from django.utils.timezone import now
 
 logger = logging.getLogger(__name__)
@@ -73,7 +72,6 @@ def products(request):
     # Prikazuje stranicu s proizvodima/uslugama i omogućuje dodavanje novih
     context = {}
     products = Product.objects.all()
-    # Removed redundant query for Product.objects.all()
     context['product'] = products
 
     if request.method == 'GET':
@@ -276,7 +274,7 @@ def companies(request):
         form = CompanyForm(request.POST, request.FILES)
         if form.errors:
                 # Ispiši greške forme u konzolu za debugiranje
-                logger.error(f"Form validation errors: {form.errors}")
+                logger.error(f"Greška s validacijom forme: {form.errors}")
         
         if form.is_valid():
             # Ako je forma ispravna, spremi tvrtku
@@ -1099,16 +1097,16 @@ def salaries(request):
         ),
     })
     
-    # Fetch tax parameters for the current year
+    # Dohvati porezne parametre za odabranu godinu
     tax_parameters = TaxParameter.objects.filter(year=selected_year)
 
-    # Add tax parameters to the context
+    # Dodaj porezne parametre u kontekst
     context['tax_parameters'] = {param.parameter_type: param.value for param in tax_parameters}
     
-    # Fetch all active non-taxable payment types
+    # Dohvati sve aktivne neoporezive limite
     non_taxable_limits = NonTaxablePaymentType.objects.filter(active=True)
 
-    # Add non-taxable limits to the context
+    # Dodaj neoporezive limite u kontekst
     context['non_taxable_limits'] = non_taxable_limits
     
     return render(request, 'salaries.html', context)
@@ -1393,20 +1391,15 @@ def salary_payslip(request, salary_id):
 
     # Ako je zatražen PDF format, koristi pdf_generator
     if request.GET.get('format') == 'pdf':
-        # Import moved here to potentially avoid top-level issues,
-        # although the main circular dependency is resolved by moving the context function.
         try:
             from .utils.pdf_generator import generate_payslip_pdf
             # Proslijedi request objekt ako je potreban unutar generate_payslip_pdf
             return generate_payslip_pdf(salary, request) 
         except ImportError:
              messages.error(request, "Greška pri generiranju PDF-a: pdf_generator nije pronađen.")
-             # Redirect to a safe place, e.g., salary detail or list view
-             # Replace 'salary_detail' with your actual view name if different
              return redirect('salaries') 
         except Exception as e:
              messages.error(request, f"Greška pri generiranju PDF-a: {e}")
-             # Redirect to a safe place
              return redirect('salaries')
 
 
@@ -1461,15 +1454,6 @@ def joppd_report(request):
 
                 xml_content_str = generate_joppd_xml(selected_salaries, year, month, company_subject)
 
-                # Validate XML (optional but recommended)
-                # is_valid, errors = validate_joppd_xml(xml_content_str) # Assuming validate takes string
-                # if not is_valid:
-                #     logger.error(f"Generated JOPPD XML is invalid: {errors}")
-                #     messages.error(request, f"Generirani JOPPD XML nije ispravan: {errors}")
-                #     context = {'form': form, 'month': month, 'year': year} # Pass form and period back
-                #     return render(request, 'joppd_report.html', context)
-
-                # Prepare response for XML download
                 response = HttpResponse(xml_content_str, content_type='application/xml; charset=utf-8') # Ensure UTF-8
                 filename = f"JOPPD_{company_subject.OIB}_{year}_{month:02d}.xml"
                 response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -1491,22 +1475,18 @@ def joppd_report(request):
                 context = {'form': form, 'month': month, 'year': year} # Pass form and period back
                 return render(request, 'joppd_report.html', context)
 
-        else: # Form is invalid
-             # Calculate totals for display even if form is invalid, if salaries were potentially filtered before validation failed (unlikely here)
-             # Or just pass the invalid form back
+        else:
              context = {'form': form}
              return render(request, 'joppd_report.html', context)
 
     else: # GET request
         form = JOPPDGenerationForm()
-        # Optionally pre-calculate totals for the default month/year on GET if needed for display
 
-    # Prepare context for GET request or if POST fails before download
     context.update({
         'form': form,
-        'selected_salaries': selected_salaries, # Will be None on initial GET
-        'month': month, # Will be None on initial GET
-        'year': year,   # Will be None on initial GET
+        'selected_salaries': selected_salaries,
+        'month': month,
+        'year': year,
         'total_count': total_count,
         'total_gross_salary': total_gross_salary,
         'total_pension_pillar_1': total_pension_pillar_1,
@@ -1517,7 +1497,6 @@ def joppd_report(request):
     })
     return render(request, 'joppd_report.html', context)
 
-# ... rest of the views ...
 
 @login_required
 def pension_info(request):
@@ -1578,6 +1557,7 @@ def employee_api(request, employee_id):
 @login_required
 def view_history(request, model_name='general', object_id=None, user_id=None):
     """Prikazuje povijest promjena za modele koji koriste simple_history"""
+    
     # Inicijaliziraj listu za zapise povijesti
     history_records = []
     title = "Povijest promjena"
@@ -1600,10 +1580,15 @@ def view_history(request, model_name='general', object_id=None, user_id=None):
         'expense': (Expense, 'Trošak'),
         'nontaxpaymtype':(NonTaxablePaymentType, 'Neoporeziv primitak'),
     }
-    
+        
     if model_name == 'user':
         # Prikaz povijesti za određenog korisnika
         history_type = 'user'
+        
+        # Ako je object_id postavljen, a user_id nije, koristi object_id kao user_id
+        if object_id is not None and user_id is None:
+            user_id = object_id
+            
         if user_id:
             user = get_object_or_404(User, pk=user_id)
             title = f"Povijest korisnika: {user.get_full_name() or user.username}"
@@ -1614,7 +1599,7 @@ def view_history(request, model_name='general', object_id=None, user_id=None):
             # Iteriraj kroz modele i dohvati zapise povijesti za ovog korisnika
             for model in model_list:
                 records = list(model.history.filter(history_user_id=user_id)
-                               .order_by('-history_date')[:30]) # Ograniči na zadnjih 30 promjena po modelu
+                            .order_by('-history_date')[:30])
                 
                 # Dodaj naziv modela svakom zapisu
                 for record in records:
@@ -1629,9 +1614,11 @@ def view_history(request, model_name='general', object_id=None, user_id=None):
                     history_records.append((records[0], None))
             
             # Sortiraj sve zapise po datumu silazno
-            history_records.sort(key=lambda x: x[0].history_date, reverse=True)
-    
+            if history_records:
+                history_records.sort(key=lambda x: x[0].history_date, reverse=True)
+
     elif model_name == 'general':
+        print("DEBUG: Entering 'general' branch")
         # Općeniti pregled zadnjih promjena za sve modele
         history_type = 'general'
         title = "Općeniti pregled"
@@ -1716,7 +1703,7 @@ def view_history(request, model_name='general', object_id=None, user_id=None):
                 current_record.changes_display = []
                 
                 # Dohvati sva polja modela (osim internih polja povijesti)
-                fields = {f.name: f.verbosename or f.name for f in model._meta.fields 
+                fields = {f.name: f.verbose_name or f.name for f in model._meta.fields 
                 if f.name not in ['id', 'history_id', 'history_date', 'history_type', 'history_user_id', 'last_updated']}
                 
                 # Usporedi vrijednosti za svako polje
@@ -1726,7 +1713,10 @@ def view_history(request, model_name='general', object_id=None, user_id=None):
                     
                     # Dodaj u prikaz samo ako su vrijednosti različite
                     if old_value != new_value:
-                        current_record.changes_display.append((field_label, old_value, new_value))
+                        # Formatiraj vrijednosti prije dodavanja u listu za prikaz
+                        formatted_old = format_field_value(old_value)
+                        formatted_new = format_field_value(new_value)
+                        current_record.changes_display.append((field_label, formatted_old, formatted_new))
             
             # Ako je zapis tipa 'kreiranje' (+), pripremi prikaz inicijalnih vrijednosti
             elif current_record.history_type == '+':
@@ -1740,12 +1730,14 @@ def view_history(request, model_name='general', object_id=None, user_id=None):
                 for field_name, field_label in fields.items():
                     value = getattr(current_record, field_name, None)
                     if value is not None and value != '':
-                        current_record.initial_values.append((field_label, value))
+                        # Formatiraj vrijednost prije dodavanja
+                        current_record.initial_values.append((field_label, format_field_value(value)))
             
             # Dodaj par (trenutni, prethodni) u listu
             records_with_prev.append((current_record, previous_record))
         
         history_records = records_with_prev
+    
     
     # Renderiraj predložak s pripremljenim podacima povijesti
     return render(request, 'history_view.html', {
@@ -1787,9 +1779,14 @@ def format_field_value(value):
     """Pomoćna funkcija: Formatira vrijednost polja za prikaz u povijesti"""
     if value is None:
         return None # Vrati None ako je vrijednost None
-    elif isinstance(value, (datetime, date)):
+    # Izbjegnuti sukob tipova koristeći modularni pristup
+    elif isinstance(value, datetime) or isinstance(value, date): 
         # Formatiraj datum i vrijeme
-        return value.strftime('%d.m.%Y. %H:%M:%S')
+        # Ako je samo date objekt, nema smisla formatirati H:M:S
+        if isinstance(value, datetime):
+             return value.strftime('%d.%m.%Y. %H:%M:%S')
+        else: # Inače je date objekt
+             return value.strftime('%d.%m.%Y.')
     elif isinstance(value, Decimal):
         # Formatiraj decimalni broj na dvije decimale
         return f"{value:.2f}"
@@ -1805,41 +1802,6 @@ def tax_changes_2025(request):
     # Prikazuje informativnu stranicu o poreznim promjenama za 2025.
     return render(request, 'tax_changes_2025.html')
 
-
-def get_field_changes(current, previous):
-    """Pomoćna funkcija: Dohvaća promjene između dvije verzije zapisa povijesti (duplikat, može se ukloniti)"""
-    if not previous:
-        return {}
-        
-    changes = {}
-    # Prođi kroz sva polja
-    for field in current._meta.fields:
-        if field.name not in ['id', 'history_id', 'history_date', 'history_type', 'history_user_id', 'last_updated']:
-            old_val = getattr(previous, field.name, None)
-            new_val = getattr(current, field.name, None)
-            
-            if old_val != new_val:
-                field_name = getattr(field, 'verbose_name', field.name) or field.name
-                changes[field_name] = {
-                    'old': format_field_value(old_val),
-                    'new': format_field_value(new_val)
-                }
-    
-    return changes
-
-def format_field_value(value):
-    """Pomoćna funkcija: Formatira vrijednost polja za prikaz u povijesti (duplikat, može se ukloniti)"""
-    if value is None:
-        return None
-    elif isinstance(value, (datetime, date)):
-        return value.strftime('%d.m.%Y. %H:%M:%S')
-    elif isinstance(value, Decimal):
-        return f"{value:.2f}"
-    elif isinstance(value, User):
-        return value.get_full_name() or value.username
-    else:
-        return str(value)
-
 @login_required
 def send_invoice_email(request, invoice_id):
     """Šalje račun e-mailom klijentu."""
@@ -1851,7 +1813,6 @@ def send_invoice_email(request, invoice_id):
         sender_name = invoice.subject.clientName
         reply_to_email = invoice.subject.emailAddress
 
-        # --- Dodana logika za generiranje barkoda ---
         url = "https://hub3.bigfish.software/api/v2/barcode"
         headers = {'Content-Type': 'application/json'}
         data = {
@@ -1889,7 +1850,6 @@ def send_invoice_email(request, invoice_id):
         except Exception as e:
              logger.error(f"Neočekivana greška pri generiranju barkoda za račun {invoice.id}: {e}")
              messages.error(request, "Neočekivana greška pri generiranju barkoda.")
-        # --- Kraj logike za barkod ---
 
         # Generiraj PDF za račun
         template = get_template('invoice_export_view.html')
@@ -1906,7 +1866,7 @@ def send_invoice_email(request, invoice_id):
         try:
             bootstrap_css_path = os.path.join(settings.STATICFILES_DIRS[0], 'css/bootstrap.min.css')
             stylesheets = [CSS(filename=bootstrap_css_path)]
-            # --- Proslijedi CSS WeasyPrintu ---
+            # Proslijedi CSS WeasyPrintu
             HTML(string=html_content).write_pdf(pdf_file, stylesheets=stylesheets)
         except IndexError:
              logger.error("STATICFILES_DIRS nije konfiguriran ili je prazan.")
