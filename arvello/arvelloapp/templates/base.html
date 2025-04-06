@@ -116,7 +116,7 @@
               </button>
               <ul class="dropdown-menu dropdown-menu-end" style="position: absolute;">
                 <li>
-                  <a class="dropdown-item" href="{% url 'view_history_user' request.user.id %}">
+                  <a class="dropdown-item" href="{% url 'history_user' user_id=request.user.id %}">
                     <span class="material-symbols-outlined align-icon">history</span>
                     Moje promjene
                   </a>
@@ -322,7 +322,7 @@
                                   keyboard: true,
                                   focus: true
                               });
-                              modalElement.setAttribute('data-bs-modal-initialized', 'true');
+                              modalElement.setAttribute('data-bs-modal-initializiran', 'true');
                           }
                       } catch (modalError) {
                           console.warn('Greška u inicijalizaciji modala:', modalError);

@@ -41,7 +41,7 @@ def generate_joppd_xml(salaries, year, month, company_subject):
     }
     root = etree.Element("ObrazacJOPPD", nsmap=nsmap, attrib={"verzijaSheme": "1.1"})
 
-    # --- Konstruiraj 'data' rječnik iz prosljeđenih argumenata ---
+    # Konstruiraj 'data' rječnik iz prosljeđenih argumenata
     report_date = date(year, month, 1) # Koristi prvi dan mjeseca kao referencu
     report_id = f"{year}{month:02d}01" # Primjer oznake izvješća (prilagoditi po potrebi)
 
@@ -64,11 +64,11 @@ def generate_joppd_xml(salaries, year, month, company_subject):
             "address": {
                 "city": company_subject.town,
                 "street": company_subject.addressLine1,
-                "number": "" # Dodati ako postoji zasebno polje za broj
+                "number": "" # Dodati ako postoji zasebno polje za broj (ne zasad)
             },
             "email": company_subject.emailAddress,
             "oib": company_subject.OIB,
-            "label": "1" # Oznaka podnositelja (npr. 1 za Poslodavac)
+            "label": "1" # Oznaka podnositelja (npr. 1 za Poslodavac, u teoriji je uvijek tako)
         },
         "contributions": {
             # Mapiraj agregirane sume na odgovarajuće XML tagove
@@ -77,11 +77,10 @@ def generate_joppd_xml(salaries, year, month, company_subject):
             "ZO": totals.get('total_health_insurance', Decimal('0.00')) or Decimal('0.00'),
             "Porez": totals.get('total_income_tax', Decimal('0.00')) or Decimal('0.00'),
             # Dodaj ostale potrebne sume...
-            "Prirez": Decimal('0.00') # Primjer, dodati izračun ako postoji
         },
         "recipients": [] # Lista za podatke o primateljima (Strana B)
     }
-    # --- Kraj konstrukcije 'data' rječnika ---
+    # Kraj konstrukcije 'data' rječnika
 
 
     # Metapodaci (koristi podatke iz 'data' rječnika)
@@ -132,7 +131,7 @@ def generate_joppd_xml(salaries, year, month, company_subject):
 
         # Izračunaj osnovicu za porez (Dohodak - Osobni odbitak)
         dohodak = salary.gross_salary - salary.pension_pillar_1 - salary.pension_pillar_2
-        osobni_odbitak = employee.calculate_personal_deduction() # Pretpostavka da ova metoda postoji
+        osobni_odbitak = employee.calculate_personal_deduction()
         porezna_osnovica = max(Decimal(0), dohodak - osobni_odbitak)
 
         # Izračunaj iznos poreza po nižoj i višoj stopi
