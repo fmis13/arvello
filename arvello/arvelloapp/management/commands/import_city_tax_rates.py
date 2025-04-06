@@ -17,11 +17,11 @@ class Command(BaseCommand):
         year = options['year'] or datetime.datetime.now().year
         
         try:
-            # Read Excel file
+            # Pročitaj Excel datoteku
             self.stdout.write(f"Čitanje Excel datoteke: {excel_file}")
             df = pd.read_excel(excel_file)
             
-            # Find the appropriate column names - be flexible with naming
+            # Pronađi potrebne stupce
             city_code_col = None
             city_name_col = None
             city_type_col = None
@@ -30,7 +30,7 @@ class Command(BaseCommand):
             account_col = None
             nn_col = None
             
-            # Look for column names that match our criteria
+            # Iteriraj kroz stupce i pronađi potrebne
             for col in df.columns:
                 col_lower = str(col).lower()
                 if 'šifra' in col_lower and ('grad' in col_lower or 'općin' in col_lower):
@@ -48,7 +48,7 @@ class Command(BaseCommand):
                 elif 'nn' in col_lower or 'narodn' in col_lower:
                     nn_col = col
             
-            # Check if we found the essential columns
+            # Idi kroz stupce i provjeri da li su pronađeni potrebni stupci
             if not city_name_col or not lower_rate_col or not higher_rate_col:
                 self.stderr.write(self.style.ERROR(
                     f"Nisu pronađeni potrebni stupci. Pronađeno: "
@@ -63,36 +63,36 @@ class Command(BaseCommand):
             
             valid_from = datetime.date(year, 1, 1)
             
-            # Process each row
+            # Iteriraj kroz redove i obrađuj podatke
             for _, row in df.iterrows():
-                # Skip rows without city name
+                # Preskakanje praznih redova
                 if pd.isna(row[city_name_col]) or str(row[city_name_col]).strip() == '':
                     continue
                 
-                # Handle city code as string to preserve leading zeros
+                # Pripremi podatke
                 if city_code_col and not pd.isna(row[city_code_col]):
                     city_code = str(row[city_code_col]).strip()
-                    # Remove any non-digit characters
+                    # Ukloni sve znakove osim brojeva
                     digits_only = ''.join(c for c in city_code if c.isdigit())
-                    # Ensure 5-digit format with leading zeros
+                    # Dodaj vodeće nule ako je potrebno
                     city_code = digits_only.zfill(5)
                 else:
                     city_code = ''
                 
                 city_name = str(row[city_name_col]).strip()
                 
-                # Convert percentage values to Decimal - handle different formats
+                # Konvertiraj postotke u decimalne vrijednosti
                 try:
-                    # Parse the tax rate values, handling percent signs and comma decimal separators
+                    # Pretvori u string da bi se izbjegli problemi s decimalnim zarezima
                     tax_lower_str = str(row[lower_rate_col])
                     tax_higher_str = str(row[higher_rate_col])
                     
-                    # Extract numeric part using regex
+                    # Ukloni sve znakove osim brojeva i decimalnih točaka/zareza
                     lower_match = re.search(r'(\d+[.,]?\d*)', tax_lower_str)
                     higher_match = re.search(r'(\d+[.,]?\d*)', tax_higher_str)
                     
                     if lower_match and higher_match:
-                        # Store as actual percentage value (20.00, not 0.20)
+                        # Spremi kao pravi postotak (20.00 a ne 0.20)
                         tax_rate_lower = Decimal(lower_match.group(1).replace(',', '.'))
                         tax_rate_higher = Decimal(higher_match.group(1).replace(',', '.'))
                     else:
@@ -102,12 +102,13 @@ class Command(BaseCommand):
                     self.stderr.write(self.style.ERROR(f"Neispravna porezna stopa za {city_name} (šifra: {city_code}): {str(e)}"))
                     continue
                 
-                # Optional fields
+                # Opcionalni stupci
                 account_number = str(row[account_col]) if account_col and not pd.isna(row[account_col]) else None
                 official_gazette = str(row[nn_col]) if nn_col and not pd.isna(row[nn_col]) else None
                 
-                # Process city type from the data
-                city_type = 'GRAD'  # Default to GRAD
+                # Odredi tip grada
+                # Ako nije pronađen stupac, postavi na GRAD
+                city_type = 'GRAD'  # Default neka je  'GRAD'
                 if city_type_col and not pd.isna(row[city_type_col]):
                     type_value = str(row[city_type_col]).strip().lower()
                     if 'općin' in type_value:
@@ -122,7 +123,7 @@ class Command(BaseCommand):
                     city_type = 'ZAGREB'
                 
                 try:
-                    # Look for existing record by city_code or city_name
+                    # Pretraži postojeći zapis
                     tax_obj = None
                     if city_code:
                         tax_obj = LocalIncomeTax.objects.filter(city_code=city_code).first()
@@ -147,11 +148,11 @@ class Command(BaseCommand):
                         updated_count += 1
                         self.stdout.write(f"Ažurirano: {city_name} ({city_code}) - {tax_rate_lower}%/{tax_rate_higher}%")
                     else:
-                        # Create new record
+                        # Stvaranje novog zapisa
                         LocalIncomeTax.objects.create(
                             city_name=city_name,
                             city_code=city_code,
-                            tax_rate=Decimal('0.00'),  # Set to zero since prirez is abolished from 2024
+                            tax_rate=Decimal('0.00'),  # Prirez je mrtav, ne znam zašto sam ga uopće implementirao
                             tax_rate_lower=tax_rate_lower,
                             tax_rate_higher=tax_rate_higher,
                             valid_from=valid_from,

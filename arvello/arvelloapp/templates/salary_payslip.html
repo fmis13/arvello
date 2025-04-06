@@ -4,38 +4,37 @@
 {% block main %}
 
 <style>
-    /* Screen styles */
     .payslip-table {
         border-collapse: collapse;
         width: 100%;
         border: 1px solid #dee2e6;
         margin-bottom: 1rem;
-        font-size: 0.9em; /* Slightly smaller font */
+        font-size: 0.9em;
     }
     .payslip-table td, .payslip-table th {
         border: 1px solid #dee2e6;
-        padding: 6px 8px; /* Adjusted padding */
+        padding: 6px 8px;
         vertical-align: top;
     }
     .payslip-table th {
-        background-color: #f8f9fa; /* Light background for headers */
+        background-color: #f8f9fa;
         font-weight: bold;
     }
     .payslip-table .description-col {
-        width: 50%; /* Define width for description column */
+        width: 50%;
     }
     .payslip-table .calculation-col {
-        width: 25%; /* Define width for calculation column */
+        width: 25%;
         font-style: italic;
         color: #6c757d;
     }
     .payslip-table .amount-col {
-        width: 25%; /* Define width for amount column */
+        width: 25%;
         text-align: right;
     }
     .payslip-table .total-row td {
         font-weight: bold;
-        background-color: #e9ecef; /* Highlight total rows */
+        background-color: #e9ecef;
     }
     .text-end {
         text-align: right;
@@ -81,11 +80,10 @@
         margin-bottom: 0.5rem;
     }
 
-    /* Print styles */
     @media print {
         @page {
             size: A4 portrait;
-            margin: 0.8cm; /* Slightly adjusted margins */
+            margin: 0.8cm;
         }
         body {
             font-size: 9pt !important;
@@ -125,7 +123,7 @@
              font-size: 10pt !important;
              font-weight: bold !important;
              margin-top: 8px !important;
-             background-color: #f1f1f1 !important; /* Lighter gray for print section titles */
+             background-color: #f1f1f1 !important;
         }
         .payslip-table {
             border: 1px solid #000 !important;
@@ -136,7 +134,7 @@
         }
         .payslip-table td, .payslip-table th {
             border: 1px solid #000 !important;
-            padding: 3px 5px !important; /* Adjusted padding */
+            padding: 3px 5px !important;
             text-align: left !important;
             color: #000 !important;
             background-color: #fff !important;
@@ -146,7 +144,7 @@
             word-wrap: break-word;
         }
         .payslip-table th {
-             background-color: #f1f1f1 !important; /* Lighter gray for print headers */
+             background-color: #f1f1f1 !important;
              font-weight: bold !important;
         }
         .payslip-table .description-col { width: 50% !important; }
@@ -154,7 +152,7 @@
         .payslip-table .amount-col { width: 25% !important; text-align: right !important; }
         .payslip-table .total-row td {
             font-weight: bold !important;
-            background-color: #e0e0e0 !important; /* Slightly darker gray for print totals */
+            background-color: #e0e0e0 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
