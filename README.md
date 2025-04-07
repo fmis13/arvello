@@ -72,7 +72,7 @@ wget https://raw.githubusercontent.com/fmis13/arvello/main/deploy_arvello.sh
 chmod +x deploy_arvello.sh
 ```
 
-2. Pokrenite skriptu kao root korisnik:
+2. Pokrenite skriptu kao root korisnik (ukoliko ste već root, maknite sudo na početku):
 
 ```bash
 sudo ./deploy_arvello.sh

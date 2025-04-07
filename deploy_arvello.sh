@@ -69,13 +69,12 @@ apt-get install -y python3 python3-venv python3-pip postgresql postgresql-contri
 
 # Postavljanje PostgreSQL-a
 echo -e "\n${YELLOW}Postavljam PostgreSQL...${NC}"
-# Direktni poziv psql kao postgres korisnik
-if su postgres -c "psql -c \"CREATE DATABASE $DB_NAME;\"" &&
-   su postgres -c "psql -c \"CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';\"" &&
-   su postgres -c "psql -c \"ALTER ROLE $DB_USER SET client_encoding TO 'utf8';\"" &&
-   su postgres -c "psql -c \"ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';\"" &&
-   su postgres -c "psql -c \"ALTER ROLE $DB_USER SET timezone TO 'Europe/Zagreb';\"" &&
-   su postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;\""
+if su postgres -c "psql -c \"CREATE DATABASE $DB_NAME;\"" 2>/dev/null &&
+   su postgres -c "psql -c \"CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';\"" 2>/dev/null &&
+   su postgres -c "psql -c \"ALTER ROLE $DB_USER SET client_encoding TO 'utf8';\"" 2>/dev/null &&
+   su postgres -c "psql -c \"ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';\"" 2>/dev/null &&
+   su postgres -c "psql -c \"ALTER ROLE $DB_USER SET timezone TO 'Europe/Zagreb';\"" 2>/dev/null &&
+   su postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;\"" 2>/dev/null
 then
    echo -e "${GREEN}PostgreSQL uspješno postavljen.${NC}"
 else
@@ -108,7 +107,7 @@ fi
 
 # Stvaranje .env datoteke
 echo -e "\n${YELLOW}Kreiram .env datoteku...${NC}"
-cat > /opt/arvello/arvello/.env << EOF
+cat > /opt/arvello/arvello/arvello/.env << EOF
 # Django postavke
 DJANGO_SECRET_KEY=$SECRET_KEY
 DJANGO_DEBUG=False
@@ -180,7 +179,7 @@ fi
 
 # Postavljanje Djanga
 echo -e "\n${YELLOW}Postavljam Django...${NC}"
-cd /opt/arvello/arvello
+cd /opt/arvello/arvello/arvello
 if python manage.py migrate; then
    echo -e "${GREEN}Migracija baze podataka uspješno završena.${NC}"
 else
@@ -212,7 +211,7 @@ After=network.target postgresql.service
 [Service]
 User=www-data
 Group=www-data
-WorkingDirectory=/opt/arvello/arvello
+WorkingDirectory=/opt/arvello/arvello/arvello
 ExecStart=/opt/arvello/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:$HTTP_PORT arvello.wsgi:application
 Restart=on-failure
 
