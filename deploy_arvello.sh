@@ -236,10 +236,26 @@ if [ -z "$DOMAIN_NAME" ]; then
     echo -e "${YELLOW}Upozorenje: Naziv domene nije postavljen. Koristim '_' kao zamjensku vrijednost.${NC}"
 fi
 
+# Dohvati IP adresu servera
+SERVER_IP=$(hostname -I | awk '{print $1}')
+
 cat > /etc/nginx/sites-available/arvello << EOF
 server {
-    listen 80;
-    server_name ${DOMAIN_NAME};
+    listen 80 default_server;
+    server_name ${DOMAIN_NAME} ${SERVER_IP} localhost;
+
+    # Dodane lokacije za statičke datoteke
+    location /static/ {
+        alias /opt/arvello/arvello/arvello/staticfiles/;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+    }
+
+    location /media/ {
+        alias /opt/arvello/arvello/arvello/media/;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+    }
 
     location / {
         proxy_pass http://127.0.0.1:$HTTP_PORT;
@@ -251,8 +267,10 @@ server {
 }
 EOF
 
-# Aktiviranje Nginx konfiguracije
+# Aktiviranje Nginx konfiguracije i onemogućavanje zadane konfiguracije
 ln -sf /etc/nginx/sites-available/arvello /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+
 # Provjera sintakse Nginx konfiguracije
 nginx -t && systemctl restart nginx || echo -e "${RED}Greška u Nginx konfiguraciji${NC}"
 
@@ -267,7 +285,7 @@ After=network.target postgresql.service
 User=www-data
 Group=www-data
 WorkingDirectory=/opt/arvello/arvello/arvello
-ExecStart=/opt/arvello/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:$HTTP_PORT arvello.wsgi:application
+ExecStart=/opt/arvello/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:$HTTP_PORT arvello.wsgi:application
 Restart=on-failure
 
 [Install]
@@ -286,8 +304,11 @@ systemctl start arvello
 
 echo -e "\n${GREEN}Arvello instalacija je završena!${NC}"
 echo -e "\n${YELLOW}Informacije o sustavu:${NC}"
-echo -e "  • Arvello je pokrenut na: http://localhost:$HTTP_PORT"
-echo -e "  • Za pristup s drugih računala, postavite Nginx Proxy Manager da prosljeđuje na port $HTTP_PORT"
+echo -e "  • Arvello je dostupan preko:"
+echo -e "    - http://${DOMAIN_NAME}"
+echo -e "    - http://${SERVER_IP}"
+echo -e "  • Direktan pristup Gunicorn-u: http://localhost:$HTTP_PORT (samo s lokalnog računala)"
+echo -e "  • VAŽNO: Za pristup s drugih računala koristite gore navedene URL-ove"
 
 echo -e "\n${YELLOW}Admin vjerodajnice:${NC}"
 echo -e "  • Korisničko ime: $ADMIN_USER"
