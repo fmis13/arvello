@@ -194,6 +194,12 @@ fi
 # Postavljanje Djanga
 echo -e "\n${YELLOW}Postavljam Django...${NC}"
 cd /opt/arvello/arvello/arvello
+if python manage.py makemigrations; then
+   echo -e "${GREEN}Priprema migracije baze podataka uspješno završena.${NC}"
+else
+   echo -e "${RED}Neuspjela priprema migracije baze podataka. Molimo provjerite gornje poruke o greškama.${NC}"
+   exit 1
+fi
 if python manage.py migrate; then
    echo -e "${GREEN}Migracija baze podataka uspješno završena.${NC}"
 else
