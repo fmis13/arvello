@@ -215,6 +215,40 @@ else
    exit 1
 fi
 
+# Postavljanje Nginx konfiguracije za statičke datoteke
+echo -e "\n${YELLOW}Postavljam Nginx konfiguraciju za statičke datoteke...${NC}"
+# Ensure DOMAIN_NAME has a default value if empty
+if [ -z "$DOMAIN_NAME" ]; then
+    DOMAIN_NAME="_"  # Nginx default server that matches any hostname
+    echo -e "${YELLOW}Upozorenje: Naziv domene nije postavljen. Koristim '_' kao zamjensku vrijednost.${NC}"
+fi
+
+cat > /etc/nginx/sites-available/arvello << EOF
+server {
+    listen 80;
+    server_name ${DOMAIN_NAME};
+
+    location /static/ {
+        alias /opt/arvello/arvello/arvello/staticfiles/;
+    }
+
+    location /media/ {
+        alias /opt/arvello/arvello/arvello/media/;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:$HTTP_PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+    }
+}
+EOF
+
+# Aktiviranje Nginx konfiguracije
+ln -sf /etc/nginx/sites-available/arvello /etc/nginx/sites-enabled/
+# Provjera sintakse Nginx konfiguracije
+nginx -t && systemctl restart nginx || echo -e "${RED}Greška u Nginx konfiguraciji${NC}"
+
 # Postavljanje Systemd servisa za Gunicorn
 echo -e "\n${YELLOW}Postavljam Systemd servis za Gunicorn...${NC}"
 cat > /etc/systemd/system/arvello.service << EOF
