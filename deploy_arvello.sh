@@ -69,11 +69,11 @@ apt-get install -y python3 python3-venv python3-pip postgresql postgresql-contri
 
 # Instaliraj ovisnosti za WeasyPrint
 echo -e "\n${YELLOW}Instaliram ovisnosti za WeasyPrint...${NC}"
-apt-get install -y libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 libgobject-2.0-0 \
-    libcairo2 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info \
+apt-get install -y libglib2.0-0 libpango-1.0-0 libpangocairo-1.0-0 libcairo2 \
+    libharfbuzz0b libffi-dev libpangoft2-1.0-0 libcairo-gobject2 \
+    libgdk-pixbuf-2.0-0 shared-mime-info \
     build-essential libcairo2-dev libpango1.0-dev || {
     echo -e "${RED}Neuspjela instalacija WeasyPrint ovisnosti. PDF funkcionalnost možda neće raditi ispravno.${NC}"
-    # Nastavi izvršavanje - ne izlazi iz skripte jer ovo nije nužno kritično
 }
 
 # Postavljanje PostgreSQL-a
@@ -106,6 +106,11 @@ echo -e "\n${YELLOW}Postavljam Python virtualno okruženje...${NC}"
 python3 -m venv /opt/arvello/venv
 source /opt/arvello/venv/bin/activate
 pip install --upgrade pip
+
+# Instaliraj stabilnu verziju Pillow-a i izbjegni yanked verziju
+echo -e "\n${YELLOW}Instaliram stabilnu verziju Pillow-a...${NC}"
+pip install pillow==10.2.0
+
 if pip install -r /opt/arvello/arvello/requirements.txt && 
    pip install gunicorn psycopg2-binary python-decouple; then
    echo -e "${GREEN}Python virtualno okruženje uspješno postavljeno.${NC}"
