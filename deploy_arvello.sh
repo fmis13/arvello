@@ -67,6 +67,15 @@ apt-get update && apt-get upgrade -y
 echo -e "\n${YELLOW}Instaliram potrebne pakete...${NC}"
 apt-get install -y python3 python3-venv python3-pip postgresql postgresql-contrib git nginx
 
+# Instaliraj ovisnosti za WeasyPrint
+echo -e "\n${YELLOW}Instaliram ovisnosti za WeasyPrint...${NC}"
+apt-get install -y libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 libgobject-2.0-0 \
+    libcairo2 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info \
+    build-essential libcairo2-dev libpango1.0-dev || {
+    echo -e "${RED}Neuspjela instalacija WeasyPrint ovisnosti. PDF funkcionalnost možda neće raditi ispravno.${NC}"
+    # Nastavi izvršavanje - ne izlazi iz skripte jer ovo nije nužno kritično
+}
+
 # Postavljanje PostgreSQL-a
 echo -e "\n${YELLOW}Postavljam PostgreSQL...${NC}"
 if su postgres -c "psql -c \"CREATE DATABASE $DB_NAME;\"" 2>/dev/null &&
