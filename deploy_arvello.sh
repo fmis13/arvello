@@ -147,6 +147,7 @@ echo -e "${GREEN}.env datoteka uspješno kreirana.${NC}"
 echo -e "\n${YELLOW}Kreiram local_settings.py...${NC}"
 cat > /opt/arvello/arvello/arvello/local_settings.py << 'EOF'
 from decouple import config
+import os
 
 # Postavke baze podataka
 DATABASES = {
@@ -171,6 +172,12 @@ EMAIL_PORT = config('EMAIL_PORT', cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+
+# Statičke datoteke
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+STATIC_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'staticfiles')
+MEDIA_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'media')
 EOF
 echo -e "${GREEN}local_settings.py uspješno kreirana.${NC}"
 
@@ -221,8 +228,8 @@ else
    exit 1
 fi
 
-# Postavljanje Nginx konfiguracije za statičke datoteke
-echo -e "\n${YELLOW}Postavljam Nginx konfiguraciju za statičke datoteke...${NC}"
+# Postavljanje Nginx konfiguracije
+echo -e "\n${YELLOW}Postavljam Nginx konfiguraciju...${NC}"
 # Ensure DOMAIN_NAME has a default value if empty
 if [ -z "$DOMAIN_NAME" ]; then
     DOMAIN_NAME="_"  # Nginx default server that matches any hostname
@@ -234,18 +241,12 @@ server {
     listen 80;
     server_name ${DOMAIN_NAME};
 
-    location /static/ {
-        alias /opt/arvello/arvello/arvello/staticfiles/;
-    }
-
-    location /media/ {
-        alias /opt/arvello/arvello/arvello/media/;
-    }
-
     location / {
         proxy_pass http://127.0.0.1:$HTTP_PORT;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
 EOF
