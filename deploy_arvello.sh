@@ -26,13 +26,6 @@ fi
 
 # Provjera ovisnosti
 echo -e "\n${YELLOW}Provjeravam potrebne pakete...${NC}"
-# Prvo provjeri je li sudo instaliran
-if ! command -v sudo &> /dev/null; then
-    echo -e "${YELLOW}sudo nije instaliran. Instaliram...${NC}"
-    apt-get update && apt-get install -y sudo || { echo -e "${RED}Neuspjela instalacija sudo paketa. Molim instalirajte ga ručno i pokrenite skriptu ponovno.${NC}"; exit 1; }
-fi
-
-# Provjera ostalih ovisnosti
 for cmd in curl git; do
     if ! command -v $cmd &> /dev/null; then
         echo -e "${RED}$cmd nije instaliran. Instaliram...${NC}"
@@ -76,12 +69,14 @@ apt-get install -y python3 python3-venv python3-pip postgresql postgresql-contri
 
 # Postavljanje PostgreSQL-a
 echo -e "\n${YELLOW}Postavljam PostgreSQL...${NC}"
-if sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" &&
-   sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" &&
-   sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';" &&
-   sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';" &&
-   sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'Europe/Zagreb';" &&
-   sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"; then
+# Direktni poziv psql kao postgres korisnik
+if su postgres -c "psql -c \"CREATE DATABASE $DB_NAME;\"" &&
+   su postgres -c "psql -c \"CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';\"" &&
+   su postgres -c "psql -c \"ALTER ROLE $DB_USER SET client_encoding TO 'utf8';\"" &&
+   su postgres -c "psql -c \"ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';\"" &&
+   su postgres -c "psql -c \"ALTER ROLE $DB_USER SET timezone TO 'Europe/Zagreb';\"" &&
+   su postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;\""
+then
    echo -e "${GREEN}PostgreSQL uspješno postavljen.${NC}"
 else
    echo -e "${RED}Neuspjelo postavljanje PostgreSQL-a. Molimo provjerite gornje poruke o greškama.${NC}"
