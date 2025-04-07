@@ -26,6 +26,13 @@ fi
 
 # Provjera ovisnosti
 echo -e "\n${YELLOW}Provjeravam potrebne pakete...${NC}"
+# Prvo provjeri je li sudo instaliran
+if ! command -v sudo &> /dev/null; then
+    echo -e "${YELLOW}sudo nije instaliran. Instaliram...${NC}"
+    apt-get update && apt-get install -y sudo || { echo -e "${RED}Neuspjela instalacija sudo paketa. Molim instalirajte ga ručno i pokrenite skriptu ponovno.${NC}"; exit 1; }
+fi
+
+# Provjera ostalih ovisnosti
 for cmd in curl git; do
     if ! command -v $cmd &> /dev/null; then
         echo -e "${RED}$cmd nije instaliran. Instaliram...${NC}"
