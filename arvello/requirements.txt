@@ -9,7 +9,7 @@ reportlab==4.3.1
 six==1.16.0
 soupsieve==2.6
 sqlparse==0.5.3
-tzdata==2024.1
+tzdata==2025.2
 django-clearcache==1.2.1
 requests==2.32.3
 python-barcode==0.15.1
