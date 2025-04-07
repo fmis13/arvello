@@ -32,7 +32,7 @@
           <th scope="col">Subjekt</th>
           <th scope="col">Dospijeće</th>
           <th scope="col">Bilješke</th>
-            <th scope="col" colspan="2">Akcije</th>
+            <th scope="col" colspan="3">Akcije</th>
         </tr>
       </thead>
       <tbody>
@@ -55,12 +55,21 @@
         <td>{{invoice.subject.clientName}}</td>
         <td>{{invoice.dueDate}}</td>
         <td>{{invoice.notes}}</td>
-        <td><a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn"><img src="{% static 'img/download.svg' %}" alt="Preuzmi" title="Preuzmi" width="16" height="16"></button></a></td>
-        <td>
+        <td class="p-1"><a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer">
+          <button type="button" class="btn btn-sm m-0"><img src="{% static 'img/download.svg' %}" alt="Preuzmi" title="Preuzmi" width="16" height="16"></button></a></td>
+        <td class="p-1" style="width: 2rem;">
           <form method="post" action="{% url 'mark_invoice_paid' invoice.id %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm {% if invoice.is_paid %}btn-success{% else %}btn-outline-secondary{% endif %}">
+            <button type="submit" class="btn btn-sm m-0 {% if invoice.is_paid %}btn-success{% else %}btn-outline-secondary{% endif %}">
               <span class="material-symbols-outlined align-icon">check</span>
+            </button>
+          </form>
+        </td>
+        <td class="p-1" style="width: 2rem;">
+          <form method="post" action="{% url 'send_invoice_email' invoice.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm m-0 btn-outline-secondary">
+              <span class="material-symbols-outlined align-icon">email</span>
             </button>
           </form>
         </td>
