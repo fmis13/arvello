@@ -1,5 +1,11 @@
 # Arvello
 
+[![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
+
+[cc-by-nc-sa]: http://creativecommons.org/licenses/by-nc-sa/4.0/
+[cc-by-nc-sa-image]: https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png
+[cc-by-nc-sa-shield]: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg
+
 Arvello je cjelovito poslovno rješenje za hrvatsko tržište koje uključuje:
 - Upravljanje računima i ponudama
 - Evidenciju proizvoda i usluga
@@ -104,4 +110,8 @@ Ako želite doprinijeti projektu, molimo pričekajte do kraja 6. mjeseca 2025.
 
 ## Licenca
 
-Ovaj projekt je licenciran pod [MIT licencom](LICENSE).
+
+Ovaj je rad prije bio licenciran pod MIT licencom, a sada pod
+[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International licencom][cc-by-nc-sa].
+
+[![CC BY-NC-SA 4.0][cc-by-nc-sa-image]][cc-by-nc-sa]
