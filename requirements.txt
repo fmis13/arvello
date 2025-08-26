@@ -1,5 +1,5 @@
 asgiref==3.8.1
-beautifulsoup4==4.13.0b2
+beautifulsoup4==4.13.5
 chardet==5.2.0
 Django==5.1.4
 crispy_bootstrap5
