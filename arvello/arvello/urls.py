@@ -39,8 +39,12 @@ document_patterns = [
     path('inventory_label/<int:pk>/', views.inventory_label, name='inventory_label'),
     path('product_label/<int:pk>/', views.product_label, name='product_label'),
     path('invoices/send_email/<int:invoice_id>/', views.send_invoice_email, name='send_invoice_email'),
-    path('export_inventory/', views.export_inventory_to_excel, name='export_inventory_to_excel'),
 
+]
+
+table_exports = [
+    path('export_inventory_excel/', views.export_inventory_to_excel, name='export_inventory_to_excel'),
+    path('export_inventory_csv/', views.export_inventory_to_csv, name='export_inventory_to_csv'),
 ]
 
 # Financijski URL-ovi
@@ -100,6 +104,7 @@ urlpatterns = [
     *history_patterns,
     *info_patterns,
     *api_patterns,
+    *table_exports,
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Admin site customization
