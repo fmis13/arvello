@@ -17,6 +17,9 @@
         <a href="{% get_history_url 'Inventory' %}" class="btn btn-primary">
           <span class="material-symbols-outlined align-icon">history</span>
           Povijest promjena</a>
+        <a href="{% url 'export_inventory_to_excel' %}" class="btn btn-primary">
+          <span class="material-symbols-outlined align-icon">file_export</span>
+          Izvoz u Excel</a>
         <div class="vr mx-1"></div>
         <button href="#addInventoryModal" type="button" class="btn btn-primary" data-bs-toggle="modal">Novi inventar</button>
       </div>
