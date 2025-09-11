@@ -39,6 +39,7 @@ document_patterns = [
     path('inventory_label/<int:pk>/', views.inventory_label, name='inventory_label'),
     path('product_label/<int:pk>/', views.product_label, name='product_label'),
     path('invoices/send_email/<int:invoice_id>/', views.send_invoice_email, name='send_invoice_email'),
+    path('export_inventory/', views.export_inventory_to_excel, name='export_inventory_to_excel'),
 
 ]
 
