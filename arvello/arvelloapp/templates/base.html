@@ -174,7 +174,7 @@
                 <li class="nav-item align-navitem">
                   <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
                     <span class="material-symbols-outlined align-icon"> receipt_long </span>
-                    Računi
+                    Računi i ponude
                   </a>
                 </li>
                 <li class="nav-item align-navitem">
@@ -189,12 +189,14 @@
                     Klijenti
                   </a>
                 </li>
+                {% comment %}
                 <li class="nav-item align-navitem">
                   <a class="nav-link black-text" href="{% url 'offers' %}">
                     <span class="material-symbols-outlined align-icon"> request_page </span>
                     Ponude
                   </a>
                 </li>
+                {% endcomment %}
                 <li class="nav-item align-navitem">
                   <a class="nav-link black-text" href="{% url 'companies' %}">
                     <span class="material-symbols-outlined align-icon"> attribution </span>
