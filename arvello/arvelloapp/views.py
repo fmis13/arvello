@@ -87,7 +87,7 @@ def products(request):
         if form.is_valid():
             # Ako je forma ispravna, spremi proizvod
             form.save()
-            messages.success(request, 'Nadoan je novi proizvod/usluga')
+            messages.success(request, 'Nadodan je novi proizvod/usluga')
             return redirect('products')
         else:
             # Ako forma nije ispravna, prikaži greške
@@ -107,8 +107,10 @@ def invoices(request):
     # Prikazuje stranicu s računima i omogućuje dodavanje novih (jednostavna forma)
     context = {}
     invoices = Invoice.objects.all()
+    offers = Offer.objects.all()  # Add this line to fetch offers for the merged template
     
     context['invoices'] = invoices
+    context['offers'] = offers  # Add this line to pass offers to the template
 
     if request.method == 'GET':
         # Ako je GET zahtjev, prikaži praznu formu
@@ -301,7 +303,7 @@ def create_offer(request):
             for offer_product in offer_products:
                 offer_product.save()
             messages.success(request, 'Nadodana je nova ponuda')
-            return redirect('offers')
+            return redirect('invoices')  # Changed from 'offers' to 'invoices'
         if not offer_formset.is_valid():
             # Ako formset nije ispravan, prikaži greške
             logger.error(f"Offer formset errors: {offer_formset.errors}")
@@ -385,7 +387,7 @@ def offers(request):
             # Ako je forma ispravna, spremi ponudu
             form.save()
             messages.success(request, 'Nadodana je nova ponuda')
-            return redirect('offers')
+            return redirect('invoices')  # Changed from 'offers' to 'invoices'
         else:
             # Ako forma nije ispravna, prikaži greške
             messages.error(request, 'Problem pri obradi zahtjeva')
