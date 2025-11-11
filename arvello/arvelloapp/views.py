@@ -1990,3 +1990,57 @@ def mark_invoice_paid(request, invoice_id):
         invoice.save()
         messages.success(request, f"Račun {invoice.number} je označen kao plaćen.")
     return redirect('invoices')
+
+@login_required
+def mark_offer_finished(request, offer_id):
+    """Označava ponudu kao završenu i pretvara je u račun."""
+    offer = get_object_or_404(Offer, id=offer_id)
+    if request.method == "POST":
+        # Kreiraj račun iz ponude koristeći istu logiku kao create_invoice
+        invoice = Invoice(
+            title=offer.title,
+            client=offer.client,
+            number=offer.number,  # Koristi isti broj kao ponuda (ili prilagodi prema potrebi)
+            subject=offer.subject,
+            dueDate=offer.dueDate,
+            notes=offer.notes,
+            date=offer.date if hasattr(offer, 'date') else timezone.now(),  # Koristi datum ponude ili trenutni
+            is_paid=True,  # Ponuda je plaćena (zato se pretvara u račun)
+            payment_date=timezone.now().date(),  # Datum plaćanja je trenutni datum
+            # Ne postavljaj total ovdje - izračunat će se nakon kreiranja proizvoda
+        )
+        invoice.save()
+
+        # Kreiraj stavke računa iz stavki ponude i izračunaj total (kao u create_invoice)
+        invoice_products = []
+        total = Decimal('0.00')
+
+        for offer_product in offer.offerproduct_set.all():
+            # Kreiraj InvoiceProduct slično kao u create_invoice, uključujući sva polja
+            invoice_product = InvoiceProduct(
+                invoice=invoice,
+                product=offer_product.product,
+                quantity=offer_product.quantity,
+                discount=offer_product.discount or Decimal('0.00'),
+                rabat=offer_product.rabat or Decimal('0.00'),
+            )
+            
+            # Izračunaj ukupni iznos
+            try:
+                product_price = Decimal(str(offer_product.product.price))
+                product_quantity = Decimal(str(offer_product.quantity))
+                total += product_price * product_quantity
+                invoice_products.append(invoice_product)
+            except (ValueError, TypeError) as e:
+                messages.error(request, f"Greška u podacima stavke: {e}")
+                invoice.delete()  # Obriši nezavršen račun
+                return redirect('invoices')
+
+        # Spremi sve stavke računa
+        for invoice_product in invoice_products:
+            invoice_product.save()
+
+        # Obriši ponudu nakon uspješnog transfera
+        offer.delete()
+        messages.success(request, f"Ponuda {offer.number} je pretvorena u račun {invoice.number}.")
+    return redirect('invoices')

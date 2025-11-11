@@ -6,7 +6,7 @@
 {% block main %}
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
   <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Računi i Ponude</h1>
+    <h1 class="h2">Računi i ponude</h1>
   </div>
 
   <!-- Bootstrap Tabs -->
@@ -118,7 +118,7 @@
               <th scope="col">Subjekt</th>
               <th scope="col">Dospijeće</th>
               <th scope="col">Bilješke</th>
-              <th scope="col">Preuzimanje</th>
+              <th scope="col" colspan="2">Akcije</th>
             </tr>
           </thead>
           <tbody>
@@ -131,6 +131,14 @@
               <td>{{offer.dueDate}}</td>
               <td>{{offer.notes}}</td>
               <td><a href="{% url 'offer_pdf' offer.id %}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn"><img src="{% static 'img/download.svg' %}" alt="Download icon" width="16" height="16"></button></a></td>
+              <td class="p-1" style="width: 2rem;">
+                <form method="post" action="{% url 'mark_offer_finished' offer.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm m-0 btn-outline-success" title="Označi kao završeno i pretvori u račun">
+                    <span class="material-symbols-outlined align-icon">check</span>
+                  </button>
+                </form>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
