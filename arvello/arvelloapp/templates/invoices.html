@@ -39,12 +39,20 @@
         <table class="table table-striped table-sm">
           <thead>
             <tr>
-              <th scope="col">Naslov</th>
-              <th scope="col">Klijent</th>
-              <th scope="col">Broj računa</th>
-              <th scope="col">Subjekt</th>
-              <th scope="col">Dospijeće</th>
-              <th scope="col">Bilješke</th>
+              {% for col, field in sort_mapping.items %}
+                <th scope="col">
+                  <a href="?sort={{ col }}&order={% if current_sort == col and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none">
+                    {% if col == 'title' %}Naslov{% elif col == 'client' %}Klijent{% elif col == 'number' %}Broj računa{% elif col == 'subject' %}Subjekt{% elif col == 'dueDate' %}Dospijeće{% elif col == 'date' %}Datum računa{% endif %}
+                    {% if current_sort == col %}
+                      {% if current_order == 'asc' %}
+                        <span class="material-symbols-outlined align-icon">arrow_upward</span>
+                      {% else %}
+                        <span class="material-symbols-outlined align-icon">arrow_downward</span>
+                      {% endif %}
+                    {% endif %}
+                  </a>
+                </th>
+              {% endfor %}
               <th scope="col" colspan="3">Akcije</th>
             </tr>
           </thead>
@@ -66,7 +74,7 @@
               <td>{{invoice.number}}</td>
               <td>{{invoice.subject.clientName}}</td>
               <td>{{invoice.dueDate}}</td>
-              <td>{{invoice.notes}}</td>
+              <td>{{invoice.date}}</td>  <!-- Changed from notes to date -->
               <td class="p-1"><a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer">
                 <button type="button" class="btn btn-sm m-0"><img src="{% static 'img/download.svg' %}" alt="Preuzmi" title="Preuzmi" width="16" height="16"></button></a></td>
               <td class="p-1" style="width: 2rem;">
@@ -112,12 +120,20 @@
         <table class="table table-striped table-sm">
           <thead>
             <tr>
-              <th scope="col">Naslov</th>
-              <th scope="col">Klijent</th>
-              <th scope="col">Broj računa</th>
-              <th scope="col">Subjekt</th>
-              <th scope="col">Dospijeće</th>
-              <th scope="col">Bilješke</th>
+              {% for col, field in sort_mapping.items %}
+                <th scope="col">
+                  <a href="?sort={{ col }}&order={% if current_sort == col and current_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none">
+                    {% if col == 'title' %}Naslov{% elif col == 'client' %}Klijent{% elif col == 'number' %}Broj ponude{% elif col == 'subject' %}Subjekt{% elif col == 'dueDate' %}Dospijeće{% elif col == 'date' %}Datum ponude{% endif %}
+                    {% if current_sort == col %}
+                      {% if current_order == 'asc' %}
+                        <span class="material-symbols-outlined align-icon">arrow_upward</span>
+                      {% else %}
+                        <span class="material-symbols-outlined align-icon">arrow_downward</span>
+                      {% endif %}
+                    {% endif %}
+                  </a>
+                </th>
+              {% endfor %}
               <th scope="col" colspan="2">Akcije</th>
             </tr>
           </thead>
@@ -129,7 +145,7 @@
               <td>{{offer.number}}</td>
               <td>{{offer.subject.clientName}}</td>
               <td>{{offer.dueDate}}</td>
-              <td>{{offer.notes}}</td>
+              <td>{{offer.date}}</td>  <!-- Changed from notes to date -->
               <td><a href="{% url 'offer_pdf' offer.id %}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn"><img src="{% static 'img/download.svg' %}" alt="Download icon" width="16" height="16"></button></a></td>
               <td class="p-1" style="width: 2rem;">
                 <form method="post" action="{% url 'mark_offer_finished' offer.id %}">
