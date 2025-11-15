@@ -106,11 +106,40 @@ def products(request):
 def invoices(request):
     # Prikazuje stranicu s računima i omogućuje dodavanje novih (jednostavna forma)
     context = {}
-    invoices = Invoice.objects.all()
-    offers = Offer.objects.all()  # Add this line to fetch offers for the merged template
     
+    # Sorting logic
+    sort = request.GET.get('sort', 'date')  # Default sort by date
+    order = request.GET.get('order', 'desc')  # Default descending
+    
+    # Map column names to model field lookups
+    sort_mapping = {
+        'title': 'title',
+        'client': 'client__clientName',
+        'number': 'number',
+        'subject': 'subject__clientName',
+        'dueDate': 'dueDate',
+        'date': 'date',  # This replaces "Bilješke"
+    }
+    
+    # Get the field to sort by
+    sort_field = sort_mapping.get(sort, 'date')
+    
+    # Determine order_by string
+    if order == 'desc':
+        order_by = f'-{sort_field}'
+    else:
+        order_by = sort_field
+    
+    # Fetch and sort invoices and offers
+    invoices = Invoice.objects.all().order_by(order_by)
+    offers = Offer.objects.all().order_by(order_by)
+    
+    # Add sorting context for template
     context['invoices'] = invoices
-    context['offers'] = offers  # Add this line to pass offers to the template
+    context['offers'] = offers
+    context['current_sort'] = sort
+    context['current_order'] = order
+    context['sort_mapping'] = sort_mapping
 
     if request.method == 'GET':
         # Ako je GET zahtjev, prikaži praznu formu
@@ -1882,7 +1911,7 @@ def send_invoice_email(request, invoice_id):
         subject = invoice.subject # Dohvati subjekt
         products = InvoiceProduct.objects.filter(invoice=invoice) # Dohvati proizvode
         sender_name = invoice.subject.clientName
-        reply_to_email = invoice.subject.emailAddress
+        reply_to_email = invoice.subject.emailAddress 
 
         url = "https://hub3.bigfish.software/api/v2/barcode"
         headers = {'Content-Type': 'application/json'}
