@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block css %}
+<style>
+.fiscal-config-card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+}
+
+.fiscal-config-header {
+    background-color: #f8f9fa;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.fiscal-config-body {
+    padding: 1rem;
+}
+
+.status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.connection-status {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.status-success { background-color: #28a745; }
+.status-error { background-color: #dc3545; }
+.status-warning { background-color: #ffc107; }
+
+.file-info {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.certificate-preview {
+    max-width: 200px;
+    word-break: break-all;
+}
+</style>
+{% endblock %}
+
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block css %}
+<style>
+.fiscal-config-card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.fiscal-config-card:hover {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.fiscal-config-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.fiscal-config-body {
+    padding: 1rem;
+}
+
+.status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.connection-status {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.status-success { background-color: #28a745; }
+.status-error { background-color: #dc3545; }
+.status-warning { background-color: #ffc107; }
+
+.file-info {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+
+.certificate-preview {
+    max-width: 200px;
+    word-break: break-all;
+    font-size: 0.8rem;
+}
+
+.adapter-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.align-icon {
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="h2 mb-1"><i class="fas fa-cogs"></i> Fiskalne konfiguracije</h1>
+            <small class="text-muted">Upravljanje fiskalnim postavkama po tvrtkama</small>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createConfigModal">
+                <i class="fas fa-plus"></i> Nova konfiguracija
+            </button>
+        </div>
+    </div>
+
+    <!-- Status Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ fiscal_configs|length }}</h5>
+                    <p class="card-text">Ukupno konfiguracija</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">{{ fiscal_configs|length }}</h5>
+                    <p class="card-text">Aktivne</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-info">{{ fiscal_configs|length }}</h5>
+                    <p class="card-text">Sandbox</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">{{ fiscal_configs|length }}</h5>
+                    <p class="card-text">Production</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for config in fiscal_configs %}
+        <div class="col-md-6 col-lg-4">
+            <div class="fiscal-config-card">
+                <div class="fiscal-config-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">ID: {{ config.id }}</small>
+                            <h5 class="mb-0"><i class="fas fa-building"></i> {{ config.company_id }}</h5>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="editConfig({{ config.id }})">
+                                    <i class="fas fa-edit"></i> Uredi</a></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteConfig({{ config.id }}, '{{ config.company_id }}')">
+                                    <i class="fas fa-trash"></i> Obriši</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="fiscal-config-body">
+                    <div class="mb-2">
+                        <strong>Adapter:</strong> 
+                        <span class="badge bg-primary adapter-badge">{{ config.get_adapter_display }}</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Okruženje:</strong> 
+                        {% if config.mode == 'sandbox' %}
+                            <span class="badge bg-info adapter-badge"><i class="fas fa-flask"></i> Sandbox</span>
+                        {% else %}
+                            <span class="badge bg-warning adapter-badge"><i class="fas fa-rocket"></i> Production</span>
+                        {% endif %}
+                    </div>
+                    {% if config.endpoint %}
+                    <div class="mb-2">
+                        <strong>Endpoint:</strong> 
+                        <span class="certificate-preview">{{ config.endpoint }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <strong>Certifikati:</strong>
+                        <div class="mt-1">
+                            {% if config.certificate_file %}
+                            <div class="file-info">
+                                <i class="fas fa-certificate text-success"></i>
+                                Certifikat: {{ config.certificate_file.name|truncatechars:30 }}
+                            </div>
+                            {% else %}
+                            <div class="file-info text-muted">
+                                <i class="fas fa-certificate text-muted"></i> Nema certifikata
+                            </div>
+                            {% endif %}
+                            
+                            {% if config.private_key_file %}
+                            <div class="file-info">
+                                <i class="fas fa-key text-warning"></i>
+                                Privatni ključ: {{ config.private_key_file.name|truncatechars:30 }}
+                            </div>
+                            {% else %}
+                            <div class="file-info text-muted">
+                                <i class="fas fa-key text-muted"></i> Nema privatnog ključa
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <form method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="test_connection">
+                            <input type="hidden" name="config_id" value="{{ config.id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-plug"></i> Testiraj vezu
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle fa-2x mb-2"></i>
+                <h5>Nema fiskalnih konfiguracija</h5>
+                <p>Kreirajte prvu konfiguraciju da biste započeli s fiskalizacijom.</p>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createConfigModal">
+                    <i class="fas fa-plus"></i> Kreiraj prvu konfiguraciju
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</main>
+
+<!-- Create Config Modal -->
+<div class="modal fade" id="createConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova fiskalna konfiguracija</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <div class="modal-body">
+                    {% crispy form %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                    <button type="submit" class="btn btn-primary">Spremi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Config Modal -->
+<div class="modal fade" id="editConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Uredi fiskalnu konfiguraciju</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="editConfigForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="config_id" id="editConfigId">
+                <div class="modal-body">
+                    {% crispy edit_form %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                    <button type="submit" class="btn btn-primary">Spremi promjene</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfigModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Potvrda brisanja</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Jeste li sigurni da želite obrisati fiskalnu konfiguraciju za <strong id="deleteCompanyId"></strong>?</p>
+                <p class="text-danger">Ova akcija se ne može poništiti.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                <form method="post" id="deleteConfigForm" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="config_id" id="deleteConfigId">
+                    <button type="submit" class="btn btn-danger">Obriši</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editConfig(configId) {
+    // Fetch config data and populate edit form
+    fetch(`/fiscal/configs/${configId}/`)
+        .then(response => response.json())
+        .then(data => {
+            // Populate form fields
+            document.getElementById('editConfigId').value = data.id;
+            document.querySelector('#editConfigForm [name="company"]').value = data.company_id;
+            document.querySelector('#editConfigForm [name="mode"]').value = data.mode;
+            document.querySelector('#editConfigForm [name="adapter"]').value = data.adapter;
+            document.querySelector('#editConfigForm [name="endpoint"]').value = data.endpoint || '';
+            document.querySelector('#editConfigForm [name="secret"]').value = data.secret || '';
+            document.querySelector('#editConfigForm [name="meta"]').value = data.meta || '';
+            const modal = new bootstrap.Modal(document.getElementById('editConfigModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error fetching config data:', error);
+            // For now, just show the modal
+            document.getElementById('editConfigId').value = configId;
+            const modal = new bootstrap.Modal(document.getElementById('editConfigModal'));
+            modal.show();
+        });
+}
+
+function deleteConfig(configId, companyId) {
+    document.getElementById('deleteConfigId').value = configId;
+    document.getElementById('deleteCompanyId').textContent = companyId;
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfigModal'));
+    modal.show();
+}
+
+// Initialize modals
+document.addEventListener('DOMContentLoaded', function() {
+    // Additional initialization if needed
+});
+</script>
+{% endblock %}

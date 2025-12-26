@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block main %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+      <h1 class="h2 mb-1">Fiskalni dokumenti za račun {{ invoice.number }}</h1>
+      <small class="text-muted">Račun: {{ invoice.title }} | Klijent: {{ invoice.client.clientName }} | Subjekt: {{ invoice.subject.clientName }}</small>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <div class="btn-group me-2">
+        <form method="post" action="{% url 'retry_fiscalization' invoice.id %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning">
+            <i class="fas fa-redo"></i> Ponovno fiskaliziraj
+          </button>
+        </form>
+        <a href="{% url 'invoices' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left"></i> Natrag na račune
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Alert -->
+  {% if fiscal_documents %}
+    {% with latest_doc=fiscal_documents.0 %}
+      {% if latest_doc.status == 'sent' %}
+        <div class="alert alert-success" role="alert">
+          <i class="fas fa-check-circle"></i> <strong>Uspješno fiskalizirano!</strong> Račun je poslan na fiskalizaciju.
+        </div>
+      {% elif latest_doc.status == 'failed' %}
+        <div class="alert alert-danger" role="alert">
+          <i class="fas fa-exclamation-triangle"></i> <strong>Greška pri fiskalizaciji!</strong> Provjerite detalje zahtjeva.
+        </div>
+      {% elif latest_doc.status == 'pending' %}
+        <div class="alert alert-warning" role="alert">
+          <i class="fas fa-clock"></i> <strong>Fiskalizacija u tijeku...</strong> Zahtjev je poslan i čeka se odgovor.
+        </div>
+      {% endif %}
+    {% endwith %}
+  {% else %}
+    <div class="alert alert-info" role="alert">
+      <i class="fas fa-info-circle"></i> <strong>Nema fiskalnih dokumenata.</strong> Kliknite "Ponovno fiskaliziraj" za početak fiskalizacije.
+    </div>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-striped table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th scope="col"><i class="fas fa-hashtag"></i> ID dokumenta</th>
+          <th scope="col"><i class="fas fa-file-invoice"></i> Tip dokumenta</th>
+          <th scope="col"><i class="fas fa-info-circle"></i> Status</th>
+          <th scope="col"><i class="fas fa-calendar"></i> Datum kreiranja</th>
+          <th scope="col"><i class="fas fa-cogs"></i> Akcije</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in fiscal_documents %}
+        <tr>
+          <td>
+            <code>{{ doc.document_id }}</code>
+          </td>
+          <td>
+            <span class="badge bg-primary">{{ doc.document_type|title }}</span>
+          </td>
+          <td>
+            {% if doc.status == 'sent' %}
+              <span class="badge bg-success"><i class="fas fa-check"></i> Poslano</span>
+            {% elif doc.status == 'failed' %}
+              <span class="badge bg-danger"><i class="fas fa-times"></i> Greška</span>
+            {% elif doc.status == 'pending' %}
+              <span class="badge bg-warning"><i class="fas fa-clock"></i> Čeka</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ doc.status }}</span>
+            {% endif %}
+          </td>
+          <td>{{ doc.created_at|date:"d.m.Y. H:i" }}</td>
+          <td>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detailsModal{{ doc.id }}">
+              <i class="fas fa-eye"></i> Detalji
+            </button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center py-4">
+            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+            <br>
+            <strong>Nema fiskalnih dokumenata za ovaj račun.</strong>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Modals for details -->
+{% for doc in fiscal_documents %}
+<div class="modal fade" id="detailsModal{{ doc.id }}" tabindex="-1" aria-labelledby="detailsModalLabel{{ doc.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailsModalLabel{{ doc.id }}">
+          <i class="fas fa-file-invoice"></i> Detalji fiskalnog dokumenta #{{ doc.document_id }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Document Info -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="card-title mb-0"><i class="fas fa-info-circle"></i> Informacije o dokumentu</h6>
+              </div>
+              <div class="card-body">
+                <dl class="row">
+                  <dt class="col-sm-5">Status:</dt>
+                  <dd class="col-sm-7">
+                    {% if doc.status == 'sent' %}
+                      <span class="badge bg-success"><i class="fas fa-check"></i> Poslano</span>
+                    {% elif doc.status == 'failed' %}
+                      <span class="badge bg-danger"><i class="fas fa-times"></i> Greška</span>
+                    {% elif doc.status == 'pending' %}
+                      <span class="badge bg-warning"><i class="fas fa-clock"></i> Čeka</span>
+                    {% else %}
+                      <span class="badge bg-secondary">{{ doc.status }}</span>
+                    {% endif %}
+                  </dd>
+                  <dt class="col-sm-5">Tip dokumenta:</dt>
+                  <dd class="col-sm-7">{{ doc.document_type|title }}</dd>
+                  <dt class="col-sm-5">ID dokumenta:</dt>
+                  <dd class="col-sm-7"><code>{{ doc.document_id }}</code></dd>
+                  <dt class="col-sm-5">ID tvrtke:</dt>
+                  <dd class="col-sm-7"><code>{{ doc.company_id }}</code></dd>
+                  <dt class="col-sm-5">Datum kreiranja:</dt>
+                  <dd class="col-sm-7">{{ doc.created_at|date:"d.m.Y. H:i:s" }}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="card-title mb-0"><i class="fas fa-building"></i> Informacije o računu</h6>
+              </div>
+              <div class="card-body">
+                <dl class="row">
+                  <dt class="col-sm-4">Broj računa:</dt>
+                  <dd class="col-sm-8">{{ invoice.number }}</dd>
+                  <dt class="col-sm-4">Klijent:</dt>
+                  <dd class="col-sm-8">{{ invoice.client.clientName }}</dd>
+                  <dt class="col-sm-4">Subjekt:</dt>
+                  <dd class="col-sm-8">{{ invoice.subject.clientName }}</dd>
+                  <dt class="col-sm-4">Iznos:</dt>
+                  <dd class="col-sm-8">{{ invoice.price_with_vat }} €</dd>
+                  <dt class="col-sm-4">Prodajni kanal:</dt>
+                  <dd class="col-sm-8">
+                    {% if invoice.sales_channel == 'retail' %}
+                      <span class="badge bg-info">Maloprodaja (F1)</span>
+                    {% elif invoice.sales_channel == 'wholesale' %}
+                      <span class="badge bg-info">Veleprodaja (F2)</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Nije postavljen</span>
+                    {% endif %}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Requests and Responses -->
+        <div class="card">
+          <div class="card-header">
+            <h6 class="card-title mb-0"><i class="fas fa-exchange-alt"></i> Zahtjevi i odgovori</h6>
+          </div>
+          <div class="card-body">
+            {% for request in doc.requests.all %}
+            <div class="border rounded p-3 mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">
+                  <i class="fas fa-paper-plane"></i> Zahtjev #{{ request.id }}
+                  <span class="badge 
+                    {% if request.status == 'sent' %}bg-success
+                    {% elif request.status == 'failed' %}bg-danger
+                    {% else %}bg-warning{% endif %}">
+                    {{ request.status }}
+                  </span>
+                </h6>
+                <small class="text-muted">{{ request.created_at|date:"d.m.Y. H:i:s" }}</small>
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6">
+                  <strong>Idempotency Key:</strong>
+                  <code class="d-block mb-2">{{ request.idempotency_key }}</code>
+                  <strong>Pokušaji:</strong> {{ request.attempt_count }}
+                </div>
+                <div class="col-md-6">
+                  <strong>Zadnji pokušaj:</strong> 
+                  {% if request.last_attempt_at %}
+                    {{ request.last_attempt_at|date:"d.m.Y. H:i:s" }}
+                  {% else %}
+                    Nije pokušano
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <strong>Payload:</strong>
+                <pre class="bg-light p-2 rounded small">{{ request.payload|default:"Nema podataka" }}</pre>
+              </div>
+
+              {% if request.responses.all %}
+              <div class="mt-3">
+                <strong>Odgovori:</strong>
+                {% for response in request.responses.all %}
+                <div class="border-start border-success border-4 ps-3 mt-2">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <small><strong>Odgovor #{{ response.id }}</strong></small>
+                    <small class="text-muted">{{ response.received_at|date:"d.m.Y. H:i:s" }}</small>
+                  </div>
+                  {% if response.response_code %}
+                  <div><strong>Kod odgovora:</strong> {{ response.response_code }}</div>
+                  {% endif %}
+                  <div class="mt-2">
+                    <strong>Raw odgovor:</strong>
+                    <pre class="bg-light p-2 rounded small">{{ response.raw_response|default:"Nema podataka" }}</pre>
+                  </div>
+                  {% if response.parsed %}
+                  <div class="mt-2">
+                    <strong>Parsirani podaci:</strong>
+                    <pre class="bg-success text-white p-2 rounded small">{{ response.parsed }}</pre>
+                  </div>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="mt-3 text-muted">
+                <i class="fas fa-clock"></i> Čeka se odgovor od fiskalne službe...
+              </div>
+              {% endif %}
+            </div>
+            {% empty %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <br>
+              Nema zahtjeva za ovaj dokument.
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> Zatvori
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

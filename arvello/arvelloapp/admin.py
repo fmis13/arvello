@@ -5,7 +5,11 @@ from simple_history.admin import SimpleHistoryAdmin
 # Register your models here.
 # Školsko 24.
 admin.site.register(Client)
-admin.site.register(Invoice)
+@admin.register(Invoice)
+class InvoiceAdmin(SimpleHistoryAdmin):
+    list_display = ('title', 'number', 'client', 'subject', 'date', 'is_paid', 'sales_channel', 'fiscal_status')
+    list_filter = ('is_paid', 'sales_channel', 'date', 'fiscal_status')
+    search_fields = ('number', 'client__clientName', 'subject__clientName')
 admin.site.register(Product)
 # Županijsko 24.
 admin.site.register(Offer)

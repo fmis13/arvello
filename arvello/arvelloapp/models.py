@@ -466,6 +466,19 @@ from datetime import timedelta
 
 class Invoice(models.Model):
     # Model za račun
+    SALES_CHANNEL_CHOICES = [
+        ('retail', 'Retail (F1) - Maloprodaja'),
+        ('wholesale', 'Wholesale (F2) - Veleprodaja'),
+    ]
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', 'Gotovina'),
+        ('card', 'Kartica'),
+        ('bank_transfer', 'Bankovni prijenos'),
+        ('check', 'Ček'),
+        ('other', 'Ostalo'),
+    ]
+    
     title = models.CharField(null=True, blank=True, max_length=30)
     number = models.CharField(null=False, blank=False, max_length=20, validators=[MinLengthValidator(6, 'Broj računa mora sadržavati više od 5 karaktera.')])
     dueDate = models.DateField(null=True, blank=False)
@@ -480,6 +493,52 @@ class Invoice(models.Model):
     history = HistoricalRecords()
     is_paid = models.BooleanField(default=False, verbose_name="Plaćen")
     payment_date = models.DateField(null=True, blank=True, verbose_name="Datum plaćanja")
+    sales_channel = models.CharField(
+        max_length=20,
+        choices=SALES_CHANNEL_CHOICES,
+        default=None,
+        null=True,
+        blank=True,
+        verbose_name="Kanal prodaje"
+    )
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        default='cash',
+        verbose_name="Način plaćanja"
+    )
+    # Fiskalni elementi
+    fiscal_location = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True, 
+        verbose_name="Lokacija izdavanja računa"
+    )
+    fiscal_operator_oib = models.CharField(
+        max_length=11, 
+        blank=True, 
+        null=True, 
+        verbose_name="OIB operatera"
+    )
+    fiscal_device_id = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True, 
+        verbose_name="ID fiskalnog uređaja"
+    )
+
+    FISCAL_STATUS_CHOICES = [
+        ('pending', 'Na čekanju'),
+        ('enqueued', 'U redu čekanja'),
+        ('processed', 'Obrađen'),
+        ('failed', 'Neuspješan'),
+    ]
+    fiscal_status = models.CharField(
+        max_length=20,
+        choices=FISCAL_STATUS_CHOICES,
+        default='pending',
+        help_text='Status fiskalizacije računa'
+    )
 
     def poziv_na_broj(self):
         # Generira poziv na broj za račun
@@ -503,6 +562,21 @@ class Invoice(models.Model):
 
         self.slug = slugify('{} {}'.format(self.title, self.uniqueId))
         self.last_updated = timezone.localtime(timezone.now())
+
+        # Auto-detection of sales channel based on client type and invoice characteristics
+        if self.sales_channel in (None, ''):
+            # Pravne osobe su obično veleprodaja (B2B)
+            if self.client.clientType == 'Pravna osoba':
+                self.sales_channel = 'wholesale'
+            # Fizičke osobe su obično maloprodaja (B2C), osim ako je iznos velik
+            elif self.price_with_vat() > 3000:  # Prag za veleprodaju
+                self.sales_channel = 'wholesale'
+            else:
+                self.sales_channel = 'retail'
+
+        # Postavi fiskalne elemente ako nisu definirani
+        if not self.fiscal_operator_oib and self.subject.OIB:
+            self.fiscal_operator_oib = self.subject.OIB
 
         super(Invoice, self).save(*args, **kwargs)
 
@@ -560,6 +634,117 @@ class Invoice(models.Model):
             return True
         else:
             return False
+
+    def get_fiscal_data(self):
+        """Priprema sve podatke potrebne za fiskalizaciju računa."""
+        invoice_products = self.get_invoice_products()
+        
+        # Grupiranje stavki po PDV stopi za fiskalne potrebe
+        vat_groups = {}
+        for product in invoice_products:
+            vat_rate = float(product.product.taxPercent)
+            if vat_rate not in vat_groups:
+                vat_groups[vat_rate] = {
+                    'base_amount': Decimal('0.00'),
+                    'vat_amount': Decimal('0.00'),
+                    'items': []
+                }
+            
+            # Izračunaj iznose za stavku
+            item_base = product.pretotal()
+            item_vat = product.tax()
+            
+            vat_groups[vat_rate]['base_amount'] += item_base
+            vat_groups[vat_rate]['vat_amount'] += item_vat
+            vat_groups[vat_rate]['items'].append({
+                'name': product.product.title,
+                'quantity': float(product.quantity),
+                'unit_price': float(product.product.price),
+                'discount': float(product.discount or 0),
+                'rebate': float(product.rabat or 0),
+                'base_amount': float(item_base),
+                'vat_rate': vat_rate,
+                'vat_amount': float(item_vat),
+                'total_amount': float(product.total())
+            })
+        
+        return {
+            'invoice_data': {
+                'id': str(self.id),
+                'number': self.number,
+                'date': self.date.isoformat() if self.date else None,
+                'due_date': self.dueDate.isoformat() if self.dueDate else None,
+                'sales_channel': self.sales_channel,
+                'payment_method': self.payment_method,
+                'fiscal_location': self.fiscal_location,
+                'fiscal_operator_oib': self.fiscal_operator_oib,
+                'fiscal_device_id': self.fiscal_device_id,
+                'notes': self.notes,
+                'is_paid': self.is_paid,
+                'payment_date': self.payment_date.isoformat() if self.payment_date else None,
+            },
+            'issuer_data': {
+                'name': self.subject.clientName,
+                'address': self.subject.addressLine1,
+                'city': self.subject.town,
+                'postal_code': self.subject.postalCode,
+                'oib': self.subject.OIB,
+                'vat_id': getattr(self.subject, 'VATID', None),
+            },
+            'buyer_data': {
+                'name': self.client.clientName,
+                'address': self.client.addressLine1,
+                'city': self.client.province,  # Client uses province instead of town
+                'postal_code': self.client.postalCode,
+                'oib': self.client.OIB,
+                'vat_id': getattr(self.client, 'VATID', None),
+                'client_type': self.client.clientType,
+            } if self.sales_channel == 'wholesale' else None,
+            'items': invoice_products,
+            'vat_summary': vat_groups,
+            'totals': {
+                'subtotal': float(self.pretax()),
+                'total_vat': float(self.tax()),
+                'total_amount': float(self.price_with_vat()),
+                'currency': self.currtext(),
+            }
+        }
+    
+    def get_invoice_products(self):
+        """Dohvaća sve stavke računa s punim podacima."""
+        return InvoiceProduct.objects.filter(invoice=self).select_related('product')
+    
+    def get_fiscal_adapter_type(self):
+        """Određuje koji fiskalni adapter koristiti na temelju kanala prodaje."""
+        return 'fiskalizacija_v1' if self.sales_channel == 'retail' else 'fiskalizacija_v2'
+    
+    def is_fiscal_ready(self):
+        """Provjerava je li račun spreman za fiskalizaciju."""
+        required_fields = [
+            self.number,
+            self.date,
+            self.subject.OIB,
+            self.fiscal_operator_oib,
+        ]
+        
+        # Za veleprodaju provjeri i podatke kupca
+        if self.sales_channel == 'wholesale':
+            required_fields.extend([
+                self.client.OIB,
+                self.client.clientName,
+            ])
+        
+        # Provjeri da nema praznih stavki
+        products = self.get_invoice_products()
+        if not products.exists():
+            return False, "Račun nema stavki"
+        
+        # Provjeri da su sve stavke potpune
+        for product in products:
+            if not product.product.title or product.quantity <= 0:
+                return False, f"Nepotpuna stavka: {product.product.title}"
+        
+        return True, "Račun je spreman za fiskalizaciju"
 
     def get_overdue_status(self):
         """Vraća status zakašnjenja računa."""

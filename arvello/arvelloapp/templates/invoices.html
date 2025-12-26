@@ -32,7 +32,8 @@
           <th scope="col">Subjekt</th>
           <th scope="col">Dospijeće</th>
           <th scope="col">Bilješke</th>
-            <th scope="col" colspan="3">Akcije</th>
+          <th scope="col">Fiskalni status</th>
+            <th scope="col" colspan="4">Akcije</th>
         </tr>
       </thead>
       <tbody>
@@ -55,6 +56,7 @@
         <td>{{invoice.subject.clientName}}</td>
         <td>{{invoice.dueDate}}</td>
         <td>{{invoice.notes}}</td>
+        <td>{{invoice.fiscal_status}}</td>
         <td class="p-1"><a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer">
           <button type="button" class="btn btn-sm m-0"><img src="{% static 'img/download.svg' %}" alt="Preuzmi" title="Preuzmi" width="16" height="16"></button></a></td>
         <td class="p-1" style="width: 2rem;">
@@ -72,6 +74,13 @@
               <span class="material-symbols-outlined align-icon">email</span>
             </button>
           </form>
+        </td>
+        <td class="p-1" style="width: 2rem;">
+          <a href="{% url 'fiscal_documents_for_invoice' invoice.id %}">
+            <button type="button" class="btn btn-sm m-0 btn-outline-secondary">
+              <span class="material-symbols-outlined align-icon">receipt</span>
+            </button>
+          </a>
         </td>
       </tr>
         {% endfor %}

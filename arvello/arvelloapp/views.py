@@ -38,6 +38,7 @@ from .utils.email_utils import send_email_with_attachment
 from django.conf import settings
 import os
 from django.utils.timezone import now
+from arvello_fiscal.models import FiscalDocument, FiscalRequest, FiscalResponse
 
 logger = logging.getLogger(__name__)
 
@@ -1919,3 +1920,195 @@ def mark_invoice_paid(request, invoice_id):
         invoice.save()
         messages.success(request, f"Račun {invoice.number} je označen kao plaćen.")
     return redirect('invoices')
+
+
+@login_required
+def retry_fiscalization(request, invoice_id):
+    """Ponovno pokreće fiskalizaciju za račun."""
+    if request.method == 'POST':
+        invoice = get_object_or_404(Invoice, pk=invoice_id)
+        try:
+            from arvello_fiscal.services.fiscal_service import FiscalService
+            FiscalService.fiscalize_invoice(invoice)
+            messages.success(request, 'Fiskalizacija ponovno pokrenuta.')
+        except Exception as e:
+            messages.error(request, f'Greška pri fiskalizaciji: {e}')
+        return redirect('fiscal_documents_for_invoice', invoice_id=invoice_id)
+    else:
+        return redirect('fiscal_documents_for_invoice', invoice_id=invoice_id)
+
+
+@login_required
+def fiscal_configs(request):
+    """Prikazuje i upravlja fiskalnim konfiguracijama po subjektima."""
+    from arvello_fiscal.models import FiscalConfig
+    
+    context = {}
+    fiscal_configs = FiscalConfig.objects.all().order_by('company_id')
+    context['fiscal_configs'] = fiscal_configs
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'create':
+            form = FiscalConfigForm(request.POST, request.FILES)
+            if form.is_valid():
+                fiscal_config = form.save(commit=False)
+                fiscal_config.company_id = form.cleaned_data['company'].clientUniqueId
+                fiscal_config.save()
+                messages.success(request, f'Fiskalna konfiguracija za {fiscal_config.company_id} uspješno kreirana.')
+                return redirect('fiscal_configs')
+            else:
+                messages.error(request, 'Greška pri kreiranju fiskalne konfiguracije.')
+                context['form'] = form
+        
+        elif action == 'edit':
+            config_id = request.POST.get('config_id')
+            fiscal_config = get_object_or_404(FiscalConfig, id=config_id)
+            form = FiscalConfigForm(request.POST, request.FILES, instance=fiscal_config)
+            if form.is_valid():
+                fiscal_config = form.save(commit=False)
+                fiscal_config.company_id = form.cleaned_data['company'].clientUniqueId
+                fiscal_config.save()
+                messages.success(request, f'Fiskalna konfiguracija za {fiscal_config.company_id} uspješno ažurirana.')
+                return redirect('fiscal_configs')
+            else:
+                messages.error(request, 'Greška pri ažuriranju fiskalne konfiguracije.')
+                context['edit_form'] = form
+        
+        elif action == 'delete':
+            config_id = request.POST.get('config_id')
+            fiscal_config = get_object_or_404(FiscalConfig, id=config_id)
+            company_id = fiscal_config.company_id
+            fiscal_config.delete()
+            messages.success(request, f'Fiskalna konfiguracija za {company_id} uspješno obrisana.')
+            return redirect('fiscal_configs')
+        
+        elif action == 'test_connection':
+            config_id = request.POST.get('config_id')
+            fiscal_config = get_object_or_404(FiscalConfig, id=config_id)
+            
+            # Test connection logic
+            test_result = test_fiscal_connection(fiscal_config)
+            if test_result['success']:
+                messages.success(request, f'Veza s fiskalnom službom za {fiscal_config.company_id} je uspješna.')
+            else:
+                messages.error(request, f'Greška pri testiranju veze: {test_result["error"]}')
+            
+            return redirect('fiscal_configs')
+
+    # Initialize forms
+    context['form'] = FiscalConfigForm()
+    context['edit_form'] = FiscalConfigForm()
+    
+    return render(request, 'fiscal_configs.html', context)
+
+
+@login_required
+def get_fiscal_config(request, config_id):
+    """API endpoint za dohvaćanje fiskalne konfiguracije za uređivanje."""
+    from arvello_fiscal.models import FiscalConfig
+    
+    try:
+        config = FiscalConfig.objects.get(id=config_id)
+        data = {
+            'id': config.id,
+            'company_id': config.company_id,
+            'mode': config.mode,
+            'adapter': config.adapter,
+            'endpoint': config.endpoint,
+            'secret': config.secret,
+            'meta': config.meta,
+        }
+        return JsonResponse(data)
+    except FiscalConfig.DoesNotExist:
+        return JsonResponse({'error': 'Konfiguracija nije pronađena'}, status=404)
+
+
+def test_fiscal_connection(fiscal_config):
+    """Testira vezu s fiskalnom službom."""
+    from arvello_fiscal.services.fiscal_service import FiscalService
+    
+    try:
+        # Get the adapter instance
+        adapter = FiscalService.get_adapter_for_company(fiscal_config.company_id)
+        
+        # Test connection
+        result = adapter.test_connection()
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Greška pri testiranju veze za {fiscal_config.company_id}: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+@login_required
+def fiscal_documents_for_invoice(request, invoice_id):
+    """Prikazuje fiskalne dokumente za određeni račun."""
+    invoice = get_object_or_404(Invoice, pk=invoice_id)
+    fiscal_documents = FiscalDocument.objects.filter(document_id=invoice.id, document_type='invoice').prefetch_related(
+        'requests__responses'
+    )
+    context = {
+        'invoice': invoice,
+        'fiscal_documents': fiscal_documents,
+    }
+    return render(request, 'fiscal_documents_for_invoice.html', context)
+
+
+@login_required
+def retry_fiscalization(request, invoice_id):
+    """Ponovno pokreće fiskalizaciju za račun."""
+    if request.method == 'POST':
+        invoice = get_object_or_404(Invoice, pk=invoice_id)
+        try:
+            from arvello_fiscal.services.fiscal_service import FiscalService
+            from arvello_fiscal.models import FiscalDocument, FiscalRequest, FiscalResponse
+            
+            # Find existing fiscal document for this invoice
+            fiscal_doc = FiscalDocument.objects.filter(
+                document_id=str(invoice.id), 
+                document_type='invoice',
+                company_id=str(invoice.subject.id)
+            ).first()
+            
+            if not fiscal_doc:
+                # If no existing document, create new one
+                adapter = FiscalService.get_adapter_for_company(str(invoice.subject.id))
+                payload = adapter.prepare_payload(invoice)
+                fr = FiscalService.submit_and_enqueue('invoice', invoice.id, str(invoice.subject.id), payload, enqueue=False)
+                fiscal_doc = fr.fiscal_document
+            else:
+                # Create new request for existing document
+                adapter = FiscalService.get_adapter_for_company(str(invoice.subject.id))
+                payload = adapter.prepare_payload(invoice)
+                idemp = FiscalService.idempotency_key(str(invoice.subject.id), 'invoice', str(invoice.id))
+                
+                fr = FiscalRequest.objects.create(
+                    fiscal_document=fiscal_doc,
+                    idempotency_key=idemp,
+                    payload=payload,
+                    status='queued',
+                )
+                
+                # Process synchronously
+                signed = adapter.sign_payload(payload)
+                raw = adapter.send(signed)
+                parsed = adapter.parse_response(raw)
+                FiscalResponse.objects.create(fiscal_request=fr, raw_response=str(raw), parsed=parsed)
+                fr.status = 'sent' if parsed.get('ok') else 'failed'
+                fr.save()
+                fiscal_doc.status = fr.status
+                fiscal_doc.save()
+            
+            # Update invoice fiscal status
+            invoice.fiscal_status = 'processed' if fiscal_doc.status == 'sent' else 'failed'
+            invoice.save()
+            
+            messages.success(request, 'Fiskalizacija ponovno pokrenuta.')
+        except Exception as e:
+            messages.error(request, f'Greška pri fiskalizaciji: {e}')
+        return redirect('fiscal_documents_for_invoice', invoice_id=invoice_id)
+    else:
+        return redirect('fiscal_documents_for_invoice', invoice_id=invoice_id)

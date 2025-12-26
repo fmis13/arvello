@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import *
+from arvello_fiscal.models import FiscalConfig
 from django.core.exceptions import ValidationError
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Div, HTML, Layout, Row
@@ -115,17 +116,18 @@ class InvoiceForm(forms.ModelForm):
                 Column('dueDate', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0'),
                 Column('client', css_class='form-group col-lg-3 col-md-3 col-sm-6 mb-0'),
                 Column('subject', css_class='form-group col-lg-3 col-md-3 col-sm-6 mb-0'),
+                Column('sales_channel', css_class='form-group col-lg-3 col-md-3 col-sm-6 mb-0'),
                 Column('notes', css_class='form-group col-lg-3 col-md-3 col-sm-6 mb-0'),
                 css_class='form-row'
             )
         )
     class Meta:
         model = Invoice
-        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'date', 'subject']
+        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'date', 'subject', 'sales_channel']
         labels = {
             'title': 'Naslov', 'number': 'Broj računa',
             'dueDate': 'Datum dospijeća', 'date': 'Datum računa', 'notes': 'Napomene',
-            'client': 'Klijent', 'product': 'Proizvod', 'subject': 'Subjekt'
+            'client': 'Klijent', 'product': 'Proizvod', 'subject': 'Subjekt', 'sales_channel': 'Kanal prodaje'
         }
 
 class InvoiceProductForm(ModelForm):
@@ -1081,3 +1083,90 @@ class NonTaxablePaymentTypeForm(forms.ModelForm):
             if query.exists():
                 raise forms.ValidationError("Šifra već postoji. Molimo unesite jedinstvenu šifru.")
         return code
+
+
+class FiscalConfigForm(forms.ModelForm):
+    """Forma za upravljanje fiskalnim konfiguracijama po subjektima."""
+    
+    company = forms.ModelChoiceField(queryset=Company.objects.all(), label="Subjekt", to_field_name='clientUniqueId')
+    
+    class Meta:
+        model = FiscalConfig
+        fields = ['company', 'mode', 'adapter', 'endpoint', 'secret', 'certificate_file', 'private_key_file', 'meta']
+        widgets = {
+            'company': forms.Select(attrs={'class': 'form-control'}),
+            'mode': forms.Select(attrs={'class': 'form-control'}),
+            'adapter': forms.Select(attrs={'class': 'form-control'}),
+            'endpoint': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://api.fiscal-service.com'}),
+            'secret': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'JWT token ili API ključ'}),
+            'certificate_file': forms.FileInput(attrs={'class': 'form-control'}),
+            'private_key_file': forms.FileInput(attrs={'class': 'form-control'}),
+            'meta': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Dodatni parametri u JSON formatu'}),
+        }
+        labels = {
+            'company': 'Subjekt',
+            'mode': 'Okruženje',
+            'adapter': 'Fiskalni adapter',
+            'endpoint': 'API endpoint',
+            'secret': 'Tajni ključ',
+            'certificate_file': 'Certifikat (.pem/.crt)',
+            'private_key_file': 'Privatni ključ (.key/.pem)',
+            'meta': 'Dodatni parametri',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Column('company', css_class='form-group col-md-6 mb-3'),
+                Column('mode', css_class='form-group col-md-3 mb-3'),
+                Column('adapter', css_class='form-group col-md-3 mb-3'),
+            ),
+            Row(
+                Column('endpoint', css_class='form-group col-md-6 mb-3'),
+                Column('secret', css_class='form-group col-md-6 mb-3'),
+            ),
+            Row(
+                Column('certificate_file', css_class='form-group col-md-6 mb-3'),
+                Column('private_key_file', css_class='form-group col-md-6 mb-3'),
+            ),
+            'meta',
+        )
+
+    def clean_certificate_file(self):
+        """Validacija certifikat datoteke."""
+        file = self.cleaned_data.get('certificate_file')
+        if file:
+            # Provjeri ekstenziju
+            if not file.name.lower().endswith(('.pem', '.crt', '.cer')):
+                raise forms.ValidationError('Certifikat mora biti u formatu .pem, .crt ili .cer')
+            # Provjeri veličinu (max 5MB)
+            if file.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('Certifikat ne smije biti veći od 5MB')
+        return file
+
+    def clean_private_key_file(self):
+        """Validacija privatnog ključa."""
+        file = self.cleaned_data.get('private_key_file')
+        if file:
+            # Provjeri ekstenziju
+            if not file.name.lower().endswith(('.key', '.pem')):
+                raise forms.ValidationError('Privatni ključ mora biti u formatu .key ili .pem')
+            # Provjeri veličinu (max 5MB)
+            if file.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('Privatni ključ ne smije biti veći od 5MB')
+        return file
+
+    def clean_meta(self):
+        """Validacija JSON formata za meta polje."""
+        meta = self.cleaned_data.get('meta')
+        if meta:
+            try:
+                import json
+                json.loads(meta)
+            except json.JSONDecodeError:
+                raise forms.ValidationError('Meta parametri moraju biti u ispravnom JSON formatu')
+        return meta

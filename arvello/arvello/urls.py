@@ -6,6 +6,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 
 from arvelloapp import views
+from arvello_fiscal import views as fiscal_views
 from django.contrib import admin
 from django.urls import path
 from django.shortcuts import redirect
@@ -39,6 +40,8 @@ document_patterns = [
     path('inventory_label/<int:pk>/', views.inventory_label, name='inventory_label'),
     path('product_label/<int:pk>/', views.product_label, name='product_label'),
     path('invoices/send_email/<int:invoice_id>/', views.send_invoice_email, name='send_invoice_email'),
+    path('invoices/<int:invoice_id>/fiscal/', views.fiscal_documents_for_invoice, name='fiscal_documents_for_invoice'),
+    path('invoices/<int:invoice_id>/retry_fiscal/', views.retry_fiscalization, name='retry_fiscalization'),
 
 ]
 
@@ -99,6 +102,10 @@ urlpatterns = [
     *history_patterns,
     *info_patterns,
     *api_patterns,
+    path('fiscal/documents/', fiscal_views.fiscal_documents, name='fiscal_documents'),
+    path('fiscal/submit/<int:doc_id>/', fiscal_views.submit_fiscal_document, name='submit_fiscal_document'),
+    path('fiscal/configs/', views.fiscal_configs, name='fiscal_configs'),
+    path('fiscal/configs/<int:config_id>/', views.get_fiscal_config, name='get_fiscal_config'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Admin site customization
