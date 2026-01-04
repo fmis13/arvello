@@ -245,10 +245,39 @@ p {
 /* Action buttons sizing */
 .actions-col .btn { padding: .25rem .5rem; height: 34px; }
 
+/* Compact, consistent action buttons */
+.actions-col .action-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.actions-col .action-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.actions-col .btn + .btn {
+  margin-left: 0.35rem;
+}
+
+.actions-col .btn-outline-secondary.action-btn {
+  background: transparent;
+  border-color: var(--color-border);
+}
+
+.actions-col .btn-success.action-btn {
+  padding: 0; /* keep circular feel */
+}
+
 @media (max-width: 768px) {
   .table-responsive td, .table-responsive th { font-size: 13px; }
   .actions-col { width: 96px; }
   .col-notes { max-width: 12rem; }
+  .actions-col .action-btn { width: 32px; height: 32px; }
 }
 
 /* Icon sizing for action buttons */
