@@ -3,113 +3,89 @@
 {% load crispy_forms_tags %}
 {% load history_extras %}
 
+{% block title %}Računi - {{ block.super }}{% endblock %}
 
 {% block main %}
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Računi</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-      <div class="btn-group me-2">
-        {% comment %} <button type="button" class="btn btn-sm btn-outline-secondary">Print</button>
-        <a type="button" class="btn btn-primary" href="{% url 'create_invoice' %}">Izradi račun</a> 
-        <button href="#addInvoiceModal" type="button" class="btn btn-primary" data-bs-toggle="modal">Novi račun</button>{% endcomment %}
-        <a href="{% get_history_url 'Invoice' %}" class="btn btn-primary">
-          <span class="material-symbols-outlined align-icon">history</span>
-          Povijest promjena</a>
-        <div class="vr mx-1"></div>
-        <a href="{% url 'create_invoice' %}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Novi račun</a>
-      </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Računi</h1>
+  <div class="d-flex gap-2">
+    <a href="{% get_history_url 'Invoice' %}" class="btn btn-secondary">
+      <span class="material-symbols-outlined">history</span>
+      Povijest promjena
+    </a>
+    <a href="{% url 'create_invoice' %}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+      <span class="material-symbols-outlined">add</span>
+      Novi račun
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="h3 mb-0">Popis računa</h2>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" role="table" aria-label="Tablica računa">
+        <thead>
+          <tr>
+            <th scope="col">Naslov</th>
+            <th scope="col">Klijent</th>
+            <th scope="col">Broj računa</th>
+            <th scope="col">Subjekt</th>
+            <th scope="col">Dospijeće</th>
+            <th scope="col">Bilješke</th>
+            <th scope="col" class="text-center actions-col">Akcije</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invoice in invoices %}
+          <tr class="{% if invoice.get_overdue_status == 'warning' %}row-overdue-warning{% elif invoice.get_overdue_status == 'danger' %}row-overdue-danger{% endif %}">
+            <td>{% if invoice.title %}{{ invoice.title }}{% else %}<span class="empty-value" aria-hidden="true">—</span><span class="sr-only">(prazno)</span>{% endif %}</td>
+            <td>{{ invoice.client.clientName }}</td>
+            <td>{{ invoice.number }}</td>
+            <td>{{ invoice.subject.clientName }}</td>
+            <td>{{ invoice.dueDate|date:"d.m.Y." }}</td>
+            <td title="{{ invoice.notes|escape }}">{{ invoice.notes|truncatechars:50 }}</td>
+            <td class="text-center actions-col">
+              <div class="d-flex justify-content-center gap-1">
+                <a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer"
+                   class="btn btn-sm btn-outline-secondary" aria-label="Preuzmi PDF računa {{ invoice.number }}">
+                  <span class="material-symbols-outlined action-icon">download</span>
+                </a>
+                <form method="post" action="{% url 'mark_invoice_paid' invoice.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm {% if invoice.is_paid %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                          aria-label="{% if invoice.is_paid %}Označi kao neplaćeno{% else %}Označi kao plaćeno{% endif %}">
+                    <span class="material-symbols-outlined action-icon">check</span>
+                  </button>
+                </form>
+                <form method="post" action="{% url 'send_invoice_email' invoice.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-secondary"
+                          aria-label="Pošalji račun emailom">
+                    <span class="material-symbols-outlined action-icon">email</span>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-secondary py-4">
+              Nema računa za prikaz.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
+</div>
 
-  <div class="table-responsive">
-    <table class="table table-striped table-sm">
-      <thead>
-        <tr>
-          <th scope="col">Naslov</th>
-          <th scope="col">Klijent</th>
-          <th scope="col">Broj računa</th>
-          <th scope="col">Subjekt</th>
-          <th scope="col">Dospijeće</th>
-          <th scope="col">Bilješke</th>
-            <th scope="col" colspan="3">Akcije</th>
-        </tr>
-      </thead>
-      <tbody>
-
-        {% for invoice in invoices %}
-      <tr 
-        {% if invoice.get_overdue_status == "warning" %}
-          class="table-warning"
-        {% elif invoice.get_overdue_status == "danger" %}
-          class="table-danger"
-        {% endif %}
-      >
-        {% if invoice.title == None %}
-        <td>∅</td>
-        {% else %}
-        <td>{{invoice.title}}</td>
-        {% endif %}
-        <td>{{invoice.client.clientName}}</td>
-        <td>{{invoice.number}}</td>
-        <td>{{invoice.subject.clientName}}</td>
-        <td>{{invoice.dueDate}}</td>
-        <td>{{invoice.notes}}</td>
-        <td class="p-1"><a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer">
-          <button type="button" class="btn btn-sm m-0"><img src="{% static 'img/download.svg' %}" alt="Preuzmi" title="Preuzmi" width="16" height="16"></button></a></td>
-        <td class="p-1" style="width: 2rem;">
-          <form method="post" action="{% url 'mark_invoice_paid' invoice.id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm m-0 {% if invoice.is_paid %}btn-success{% else %}btn-outline-secondary{% endif %}">
-              <span class="material-symbols-outlined align-icon">check</span>
-            </button>
-          </form>
-        </td>
-        <td class="p-1" style="width: 2rem;">
-          <form method="post" action="{% url 'send_invoice_email' invoice.id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm m-0 btn-outline-secondary">
-              <span class="material-symbols-outlined align-icon">email</span>
-            </button>
-          </form>
-        </td>
-      </tr>
-        {% endfor %}
-
-      </tbody>
-    </table>
-  </div>
-  <footer> <a href="{% url 'admin:arvelloapp_invoice_changelist' %}" style="color: white;">Jedino administrator može brisati račune, klikom ovdje.</a> </footer>
-  {% comment %}
-  <div class="modal modal-sheet py-5" tabindex="-1" id="addInvoiceModal">
-    <div class="modal-dialog">
-      <div class="modal-content rounded-6 shadow">
-  
-        <form class="" action="#" method="post" enctype="multipart/form-data">
-          {% csrf_token %}
-  
-  
-        <div class="modal-header border-bottom-0">
-          <h5 class="modal-title"></h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
-        </div>
-  
-        <div class="modal-body py-0">
-  
-  
-          {{form.as_p}}
-  
-  
-        </div>
-        <div class="modal-footer flex-column border-top-0">
-          <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi izmjene</button>
-          <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Zatvori</button>
-        </div>
-  
-        </form>
-      </div>
-    </div>
-  </div>
-  {% endcomment %}
-</main>
+<div class="mt-3 text-muted small">
+  <a href="{% url 'admin:arvelloapp_invoice_changelist' %}" class="text-decoration-none">
+    Administrator može brisati račune
+  </a>
+</div>
 {% endblock %}
