@@ -50,19 +50,19 @@
             <td class="text-center actions-col">
               <div class="d-flex justify-content-center gap-1">
                 <a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer"
-                   class="btn btn-sm btn-outline-secondary" aria-label="Preuzmi PDF računa {{ invoice.number }}">
+                   class="btn btn-sm btn-outline-secondary action-btn" aria-label="Preuzmi PDF računa {{ invoice.number }}">
                   <span class="material-symbols-outlined action-icon">download</span>
                 </a>
                 <form method="post" action="{% url 'mark_invoice_paid' invoice.id %}" class="d-inline">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-sm {% if invoice.is_paid %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                  <button type="submit" class="btn btn-sm action-btn {% if invoice.is_paid %}btn-success{% else %}btn-outline-secondary{% endif %}"
                           aria-label="{% if invoice.is_paid %}Označi kao neplaćeno{% else %}Označi kao plaćeno{% endif %}">
                     <span class="material-symbols-outlined action-icon">check</span>
                   </button>
                 </form>
                 <form method="post" action="{% url 'send_invoice_email' invoice.id %}" class="d-inline">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-sm btn-outline-secondary"
+                  <button type="submit" class="btn btn-sm btn-outline-secondary action-btn"
                           aria-label="Pošalji račun emailom">
                     <span class="material-symbols-outlined action-icon">email</span>
                   </button>
