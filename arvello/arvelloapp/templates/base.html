@@ -28,7 +28,7 @@
 
     <!-- Header -->
     <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow" role="banner">
-      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="{% url 'invoices' %}" aria-label="Arvello početna stranica">
+      <a class="navbar-brand me-0 px-3" href="{% url 'invoices' %}" aria-label="Arvello početna stranica">
         Arvello
       </a>
 
@@ -37,7 +37,7 @@
           v2.3.99-beta
         </span>
 
-        <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Uključi/isključi navigaciju">
+        <button class="navbar-toggler d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Uključi/isključi navigaciju">
           <span class="navbar-toggler-icon"></span>
         </button>
 
@@ -96,10 +96,8 @@
       </div>
     {% endif %}
 
-    <div class="container-fluid">
-      <div class="row">
-        <!-- Sidebar -->
-        <nav id="sidebarMenu" class="col-auto d-md-block bg-light sidebar collapse text-primary" role="navigation" aria-label="Glavna navigacija">
+    <!-- Sidebar -->
+        <nav id="sidebarMenu" class="d-md-block bg-light sidebar collapse text-primary" role="navigation" aria-label="Glavna navigacija">
           <div class="position-fixed pt-3 text-black">
             <ul class="nav flex-column">
               <li class="nav-item">
@@ -229,13 +227,11 @@
 
         <!-- Main Content -->
         <main class="main-content" id="main-content" role="main">
-          <div class="container-xl content-area">
+          <div class="container-fluid content-area">
             {% block main %}
             {% endblock %}
           </div>
         </main>
-      </div>
-    </div>
 
     <!-- Scripts -->
     <script src="{% static 'js/form-utils.js' %}"></script>
