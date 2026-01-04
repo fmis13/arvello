@@ -149,9 +149,17 @@ p {
 .main-content {
   margin-left: 240px;
   margin-top: 64px;
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   min-height: calc(100vh - 64px);
   transition: margin-left var(--transition-normal);
+}
+
+/* Content area inside main that constrains width and centers pages */
+.content-area {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--spacing-lg) 0;
 }
 
 .sidebar.collapsed + .main-content {
