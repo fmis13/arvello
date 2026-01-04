@@ -15,6 +15,9 @@ from django.contrib.auth import get_user_model
 from .middleware import get_current_request
 from dateutil.relativedelta import relativedelta
 from .utils.decimal_helpers import safe_decimal
+from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class HistoryMixin:
     def get_history_user(self):
@@ -1364,6 +1367,42 @@ class Salary(HistoryMixin, models.Model):
         return self.higher_tax_amount or Decimal('0.00')
 
 
+class Payslip(models.Model):
+    """Lightweight Payslip model for Palace Phase 1.
+
+    This model is additive and co-exists with the more detailed Salary model.
+    """
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('final', 'Final'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name='payslips')
+    subject = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='payslips')
+    period_month = models.IntegerField()
+    period_year = models.IntegerField()
+
+    gross = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    net = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    taxes = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['subject', 'employee']),
+            models.Index(fields=['period_year', 'period_month']),
+        ]
+        ordering = ['-period_year', '-period_month']
+
+    def __str__(self):
+        return f"Payslip: {self.employee.get_full_name()} {self.period_month}/{self.period_year} ({self.subject.clientName})"
+
+
 class NonTaxablePaymentType(models.Model):
     # Model za vrstu neoporezivog primitka
     name = models.CharField(max_length=200, verbose_name="Naziv")
@@ -1419,6 +1458,53 @@ class TaxParameter(models.Model):
     def __str__(self):
         return f"{self.get_parameter_type_display()} ({self.year}): {self.value}"
     history = HistoricalRecords()
+
+
+class UserProfile(models.Model):
+    """Profile attached to each user to store per-user settings like active subject/company."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    active_company = models.ForeignKey(Company, null=True, blank=True, on_delete=models.SET_NULL, related_name='active_for_users')
+    # alias/explicit field for Palace redesign: active_subject -> points to Company (subject)
+    active_subject = models.ForeignKey(Company, null=True, blank=True, on_delete=models.SET_NULL, related_name='active_subject_for_users')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Profile: {self.user.username}"
+
+
+class SubjectMembership(models.Model):
+    """Links a user to a Company (subject) with a role and permissions."""
+    ROLE_OWNER = 'owner'
+    ROLE_ADMIN = 'admin'
+    ROLE_ISSUER = 'issuer'
+    ROLE_READONLY = 'readonly'
+
+    ROLE_CHOICES = [
+        (ROLE_OWNER, 'Owner'),
+        (ROLE_ADMIN, 'Admin'),
+        (ROLE_ISSUER, 'Invoice Issuer'),
+        (ROLE_READONLY, 'Read Only'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='subject_memberships')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='memberships')
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default=ROLE_READONLY)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'company')
+
+    def __str__(self):
+        return f"{self.user.username} @ {self.company.clientName} ({self.role})"
+
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def ensure_user_profile(sender, instance, created, **kwargs):
+    """Create a UserProfile automatically when a user is created."""
+    if created:
+        UserProfile.objects.create(user=instance)
 
 
 class LocalIncomeTax(models.Model):

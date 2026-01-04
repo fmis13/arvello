@@ -7,7 +7,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 
 from arvelloapp import views
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.shortcuts import redirect
 from django.contrib.auth import views as auth_views
 from django.conf import settings
@@ -90,6 +90,8 @@ api_patterns = [
 # Kombinirani URL-ovi
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # include app-level URLs (subjects switch, create, edit etc.)
+    path('', include('arvelloapp.urls')),
     *auth_patterns,
     *core_patterns,
     *document_patterns,

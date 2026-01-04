@@ -46,7 +46,10 @@ class UserLoginForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
+        # Accept optional `user` kwarg to limit subject choices and set initial
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
         self.helper = FormHelper()
         self.helper.form_class = 'form-signin' # CSS klasa za stilizaciju forme
         self.helper.form_tag = False  # Ne renderiraj <form> tag automatski
@@ -63,6 +66,8 @@ class UserLoginForm(forms.Form):
 class ClientForm(forms.ModelForm):
     # Forma za kreiranje i uređivanje klijenata
     def __init__(self, *args, **kwargs):
+        # Accept optional `user` kwarg to limit subject choices and for validation
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         # Dodaj 'form-control' klasu svim poljima za Bootstrap stilizaciju
         for field in self.fields.values():
@@ -103,7 +108,14 @@ class InvoiceForm(forms.ModelForm):
     dueDate = forms.DateField(required = True, label='Datum dospijeća', widget=DateInput(attrs={'class': 'form-control'}),)
     date = forms.DateField(required = True, label='Datum računa', widget=DateInput(attrs={'class': 'form-control'}),)
     def __init__(self, *args, **kwargs):
+        # Accept optional `user` kwarg and store it on the form instance.
+        # Must pop it before calling super().__init__ so ModelForm base
+        # doesn't receive unexpected kwargs.
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        # Allow leaving subject blank in the form; view will assign an active company if missing
+        if 'subject' in self.fields:
+            self.fields['subject'].required = False
         self.helper = FormHelper()
         self.helper.form_tag = False # Ne renderiraj <form> tag
         # Definicija layouta pomoću Crispy Forms za bolju strukturu
@@ -127,6 +139,16 @@ class InvoiceForm(forms.ModelForm):
             'dueDate': 'Datum dospijeća', 'date': 'Datum računa', 'notes': 'Napomene',
             'client': 'Klijent', 'product': 'Proizvod', 'subject': 'Subjekt'
         }
+    def clean(self):
+        cleaned = super().clean()
+        # Ensure subject belongs to user if user provided
+        if getattr(self, 'user', None) and not self.user.is_superuser:
+            subject = cleaned.get('subject')
+            if subject:
+                # user may have memberships; if not member, raise
+                if not subject.memberships.filter(user=self.user).exists():
+                    raise ValidationError('Odabrani subjekt nije dostupan za trenutnog korisnika.')
+        return cleaned
 
 class InvoiceProductForm(ModelForm):
     # Forma za stavku računa (proizvod/usluga)
@@ -281,6 +303,19 @@ class CompanyForm(forms.ModelForm):
         self.helper.layout = Layout(
             *[FloatingField(field) if field != 'SustavPDVa' else Field(field) for field in self.Meta.fields]
         )
+
+
+class SubjectForm(forms.ModelForm):
+    """Minimal form for managing Subjects (alias for Company in Palace redesign)."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'form-control'})
+
+    class Meta:
+        model = Company
+        fields = ['clientName', 'addressLine1', 'town']
+        labels = {'clientName': 'Ime subjekta', 'addressLine1': 'Adresa', 'town': 'Grad'}
 class InventoryForm(forms.ModelForm):
     # Forma za kreiranje i uređivanje stavki inventara
     class Meta:
