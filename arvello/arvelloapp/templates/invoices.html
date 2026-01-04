@@ -53,8 +53,8 @@
         <td>{{invoice.client.clientName}}</td>
         <td>{{invoice.number}}</td>
         <td>{{invoice.subject.clientName}}</td>
-        <td>{{invoice.dueDate}}</td>
-        <td>{{invoice.notes}}</td>
+        <td>{{invoice.dueDate|date:"d.m.Y."}}</td>
+        <td title="{{ invoice.notes|escape }}">{{ invoice.notes|truncatechars:50 }}</td>
         <td class="p-1"><a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer">
           <button type="button" class="btn btn-sm m-0"><img src="{% static 'img/download.svg' %}" alt="Preuzmi" title="Preuzmi" width="16" height="16"></button></a></td>
         <td class="p-1" style="width: 2rem;">
