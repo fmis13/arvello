@@ -213,16 +213,34 @@ p {
 }
 
 /* Table responsive truncation and action column */
-.table-responsive td {
+.table-responsive td,
+.table-responsive th {
+  min-width: 0; /* allow flex children to shrink */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 18rem;
 }
+
+/* Per-column maximums for improved truncation */
+.col-title { max-width: 18rem; }
+.col-client { max-width: 14rem; }
+.col-number { max-width: 8rem; text-align: center; }
+.col-subject { max-width: 16rem; }
+.col-due { max-width: 9rem; text-align: center; }
+.col-notes { max-width: 20rem; }
 
 .actions-col {
   white-space: nowrap;
   width: 120px;
+}
+
+/* Action buttons sizing */
+.actions-col .btn { padding: .25rem .5rem; height: 34px; }
+
+@media (max-width: 768px) {
+  .table-responsive td, .table-responsive th { font-size: 13px; }
+  .actions-col { width: 96px; }
+  .col-notes { max-width: 12rem; }
 }
 
 /* Icon sizing for action buttons */
