@@ -48,6 +48,7 @@ class InvoiceTemplateTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'class="empty-value"')
         self.assertContains(resp, '(prazno)')
+        self.assertContains(resp, '∅')
 
     def test_overdue_row_has_overdue_class(self):
         # Create an overdue invoice (2 days late -> warning)
