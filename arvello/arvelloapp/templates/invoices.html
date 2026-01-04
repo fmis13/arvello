@@ -41,7 +41,7 @@
         <tbody>
           {% for invoice in invoices %}
           <tr class="{% if invoice.get_overdue_status == 'warning' %}row-overdue-warning{% elif invoice.get_overdue_status == 'danger' %}row-overdue-danger{% endif %}">
-            <td>{% if invoice.title %}{{ invoice.title }}{% else %}<span class="empty-value" aria-hidden="true">—</span><span class="sr-only">(prazno)</span>{% endif %}</td>
+              <td>{% if invoice.title %}{{ invoice.title }}{% else %}<span class="empty-value" aria-hidden="true">∅</span><span class="sr-only">(prazno)</span>{% endif %}</td>
             <td>{{ invoice.client.clientName }}</td>
             <td>{{ invoice.number }}</td>
             <td>{{ invoice.subject.clientName }}</td>
