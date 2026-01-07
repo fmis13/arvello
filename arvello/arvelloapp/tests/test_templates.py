@@ -94,3 +94,25 @@ class InvoiceTemplateTests(TestCase):
         resp = self.client.get(reverse('invoices'))
         self.assertContains(resp, 'title="')
         self.assertContains(resp, long_notes)
+
+    def test_invoices_table_has_wrap_and_actions_classes(self):
+        """Check the invoice list table uses the `wrap` and `actions` classes."""
+        resp = self.client.get(reverse('invoices'))
+        self.assertEqual(resp.status_code, 200)
+        # table itself should have the wrap class
+        self.assertContains(resp, 'class="table table-hover mb-0 wrap"')
+        # header cells should include wrap on title and actions on the actions column
+        self.assertContains(resp, '<th scope="col" class="col-title wrap">')
+        self.assertContains(resp, '<th scope="col" class="text-center actions-col actions">')
+
+    def test_ui_css_contains_wrap_and_actions_rules(self):
+        """Simple smoke test that the CSS file was updated with wrap and actions rules."""
+        from django.conf import settings
+        import os
+        css_path = os.path.join(settings.BASE_DIR, 'arvello', 'static', 'css', 'ui.css')
+        self.assertTrue(os.path.exists(css_path), f"Expected ui.css at {css_path}")
+        with open(css_path, 'r') as fh:
+            css = fh.read()
+        self.assertIn('.table.wrap', css)
+        self.assertIn('overflow-wrap: anywhere', css)
+        self.assertIn('.table .actions', css)

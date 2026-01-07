@@ -26,28 +26,28 @@
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover mb-0" role="table" aria-label="Tablica računa">
+      <table class="table table-hover mb-0 wrap" role="table" aria-label="Tablica računa">
         <thead>
           <tr>
-            <th scope="col" class="col-title">Naslov</th>
+            <th scope="col" class="col-title wrap">Naslov</th>
             <th scope="col" class="col-client">Klijent</th>
             <th scope="col" class="col-number">Broj računa</th>
             <th scope="col" class="col-subject">Subjekt</th>
             <th scope="col" class="col-due">Dospijeće</th>
-            <th scope="col" class="col-notes">Bilješke</th>
-            <th scope="col" class="text-center actions-col">Akcije</th>
+            <th scope="col" class="col-notes wrap">Bilješke</th>
+            <th scope="col" class="text-center actions-col actions">Akcije</th>
           </tr>
         </thead>
         <tbody>
           {% for invoice in invoices %}
           <tr class="{% if invoice.get_overdue_status == 'warning' %}row-overdue-warning{% elif invoice.get_overdue_status == 'danger' %}row-overdue-danger{% endif %}">
-              <td>{% if invoice.title %}{{ invoice.title }}{% else %}<span class="empty-value" aria-hidden="true">∅</span><span class="sr-only">(prazno)</span>{% endif %}</td>
+              <td class="wrap">{% if invoice.title %}{{ invoice.title }}{% else %}<span class="empty-value" aria-hidden="true">∅</span><span class="sr-only">(prazno)</span>{% endif %}</td>
             <td>{{ invoice.client.clientName }}</td>
             <td>{{ invoice.number }}</td>
             <td>{{ invoice.subject.clientName }}</td>
             <td>{{ invoice.dueDate|date:"d.m.Y." }}</td>
-            <td title="{{ invoice.notes|escape }}">{{ invoice.notes|truncatechars:50 }}</td>
-            <td class="text-center actions-col">
+            <td class="wrap" title="{{ invoice.notes|escape }}">{{ invoice.notes|truncatechars:50 }}</td>
+            <td class="text-center actions-col actions">
               <div class="d-flex justify-content-center gap-1">
                 <a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer"
                    class="btn btn-sm btn-outline-secondary action-btn" aria-label="Preuzmi PDF računa {{ invoice.number }}">
