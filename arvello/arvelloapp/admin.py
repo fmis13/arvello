@@ -1,6 +1,8 @@
 from django.contrib import admin
 from .models import *
 from simple_history.admin import SimpleHistoryAdmin
+from django.contrib import admin
+
 
 # Register your models here.
 # Školsko 24.
@@ -23,6 +25,26 @@ admin.site.register(Supplier)
     #admin.site.register(TaxParameter)
     #admin.site.register(LocalIncomeTax)
 admin.site.register(NonTaxablePaymentType)
+
+from .models import UserProfile, SubjectMembership
+from .models import Payslip
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'active_company', 'created_at')
+
+
+@admin.register(SubjectMembership)
+class SubjectMembershipAdmin(admin.ModelAdmin):
+    list_display = ('user', 'company', 'role', 'created_at')
+
+
+@admin.register(Payslip)
+class PayslipAdmin(SimpleHistoryAdmin):
+    list_display = ('employee', 'subject', 'period_month', 'period_year', 'gross', 'net', 'status')
+    list_filter = ('period_year', 'period_month', 'status')
+    search_fields = ('employee__first_name', 'employee__last_name', 'subject__clientName')
 
 @admin.register(Company)
 class CompanyAdmin(SimpleHistoryAdmin):

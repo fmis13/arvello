@@ -78,12 +78,11 @@ p {
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-lg);
   border-radius: var(--border-radius-md);
-  margin-top: 5px;
 }
 
 /* Sidebar */
 .sidebar {
-  width: 260px;
+  width: 240px;
   background-color: var(--color-surface);
   border-right: 1px solid var(--color-border);
   min-height: 100vh;
@@ -101,20 +100,14 @@ p {
 .sidebar .nav-link {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: var(--spacing-sm) var(--spacing-lg);
   color: var(--color-text-primary);
   text-decoration: none;
   font-weight: var(--font-weight-medium);
   border-radius: var(--border-radius-sm);
-  margin: 4px 8px;
+  margin: var(--spacing-xs) var(--spacing-sm);
   transition: all var(--transition-fast);
   height: 48px;
-}
-
-.sidebar .nav-link span:not(.material-symbols-outlined) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .sidebar .nav-link:hover {
@@ -149,32 +142,16 @@ p {
   letter-spacing: 0.05em;
   padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-sm);
   margin: var(--spacing-lg) 0 var(--spacing-sm);
-}
-
-.sidebar-divider {
-  width: 80%;
-  margin: 0.5rem auto;
-  opacity: 0.15;
-  border: 0;
-  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 /* Main Content */
 .main-content {
-  margin-left: 260px;
+  margin-left: 240px;
   margin-top: 64px;
-  padding: var(--spacing-sm);
+  padding: var(--spacing-lg);
   min-height: calc(100vh - 64px);
   transition: margin-left var(--transition-normal);
-  width: auto;
-}
-
-/* Content area inside main that constrains width and centers pages */
-.content-area {
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
-  padding: var(--spacing-lg) var(--spacing-md);
 }
 
 .sidebar.collapsed + .main-content {
@@ -236,99 +213,16 @@ p {
 }
 
 /* Table responsive truncation and action column */
-.table-responsive td,
-.table-responsive th {
-  min-width: 0; /* allow flex children to shrink */
+.table-responsive td {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 18rem;
 }
-
-/* Allow wrapping in tables marked with .wrap (overrides the responsive no-wrap) */
-.table.wrap th,
-.table.wrap td {
-  white-space: normal !important;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-/* Prevent the action column from growing and keep buttons compact */
-.table .actions,
-.table th.actions,
-.table td.actions {
-  width: 72px;
-  max-width: 72px;
-  white-space: nowrap;
-}
-
-/* Compact action buttons inside constrained action column */
-.table .actions .action-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  margin: 0 .25rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* If a table uses fixed layout but needs wrapping for marked cells */
-.table[style*="table-layout: fixed"] .wrap,
-.table.wrap[style*="table-layout: fixed"] th,
-.table.wrap[style*="table-layout: fixed"] td {
-  white-space: normal !important;
-}
-
-
-/* Per-column maximums for improved truncation */
-.col-title { max-width: 18rem; }
-.col-client { max-width: 14rem; }
-.col-number { max-width: 8rem; text-align: center; }
-.col-subject { max-width: 16rem; }
-.col-due { max-width: 9rem; text-align: center; }
-.col-notes { max-width: 20rem; }
 
 .actions-col {
   white-space: nowrap;
   width: 120px;
-}
-
-/* Action buttons sizing */
-.actions-col .btn { padding: .25rem .5rem; height: 34px; }
-
-/* Compact, consistent action buttons */
-.actions-col .action-btn {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-}
-
-.actions-col .action-btn .material-symbols-outlined {
-  font-size: 16px;
-}
-
-.actions-col .btn + .btn {
-  margin-left: 0.35rem;
-}
-
-.actions-col .btn-outline-secondary.action-btn {
-  background: transparent;
-  border-color: var(--color-border);
-}
-
-.actions-col .btn-success.action-btn {
-  padding: 0; /* keep circular feel */
-}
-
-@media (max-width: 768px) {
-  .table-responsive td, .table-responsive th { font-size: 13px; }
-  .actions-col { width: 96px; }
-  .col-notes { max-width: 12rem; }
-  .actions-col .action-btn { width: 32px; height: 32px; }
 }
 
 /* Icon sizing for action buttons */
@@ -568,7 +462,7 @@ p {
 
 @media (min-width: 769px) and (max-width: 1024px) {
   .sidebar {
-    width: 260px;
+    width: 240px;
   }
 
   .sidebar.collapsed {
@@ -576,7 +470,7 @@ p {
   }
 
   .main-content {
-    margin-left: 260px;
+    margin-left: 240px;
   }
 
   .sidebar.collapsed + .main-content {

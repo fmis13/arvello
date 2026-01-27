@@ -37,7 +37,7 @@
           v2.3.99-beta
         </span>
 
-        <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Uključi/isključi navigaciju">
+        <button class="navbar-toggler position-absolute d-md-none" type="button" id="sidebarToggle" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Uključi/isključi navigaciju">
           <span class="navbar-toggler-icon"></span>
         </button>
 
@@ -96,146 +96,142 @@
       </div>
     {% endif %}
 
-    <div class="container-fluid">
-      <div class="row">
-        <!-- Sidebar -->
-        <nav id="sidebarMenu" class="col-auto d-md-block bg-light sidebar collapse text-primary" role="navigation" aria-label="Glavna navigacija">
-          <div class="position-fixed pt-3 text-black">
-            <ul class="nav flex-column">
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'invoices' %}" aria-label="Početna stranica">
-                  <span class="material-symbols-outlined">home</span>
-                  <span>Početna stranica</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'invoices' %}" aria-label="Računi">
-                  <span class="material-symbols-outlined">receipt_long</span>
-                  <span>Računi</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'products' %}" aria-label="Usluge i proizvodi">
-                  <span class="material-symbols-outlined">category</span>
-                  <span>Usluge i proizvodi</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'clients' %}" aria-label="Klijenti">
-                  <span class="material-symbols-outlined">person_edit</span>
-                  <span>Klijenti</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'offers' %}" aria-label="Ponude">
-                  <span class="material-symbols-outlined">request_page</span>
-                  <span>Ponude</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'companies' %}" aria-label="Subjekti">
-                  <span class="material-symbols-outlined">attribution</span>
-                  <span>Subjekti</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'inventory' %}" aria-label="Inventar">
-                  <span class="material-symbols-outlined">edit_note</span>
-                  <span>Inventar</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'expenses' %}" aria-label="Troškovi">
-                  <span class="material-symbols-outlined">payments</span>
-                  <span>Troškovi</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'suppliers' %}" aria-label="Dobavljači">
-                  <span class="material-symbols-outlined">local_shipping</span>
-                  <span>Dobavljači</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <div class="nav-link btn-group dropend">
-                  <button type="button" class="btn dropdown-toggle dropdown-fix" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Izvještaji">
-                    <span class="material-symbols-outlined">lab_profile</span>
-                    <span>Izvještaji</span>
-                  </button>
-                  <ul class="dropdown-menu">
-                    <li>
-                      <a class="dropdown-item" href="{% url 'outgoing_invoices_book_view' %}">
-                        Knjiga izlaznih računa
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="{% url 'incoming_invoice_book' %}">
-                        Knjiga ulaznih računa
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'view_history' %}" aria-label="Povijest promjena">
-                  <span class="material-symbols-outlined">history</span>
-                  <span>Povijest promjena</span>
-                </a>
-              </li>
+    <!-- Sidebar -->
+    <nav id="sidebarMenu" class="sidebar text-primary" role="navigation" aria-label="Glavna navigacija">
+      <div class="position-fixed pt-3 text-black">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'invoices' %}" aria-label="Početna stranica">
+              <span class="material-symbols-outlined">home</span>
+              <span>Početna stranica</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'invoices' %}" aria-label="Računi">
+              <span class="material-symbols-outlined">receipt_long</span>
+              <span>Računi</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'products' %}" aria-label="Usluge i proizvodi">
+              <span class="material-symbols-outlined">category</span>
+              <span>Usluge i proizvodi</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'clients' %}" aria-label="Klijenti">
+              <span class="material-symbols-outlined">person_edit</span>
+              <span>Klijenti</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'offers' %}" aria-label="Ponude">
+              <span class="material-symbols-outlined">request_page</span>
+              <span>Ponude</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'companies' %}" aria-label="Subjekti">
+              <span class="material-symbols-outlined">attribution</span>
+              <span>Subjekti</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'inventory' %}" aria-label="Inventar">
+              <span class="material-symbols-outlined">edit_note</span>
+              <span>Inventar</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'expenses' %}" aria-label="Troškovi">
+              <span class="material-symbols-outlined">payments</span>
+              <span>Troškovi</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'suppliers' %}" aria-label="Dobavljači">
+              <span class="material-symbols-outlined">local_shipping</span>
+              <span>Dobavljači</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <div class="nav-link btn-group dropend">
+              <button type="button" class="btn dropdown-toggle dropdown-fix" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Izvještaji">
+                <span class="material-symbols-outlined">lab_profile</span>
+                <span>Izvještaji</span>
+              </button>
+              <ul class="dropdown-menu">
+                <li>
+                  <a class="dropdown-item" href="{% url 'outgoing_invoices_book_view' %}">
+                    Knjiga izlaznih računa
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'incoming_invoice_book' %}">
+                    Knjiga ulaznih računa
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'view_history' %}" aria-label="Povijest promjena">
+              <span class="material-symbols-outlined">history</span>
+              <span>Povijest promjena</span>
+            </a>
+          </li>
 
-              <div class="sidebar-heading">
-                <span>HR i Plaće</span>
-              </div>
-
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'employees' %}" aria-label="Zaposlenici">
-                  <span class="material-symbols-outlined">people</span>
-                  <span>Zaposlenici</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'salaries' %}" aria-label="Plaće">
-                  <span class="material-symbols-outlined">payments</span>
-                  <span>Plaće</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'tax_parameters' %}" aria-label="Porezni parametri">
-                  <span class="material-symbols-outlined">settings</span>
-                  <span>Porezni parametri</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'tax_changes_2025' %}" aria-label="Porezne izmjene 2025">
-                  <span class="material-symbols-outlined">new_releases</span>
-                  <span>Porezne izmjene 2025.</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'joppd_report' %}" aria-label="JOPPD izvještaj">
-                  <span class="material-symbols-outlined">description</span>
-                  <span>JOPPD izvještaj</span>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'pension_info' %}" aria-label="Mirovinski sustav">
-                  <span class="material-symbols-outlined">info</span>
-                  <span>Mirovinski sustav</span>
-                </a>
-              </li>
-            </ul>
+          <div class="sidebar-heading">
+            <span>HR i Plaće</span>
           </div>
-        </nav>
 
-        <!-- Main Content -->
-        <main class="main-content" id="main-content" role="main">
-          <div class="container-xl content-area">
-            {% block main %}
-            {% endblock %}
-          </div>
-        </main>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'employees' %}" aria-label="Zaposlenici">
+              <span class="material-symbols-outlined">people</span>
+              <span>Zaposlenici</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'salaries' %}" aria-label="Plaće">
+              <span class="material-symbols-outlined">payments</span>
+              <span>Plaće</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'tax_parameters' %}" aria-label="Porezni parametri">
+              <span class="material-symbols-outlined">settings</span>
+              <span>Porezni parametri</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'tax_changes_2025' %}" aria-label="Porezne izmjene 2025">
+              <span class="material-symbols-outlined">new_releases</span>
+              <span>Porezne izmjene 2025.</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'joppd_report' %}" aria-label="JOPPD izvještaj">
+              <span class="material-symbols-outlined">description</span>
+              <span>JOPPD izvještaj</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'pension_info' %}" aria-label="Mirovinski sustav">
+              <span class="material-symbols-outlined">info</span>
+              <span>Mirovinski sustav</span>
+            </a>
+          </li>
+        </ul>
       </div>
-    </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content" role="main">
+      <div class="container-xl content-area">
+        {% block main %}
+        {% endblock %}
+      </div>
+    </main>
 
     <!-- Scripts -->
     <script src="{% static 'js/form-utils.js' %}"></script>
@@ -245,6 +241,17 @@
     <!-- Accessibility and UI Enhancements -->
     <script>
       document.addEventListener('DOMContentLoaded', function() {
+        // Sidebar toggle logic
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarMenu = document.getElementById('sidebarMenu');
+        if (sidebarToggle && sidebarMenu) {
+          sidebarToggle.addEventListener('click', function() {
+            sidebarMenu.classList.toggle('show');
+            const isExpanded = sidebarMenu.classList.contains('show');
+            sidebarToggle.setAttribute('aria-expanded', isExpanded);
+          });
+        }
+
         // Initialize modals with accessibility
         const modalElements = document.querySelectorAll('.modal');
         modalElements.forEach(function(modalElement) {
