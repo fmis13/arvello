@@ -14,3 +14,4 @@ arvello/arvelloapp/migrations/__pycache__
 .env
 /tmp/*.pdf
 */__pycache__/*
+docs/
