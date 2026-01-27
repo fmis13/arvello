@@ -42,6 +42,11 @@ document_patterns = [
 
 ]
 
+table_exports = [
+    path('export_inventory_excel/', views.export_inventory_to_excel, name='export_inventory_to_excel'),
+    path('export_inventory_csv/', views.export_inventory_to_csv, name='export_inventory_to_csv'),
+]
+
 # Financijski URL-ovi
 finance_patterns = [
     path('expenses/', views.expenses, name='expenses'),
@@ -99,6 +104,7 @@ urlpatterns = [
     *history_patterns,
     *info_patterns,
     *api_patterns,
+    *table_exports,
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Admin site customization

@@ -203,6 +203,75 @@ def create_invoice(request):
 
     return render(request, 'makeinvoice.html', context)
 
+
+@login_required
+def export_inventory_to_excel(request):
+    # Izvozi inventar u Excel datoteku
+    inventory_items = Inventory.objects.all()
+
+    # Pripremi podatke za DataFrame
+    data = []
+    for item in inventory_items:
+        data.append({
+            'Naziv': item.title,
+            'Količina': item.quantity,
+            'Datum dodavanja': item.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+            'Zadnje ažuriranje': item.last_updated.strftime('%Y-%m-%d %H:%M:%S'),
+            'Subjekt': item.subject.clientName if item.subject else '',
+        })
+
+    # Kreiraj DataFrame
+    df = pd.DataFrame(data)
+
+    # Kreiraj privremenu Excel datoteku
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+        excel_path = tmp.name
+        df.to_excel(excel_path, index=False)
+
+    # Otvori datoteku za čitanje i pripremi odgovor
+    with open(excel_path, 'rb') as f:
+        response = HttpResponse(f.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="inventory.xlsx"'
+
+    # Obriši privremenu datoteku
+    os.remove(excel_path)
+
+    return response
+
+@login_required
+def export_inventory_to_csv(request):
+    # Izvozi inventar u CSV datoteku
+    inventory_items = Inventory.objects.all()
+
+    # Pripremi podatke za DataFrame
+    data = []
+    for item in inventory_items:
+        data.append({
+            'Naziv': item.title,
+            'Količina': item.quantity,
+            'Datum dodavanja': item.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+            'Zadnje ažuriranje': item.last_updated.strftime('%Y-%m-%d %H:%M:%S'),
+            'Subjekt': item.subject.clientName if item.subject else '',
+        })
+
+    # Kreiraj DataFrame
+    df = pd.DataFrame(data)
+
+    # Kreiraj privremenu CSV datoteku
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp:
+        csv_path = tmp.name
+        df.to_csv(csv_path, index=False)
+
+    # Otvori datoteku za čitanje i pripremi odgovor
+    with open(csv_path, 'rb') as f:
+        response = HttpResponse(f.read(), content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="inventory.csv"'
+
+    # Obriši privremenu datoteku
+    os.remove(csv_path)
+
+    return response
+
 @login_required
 def create_offer(request):
     # Kreira novu ponudu s više stavki (proizvoda/usluga)
