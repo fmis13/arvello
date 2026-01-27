@@ -15,3 +15,7 @@ arvello/arvelloapp/migrations/__pycache__
 /tmp/*.pdf
 */__pycache__/*
 docs/
+
+# Ignore large local backup artifacts moved to /home/frano/Documents
+backups/pre-purge-backup-20260127-210505.bundle
+archives/docs-backup-20260127-210505.tar.gz
