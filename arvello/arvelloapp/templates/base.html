@@ -96,11 +96,10 @@
       </div>
     {% endif %}
 
-    <div class="container-fluid">
-      <div class="row">
-        <!-- Sidebar -->
-        <nav id="sidebarMenu" class="col-auto d-md-block bg-light sidebar collapse text-primary" role="navigation" aria-label="Glavna navigacija">
-          <div class="position-fixed pt-3 text-black">
+    <div class="layout-wrapper">
+      <!-- Sidebar -->
+      <nav id="sidebarMenu" class="d-md-block bg-light sidebar collapse text-primary" role="navigation" aria-label="Glavna navigacija">
+          <div class="sidebar-inner pt-3 text-black">
             <ul class="nav flex-column">
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'invoices' %}" aria-label="Početna stranica">
@@ -156,25 +155,23 @@
                   <span>Dobavljači</span>
                 </a>
               </li>
-              <li class="nav-item">
-                <div class="nav-link btn-group dropend">
-                  <button type="button" class="btn dropdown-toggle dropdown-fix" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Izvještaji">
-                    <span class="material-symbols-outlined">lab_profile</span>
-                    <span>Izvještaji</span>
-                  </button>
-                  <ul class="dropdown-menu">
-                    <li>
-                      <a class="dropdown-item" href="{% url 'outgoing_invoices_book_view' %}">
-                        Knjiga izlaznih računa
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="{% url 'incoming_invoice_book' %}">
-                        Knjiga ulaznih računa
-                      </a>
-                    </li>
-                  </ul>
-                </div>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownIzvjestaji" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <span class="material-symbols-outlined">lab_profile</span>
+                  <span>Izvještaji</span>
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="navbarDropdownIzvjestaji">
+                  <li>
+                    <a class="dropdown-item" href="{% url 'outgoing_invoices_book_view' %}">
+                      Knjiga izlaznih računa
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'incoming_invoice_book' %}">
+                      Knjiga ulaznih računa
+                    </a>
+                  </li>
+                </ul>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'view_history' %}" aria-label="Povijest promjena">
@@ -186,6 +183,7 @@
               <div class="sidebar-heading">
                 <span>HR i Plaće</span>
               </div>
+              <hr class="sidebar-divider">
 
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'employees' %}" aria-label="Zaposlenici">
@@ -234,7 +232,6 @@
             {% endblock %}
           </div>
         </main>
-      </div>
     </div>
 
     <!-- Scripts -->
