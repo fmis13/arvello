@@ -87,6 +87,157 @@
       display: inline-block;
       vertical-align: middle;
     }
+
+    /* AI Chat Widget Styles */
+    .ai-chat-widget {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .ai-chat-toggle {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ai-chat-toggle:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .ai-chat-panel {
+      position: absolute;
+      bottom: 70px;
+      right: 0;
+      width: 340px;
+      max-height: 400px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .ai-chat-panel.open {
+      display: flex;
+    }
+
+    .ai-chat-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ai-chat-body {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      min-height: 150px;
+      max-height: 250px;
+      background: #f8f9fa;
+    }
+
+    .ai-chat-response {
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 3px solid #667eea;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    .ai-chat-response.empty {
+      color: #888;
+      font-style: italic;
+      border-left-color: #ddd;
+    }
+
+    .ai-chat-response.loading {
+      color: #667eea;
+    }
+
+    .ai-chat-tools-info {
+      font-size: 0.75rem;
+      color: #888;
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      background: #e8f4f8;
+      border-radius: 6px;
+      border-left: 3px solid #667eea;
+    }
+
+    .ai-chat-tools-info .tool-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin: 2px 0;
+    }
+
+    .ai-chat-tools-info .tool-icon {
+      font-size: 14px;
+      color: #667eea;
+    }
+
+    .ai-chat-footer {
+      padding: 12px;
+      border-top: 1px solid #eee;
+      background: white;
+    }
+
+    .ai-chat-input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .ai-chat-input {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .ai-chat-input:focus {
+      border-color: #667eea;
+    }
+
+    .ai-chat-send {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: white;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .ai-chat-send:hover {
+      opacity: 0.9;
+    }
+
+    .ai-chat-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
     </style>
 
 
@@ -338,5 +489,196 @@
 
           {% block scripts %}
           {% endblock %}
+
+    <!-- AI Chat Widget -->
+    {% if user.is_authenticated %}
+    <div class="ai-chat-widget" id="aiChatWidget">
+      <div class="ai-chat-panel" id="aiChatPanel">
+        <div class="ai-chat-header">
+          <span class="material-symbols-outlined">smart_toy</span>
+          AI Asistent
+          <button class="ai-chat-reset" id="aiChatReset" title="Resetiraj chat" style="margin-left: auto; background: transparent; border: none; color: white; cursor: pointer; padding: 4px;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">refresh</span>
+          </button>
+        </div>
+        <div class="ai-chat-body">
+          <div class="ai-chat-tools-info" id="aiChatToolsInfo" style="display: none;">
+          </div>
+          <div class="ai-chat-response empty" id="aiChatResponse">
+            Postavite pitanje da biste započeli razgovor...
+          </div>
+        </div>
+        <div class="ai-chat-footer">
+          <div class="ai-chat-input-group">
+            <input type="text" class="ai-chat-input" id="aiChatInput" placeholder="Upišite poruku..." autocomplete="off">
+            <button class="ai-chat-send" id="aiChatSend">
+              <span class="material-symbols-outlined" style="font-size: 20px;">send</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <button class="ai-chat-toggle" id="aiChatToggle" title="AI Asistent">
+        <span class="material-symbols-outlined" style="font-size: 28px;">smart_toy</span>
+      </button>
+    </div>
+
+    <script>
+    (function() {
+      const STORAGE_KEY = 'arvello_ai_chat';
+      const toggleBtn = document.getElementById('aiChatToggle');
+      const panel = document.getElementById('aiChatPanel');
+      const input = document.getElementById('aiChatInput');
+      const sendBtn = document.getElementById('aiChatSend');
+      const responseEl = document.getElementById('aiChatResponse');
+      const resetBtn = document.getElementById('aiChatReset');
+      const toolsInfoEl = document.getElementById('aiChatToolsInfo');
+
+      // Chat history array
+      let chatHistory = [];
+
+      // Učitaj stanje iz sessionStorage
+      function loadState() {
+        const saved = sessionStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          try {
+            const state = JSON.parse(saved);
+            if (state.lastResponse) {
+              responseEl.textContent = state.lastResponse;
+              responseEl.classList.remove('empty');
+            }
+            if (state.isOpen) {
+              panel.classList.add('open');
+            }
+            if (state.history && Array.isArray(state.history)) {
+              chatHistory = state.history;
+            }
+            if (state.lastToolsCalled && state.lastToolsCalled.length > 0) {
+              showToolsInfo(state.lastToolsCalled);
+            }
+          } catch (e) {
+            console.warn('Greška pri učitavanju AI chat stanja:', e);
+          }
+        }
+      }
+
+      // Spremi stanje u sessionStorage
+      function saveState(response, isOpen, toolsCalled) {
+        const state = {
+          lastResponse: response || responseEl.textContent,
+          isOpen: isOpen !== undefined ? isOpen : panel.classList.contains('open'),
+          history: chatHistory,
+          lastToolsCalled: toolsCalled || []
+        };
+        if (state.lastResponse === 'Postavite pitanje da biste započeli razgovor...') {
+          state.lastResponse = null;
+        }
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      // Prikaži info o pozvanim alatima
+      function showToolsInfo(tools) {
+        if (!tools || tools.length === 0) {
+          toolsInfoEl.style.display = 'none';
+          return;
+        }
+        
+        let html = '<div style="font-weight: 600; margin-bottom: 4px;">📊 Pretraženi podaci:</div>';
+        tools.forEach(tool => {
+          html += `<div class="tool-item"><span class="tool-icon">✓</span> ${tool}</div>`;
+        });
+        toolsInfoEl.innerHTML = html;
+        toolsInfoEl.style.display = 'block';
+      }
+
+      // Sakrij info o alatima
+      function hideToolsInfo() {
+        toolsInfoEl.style.display = 'none';
+        toolsInfoEl.innerHTML = '';
+      }
+
+      // Reset chat
+      function resetChat() {
+        chatHistory = [];
+        responseEl.textContent = 'Postavite pitanje da biste započeli razgovor...';
+        responseEl.classList.add('empty');
+        hideToolsInfo();
+        saveState(null, panel.classList.contains('open'), []);
+      }
+
+      // Toggle panel
+      toggleBtn.addEventListener('click', function() {
+        panel.classList.toggle('open');
+        if (panel.classList.contains('open')) {
+          input.focus();
+        }
+        saveState(null, panel.classList.contains('open'));
+      });
+
+      // Reset button handler
+      resetBtn.addEventListener('click', resetChat);
+
+      // Pošalji poruku
+      async function sendMessage() {
+        const message = input.value.trim();
+        if (!message) return;
+
+        input.disabled = true;
+        sendBtn.disabled = true;
+        responseEl.textContent = 'Razmišljam...';
+        responseEl.classList.remove('empty');
+        responseEl.classList.add('loading');
+        hideToolsInfo();
+
+        try {
+          const response = await fetch('{% url "ai_chat" %}', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ message: message, history: chatHistory })
+          });
+
+          const data = await response.json();
+          
+          if (data.status === 'success') {
+            // Dodaj poruku korisnika i odgovor u povijest
+            chatHistory.push({ role: 'user', content: message });
+            chatHistory.push({ role: 'assistant', content: data.response });
+            
+            // Prikaži pozvane alate ako postoje
+            if (data.tools_called && data.tools_called.length > 0) {
+              showToolsInfo(data.tools_called);
+            }
+            
+            responseEl.textContent = data.response;
+            saveState(data.response, true, data.tools_called || []);
+          } else {
+            responseEl.textContent = data.error || 'Došlo je do greške.';
+          }
+        } catch (error) {
+          responseEl.textContent = 'Greška u komunikaciji s poslužiteljem.';
+          console.error('AI Chat error:', error);
+        } finally {
+          responseEl.classList.remove('loading');
+          input.disabled = false;
+          sendBtn.disabled = false;
+          input.value = '';
+          input.focus();
+        }
+      }
+
+      sendBtn.addEventListener('click', sendMessage);
+      input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          sendMessage();
+        }
+      });
+
+      // Učitaj stanje pri pokretanju
+      loadState();
+    })();
+    </script>
+    {% endif %}
   </body>    
 </html>

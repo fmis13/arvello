@@ -38,6 +38,7 @@ from .utils.email_utils import send_email_with_attachment
 from django.conf import settings
 import os
 from django.utils.timezone import now
+from groq import Groq
 
 logger = logging.getLogger(__name__)
 
@@ -2073,3 +2074,175 @@ def mark_offer_finished(request, offer_id):
         offer.delete()
         messages.success(request, f"Ponuda {offer.number} je pretvorena u račun {invoice.number}.")
     return redirect('invoices')
+
+
+@login_required
+def ai_chat(request):
+    """API endpoint za AI chatbot - obrađuje korisničke poruke i vraća AI odgovor.
+    Koristi loop-based pristup gdje model može pozivati alate dok ne odluči odgovoriti."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_message = data.get('message', '').strip()
+            chat_history = data.get('history', [])  # Dohvati povijest razgovora
+            
+            if not user_message:
+                return JsonResponse({'error': 'Poruka je prazna'}, status=400)
+            
+            client = Groq(api_key=settings.GROQ_API_KEY)
+            
+            # Dohvati alate iz settings
+            tools = settings.AI_CHAT_TOOLS
+            
+            # Importaj funkcije za alate
+            from .ai_tools import (
+                filter_invoices_to_string,
+                get_suppliers_to_string,
+                get_expenses_to_string,
+                get_subjects_to_string,
+                get_inventory_to_string,
+                filter_clients_to_string,
+                filter_products_to_string,
+                filter_change_history_to_string,
+            )
+            
+            # Mapiranje naziva funkcija na stvarne funkcije
+            tool_functions = {
+                "filter_invoices_to_string": filter_invoices_to_string,
+                "get_suppliers_to_string": get_suppliers_to_string,
+                "get_expenses_to_string": get_expenses_to_string,
+                "get_subjects_to_string": get_subjects_to_string,
+                "get_inventory_to_string": get_inventory_to_string,
+                "filter_clients_to_string": filter_clients_to_string,
+                "filter_products_to_string": filter_products_to_string,
+                "filter_change_history_to_string": filter_change_history_to_string,
+            }
+            
+            # Fallback nazivi alata ako AI ne navede reason
+            tool_fallback_names = {
+                "filter_invoices_to_string": "pretraživanje računa",
+                "get_suppliers_to_string": "dohvaćanje dobavljača",
+                "get_expenses_to_string": "dohvaćanje troškova",
+                "get_subjects_to_string": "dohvaćanje subjekata",
+                "get_inventory_to_string": "dohvaćanje inventara",
+                "filter_clients_to_string": "pretraživanje klijenata",
+                "filter_products_to_string": "pretraživanje proizvoda",
+                "filter_change_history_to_string": "pretraživanje povijesti",
+            }
+            
+            # Izgradi prompt s poviješću razgovora
+            current_date = timezone.now().date().strftime("%Y-%m-%d")
+            system_prompt = settings.AI_CHAT_SYSTEM_PROMPT.format(current_date=current_date)
+            chat_prompt = [
+                {"role": "system", "content": system_prompt}
+            ]
+            
+            # Dodaj povijest razgovora (ograniči na zadnjih 20 poruka)
+            for msg in chat_history[-20:]:
+                if msg.get('role') in ['user', 'assistant', 'tool'] and msg.get('content'):
+                    chat_prompt.append({
+                        "role": msg['role'],
+                        "content": msg['content']
+                    })
+            
+            # Dodaj trenutnu poruku korisnika
+            chat_prompt.append({"role": "user", "content": user_message})
+
+            # Lista za praćenje pozvanih alata (za prikaz korisniku)
+            tools_called = []
+            
+            # Loop-based pristup: model odlučuje pozivati alate ili odgovoriti
+            max_iterations = 10  # Ograničenje broja iteracija za sigurnost
+            iteration = 0
+            
+            while iteration < max_iterations:
+                iteration += 1
+                
+                # Poziv API-ja s alatima
+                chat_completion = client.chat.completions.create(
+                    model="openai/gpt-oss-120b",
+                    messages=chat_prompt,
+                    tools=tools,
+                    tool_choice="auto",
+                    max_tokens=1500,
+                    temperature=0.6,
+                )
+
+                response_message = chat_completion.choices[0].message
+                
+                # Ako model nije pozvao alat, završi loop i vrati odgovor
+                if not response_message.tool_calls:
+                    ai_response = response_message.content
+                    break
+                
+                # Model je pozvao alat(e) - obradi ih
+                # Dodaj assistant poruku s tool_calls u prompt
+                assistant_message = {
+                    "role": "assistant",
+                    "content": response_message.content or "",
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments
+                            }
+                        }
+                        for tc in response_message.tool_calls
+                    ]
+                }
+                chat_prompt.append(assistant_message)
+                
+                # Obradi sve pozive alata
+                for tool_call in response_message.tool_calls:
+                    function_name = tool_call.function.name
+                    print(f"DEBUG: Iteration {iteration} - Processing tool call {function_name} with arguments {tool_call.function.arguments}")
+                    
+                    try:
+                        function_args = json.loads(tool_call.function.arguments)
+                        # Očisti None vrijednosti iz argumenata
+                        function_args = {k: v for k, v in function_args.items() if v is not None}
+                    except json.JSONDecodeError:
+                        function_args = {}
+                    
+                    # Koristi AI-jev reason ako postoji, inače fallback
+                    display_name = function_args.pop('reason', None) or tool_fallback_names.get(function_name, function_name)
+                    tools_called.append(display_name)
+                    
+                    # Izvršavanje funkcije
+                    if function_name in tool_functions:
+                        func = tool_functions[function_name]
+                        # Provjeri prima li funkcija argumente
+                        if function_name.startswith("get_"):
+                            result = func()
+                        else:
+                            result = func(**function_args)
+                    else:
+                        result = f"Nepoznata funkcija: {function_name}"
+                    
+                    # Dodaj rezultat alata u prompt
+                    chat_prompt.append({
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
+                        "name": function_name,
+                        "content": result
+                    })
+            else:
+                # Ako je dosegnuto max iteracija, generiraj odgovor bez alata
+                ai_response = "Došlo je do greške - previše iteracija. Pokušajte ponovo s jednostavnijim pitanjem."
+            
+            # Vrati odgovor s informacijom o pozvanim alatima
+            return JsonResponse({
+                'status': 'success',
+                'response': ai_response,
+                'tools_called': tools_called
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Neispravan JSON format'}, status=400)
+        except Exception as e:
+            logger.error(f"AI Chat greška: {str(e)}")
+            return JsonResponse({'error': 'Greška u obradi zahtjeva'}, status=500)
+    
+    return JsonResponse({'error': 'Samo POST zahtjevi su dozvoljeni'}, status=405)
