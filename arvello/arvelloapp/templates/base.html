@@ -128,10 +128,16 @@
       display: none;
       flex-direction: column;
       overflow: hidden;
+      transition: width 0.3s ease, max-height 0.3s ease;
     }
 
     .ai-chat-panel.open {
       display: flex;
+    }
+
+    .ai-chat-panel.expanded {
+      width: 500px;
+      max-height: 600px;
     }
 
     .ai-chat-header {
@@ -144,6 +150,29 @@
       gap: 8px;
     }
 
+    .ai-chat-header-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+
+    .ai-chat-header-btn {
+      background: transparent;
+      border: none;
+      color: white;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .ai-chat-header-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
     .ai-chat-body {
       flex: 1;
       padding: 16px;
@@ -151,36 +180,113 @@
       min-height: 150px;
       max-height: 250px;
       background: #f8f9fa;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .ai-chat-response {
-      background: white;
-      padding: 12px;
-      border-radius: 8px;
-      border-left: 3px solid #667eea;
+    .ai-chat-panel.expanded .ai-chat-body {
+      max-height: 450px;
+    }
+
+    .ai-chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .ai-chat-bubble {
+      padding: 10px 14px;
+      border-radius: 16px;
+      max-width: 85%;
       font-size: 0.9rem;
       line-height: 1.5;
-      color: #333;
+      word-wrap: break-word;
     }
 
-    .ai-chat-response.empty {
+    .ai-chat-bubble.user {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .ai-chat-bubble.assistant {
+      background: white;
+      color: #333;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .ai-chat-bubble.assistant p {
+      margin: 0 0 8px 0;
+    }
+
+    .ai-chat-bubble.assistant p:last-child {
+      margin-bottom: 0;
+    }
+
+    .ai-chat-bubble.assistant strong {
+      font-weight: 600;
+    }
+
+    .ai-chat-bubble.assistant ul,
+    .ai-chat-bubble.assistant ol {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .ai-chat-bubble.assistant li {
+      margin: 4px 0;
+    }
+
+    .ai-chat-bubble.assistant code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+
+    .ai-chat-bubble.assistant pre {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+
+    .ai-chat-bubble.assistant pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    .ai-chat-bubble.empty {
       color: #888;
       font-style: italic;
-      border-left-color: #ddd;
+      background: white;
+      border: 1px dashed #ddd;
+      align-self: center;
+      text-align: center;
     }
 
-    .ai-chat-response.loading {
+    .ai-chat-bubble.loading {
       color: #667eea;
+      background: white;
+      border: 1px solid #667eea;
+      align-self: flex-start;
     }
 
     .ai-chat-tools-info {
       font-size: 0.75rem;
       color: #888;
-      margin-bottom: 8px;
       padding: 6px 10px;
       background: #e8f4f8;
       border-radius: 6px;
       border-left: 3px solid #667eea;
+      align-self: flex-start;
     }
 
     .ai-chat-tools-info .tool-item {
@@ -237,6 +343,110 @@
     .ai-chat-send:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    /* Action Proposal Styles */
+    .ai-chat-action {
+      background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+      border: 2px solid #ff9800;
+      border-radius: 12px;
+      padding: 12px;
+      align-self: flex-start;
+      max-width: 95%;
+    }
+
+    .ai-chat-action-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #e65100;
+      font-size: 0.8rem;
+    }
+
+    .ai-chat-action-message {
+      font-size: 0.9rem;
+      color: #333;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .ai-chat-action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .ai-chat-action-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ai-chat-action-btn.accept {
+      background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+      color: white;
+    }
+
+    .ai-chat-action-btn.accept:hover {
+      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+    }
+
+    .ai-chat-action-btn.reject {
+      background: #f5f5f5;
+      color: #666;
+      border: 1px solid #ddd;
+    }
+
+    .ai-chat-action-btn.reject:hover {
+      background: #eeeeee;
+    }
+
+    .ai-chat-action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .ai-chat-action.resolved {
+      opacity: 0.7;
+      border-style: dashed;
+    }
+
+    .ai-chat-action.accepted {
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+      border-color: #4caf50;
+    }
+
+    .ai-chat-action.rejected {
+      background: linear-gradient(135deg, #fafafa 0%, #eeeeee 100%);
+      border-color: #9e9e9e;
+    }
+
+    .ai-chat-action-status {
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ai-chat-action-status.accepted {
+      background: #4caf50;
+      color: white;
+    }
+
+    .ai-chat-action-status.rejected {
+      background: #9e9e9e;
+      color: white;
     }
     </style>
 
@@ -492,20 +702,28 @@
 
     <!-- AI Chat Widget -->
     {% if user.is_authenticated %}
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <div class="ai-chat-widget" id="aiChatWidget">
       <div class="ai-chat-panel" id="aiChatPanel">
         <div class="ai-chat-header">
           <span class="material-symbols-outlined">smart_toy</span>
           AI Asistent
-          <button class="ai-chat-reset" id="aiChatReset" title="Resetiraj chat" style="margin-left: auto; background: transparent; border: none; color: white; cursor: pointer; padding: 4px;">
-            <span class="material-symbols-outlined" style="font-size: 18px;">refresh</span>
-          </button>
-        </div>
-        <div class="ai-chat-body">
-          <div class="ai-chat-tools-info" id="aiChatToolsInfo" style="display: none;">
+          <div class="ai-chat-header-actions">
+            <button class="ai-chat-header-btn" id="aiChatExpand" title="Proširi">
+              <span class="material-symbols-outlined" style="font-size: 18px;">open_in_full</span>
+            </button>
+            <button class="ai-chat-header-btn" id="aiChatReset" title="Resetiraj chat">
+              <span class="material-symbols-outlined" style="font-size: 18px;">refresh</span>
+            </button>
           </div>
-          <div class="ai-chat-response empty" id="aiChatResponse">
-            Postavite pitanje da biste započeli razgovor...
+        </div>
+        <div class="ai-chat-body" id="aiChatBody">
+          <div class="ai-chat-messages" id="aiChatMessages">
+            <div class="ai-chat-bubble empty" id="aiChatEmpty">
+              Postavite pitanje da biste započeli razgovor...
+            </div>
           </div>
         </div>
         <div class="ai-chat-footer">
@@ -529,12 +747,250 @@
       const panel = document.getElementById('aiChatPanel');
       const input = document.getElementById('aiChatInput');
       const sendBtn = document.getElementById('aiChatSend');
-      const responseEl = document.getElementById('aiChatResponse');
+      const messagesContainer = document.getElementById('aiChatMessages');
+      const chatBody = document.getElementById('aiChatBody');
       const resetBtn = document.getElementById('aiChatReset');
-      const toolsInfoEl = document.getElementById('aiChatToolsInfo');
+      const expandBtn = document.getElementById('aiChatExpand');
+      const emptyMsg = document.getElementById('aiChatEmpty');
 
       // Chat history array
       let chatHistory = [];
+      let isExpanded = false;
+
+      // Configure marked for safe rendering
+      marked.setOptions({
+        breaks: true,
+        gfm: true
+      });
+
+      // Render markdown safely
+      function renderMarkdown(text) {
+        try {
+          return marked.parse(text);
+        } catch (e) {
+          return text;
+        }
+      }
+
+      // Scroll to bottom of chat
+      function scrollToBottom() {
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }
+
+      // Add a message bubble to the chat
+      function addMessageBubble(role, content, isMarkdown = false) {
+        // Hide empty message
+        if (emptyMsg) emptyMsg.style.display = 'none';
+        
+        const bubble = document.createElement('div');
+        bubble.className = `ai-chat-bubble ${role}`;
+        
+        if (role === 'assistant' && isMarkdown) {
+          bubble.innerHTML = renderMarkdown(content);
+        } else {
+          bubble.textContent = content;
+        }
+        
+        messagesContainer.appendChild(bubble);
+        scrollToBottom();
+        return bubble;
+      }
+
+      // Show tools info
+      function addToolsInfo(tools) {
+        if (!tools || tools.length === 0) return;
+        
+        const toolsDiv = document.createElement('div');
+        toolsDiv.className = 'ai-chat-tools-info';
+        let html = '<div style="font-weight: 600; margin-bottom: 4px;">📊 Pretraženi podaci:</div>';
+        tools.forEach(tool => {
+          html += `<div class="tool-item"><span class="tool-icon">✓</span> ${tool}</div>`;
+        });
+        toolsDiv.innerHTML = html;
+        messagesContainer.appendChild(toolsDiv);
+        scrollToBottom();
+      }
+
+      // Add action proposal card with Accept/Reject buttons
+      function addActionProposal(action) {
+        const actionId = `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        const actionDiv = document.createElement('div');
+        actionDiv.className = 'ai-chat-action';
+        actionDiv.id = actionId;
+        actionDiv.dataset.action = JSON.stringify(action);
+        
+        let iconMap = {
+          'inventory_add': '➕',
+          'inventory_remove': '🗑️',
+          'inventory_update': '✏️'
+        };
+        let icon = iconMap[action.action_type] || '⚙️';
+        
+        actionDiv.innerHTML = `
+          <div class="ai-chat-action-header">${icon} Predložena akcija</div>
+          <div class="ai-chat-action-message">${action.display_message}</div>
+          <div class="ai-chat-action-buttons">
+            <button class="ai-chat-action-btn accept" onclick="handleActionResponse('${actionId}', true)">
+              <span class="material-symbols-outlined" style="font-size: 16px;">check</span> Prihvati
+            </button>
+            <button class="ai-chat-action-btn reject" onclick="handleActionResponse('${actionId}', false)">
+              <span class="material-symbols-outlined" style="font-size: 16px;">close</span> Odbij
+            </button>
+          </div>
+        `;
+        
+        messagesContainer.appendChild(actionDiv);
+        
+        // Also add to history for persistence
+        chatHistory.push({
+          role: 'action_proposal',
+          actionId: actionId,
+          action: action,
+          resolved: false
+        });
+        
+        saveState();
+        scrollToBottom();
+      }
+
+      // Handle Accept/Reject button clicks
+      window.handleActionResponse = async function(actionId, accepted) {
+        const actionDiv = document.getElementById(actionId);
+        if (!actionDiv || actionDiv.classList.contains('resolved')) return;
+        
+        const action = JSON.parse(actionDiv.dataset.action);
+        const buttons = actionDiv.querySelector('.ai-chat-action-buttons');
+        
+        // Disable buttons and show loading
+        buttons.innerHTML = '<div style="color: #666; font-size: 12px;">⏳ Obrađujem...</div>';
+        
+        try {
+          const response = await fetch('{% url "ai_execute_action" %}', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+              action_type: action.action_type,
+              action_data: action.action_data,
+              accepted: accepted
+            })
+          });
+          
+          const data = await response.json();
+          
+          // Update UI to show result
+          actionDiv.classList.add('resolved');
+          
+          let statusHtml = '';
+          if (accepted) {
+            if (data.status === 'success') {
+              statusHtml = `<div class="ai-chat-action-status success">✓ ${data.message || 'Uspješno izvršeno'}</div>`;
+            } else {
+              statusHtml = `<div class="ai-chat-action-status error">✗ ${data.error || 'Greška pri izvršavanju'}</div>`;
+            }
+          } else {
+            statusHtml = `<div class="ai-chat-action-status rejected">✗ Odbijeno</div>`;
+          }
+          
+          buttons.innerHTML = statusHtml;
+          
+          // Update chat history
+          const historyIndex = chatHistory.findIndex(h => h.actionId === actionId);
+          if (historyIndex !== -1) {
+            chatHistory[historyIndex].resolved = true;
+            chatHistory[historyIndex].accepted = accepted;
+            chatHistory[historyIndex].result = data;
+          }
+          
+          // Add the result as a tool message for AI context
+          chatHistory.push({
+            role: 'tool',
+            content: accepted 
+              ? (data.status === 'success' ? `Korisnik je prihvatio akciju "${action.display_message}". Rezultat: ${data.message || 'Uspješno izvršeno'}` : `Korisnik je prihvatio akciju "${action.display_message}", ali je došlo do greške: ${data.error}`)
+              : `Korisnik je odbio akciju "${action.display_message}".`
+          });
+          
+          saveState();
+          
+        } catch (error) {
+          console.error('Action execution error:', error);
+          buttons.innerHTML = '<div class="ai-chat-action-status error">✗ Greška u komunikaciji</div>';
+        }
+      };
+
+      // Render all messages from history
+      function renderMessages() {
+        messagesContainer.innerHTML = '';
+        
+        if (chatHistory.length === 0) {
+          messagesContainer.innerHTML = '<div class="ai-chat-bubble empty" id="aiChatEmpty">Postavite pitanje da biste započeli razgovor...</div>';
+          return;
+        }
+        
+        chatHistory.forEach((msg, index) => {
+          if (msg.role === 'user' || msg.role === 'assistant') {
+            addMessageBubble(msg.role, msg.content, msg.role === 'assistant');
+          }
+          // Show tools info after assistant message if available
+          if (msg.role === 'assistant' && msg.toolsCalled && msg.toolsCalled.length > 0) {
+            addToolsInfo(msg.toolsCalled);
+          }
+          // Render saved action proposals
+          if (msg.role === 'action_proposal') {
+            renderSavedActionProposal(msg);
+          }
+        });
+        
+        scrollToBottom();
+      }
+
+      // Render a saved action proposal from history (already resolved or pending)
+      function renderSavedActionProposal(msg) {
+        const actionDiv = document.createElement('div');
+        actionDiv.className = 'ai-chat-action' + (msg.resolved ? ' resolved' : '');
+        actionDiv.id = msg.actionId;
+        actionDiv.dataset.action = JSON.stringify(msg.action);
+        
+        let iconMap = {
+          'inventory_add': '➕',
+          'inventory_remove': '🗑️',
+          'inventory_update': '✏️'
+        };
+        let icon = iconMap[msg.action.action_type] || '⚙️';
+        
+        let buttonsHtml = '';
+        if (msg.resolved) {
+          if (msg.accepted) {
+            if (msg.result && msg.result.status === 'success') {
+              buttonsHtml = `<div class="ai-chat-action-status success">✓ ${msg.result.message || 'Uspješno izvršeno'}</div>`;
+            } else {
+              buttonsHtml = `<div class="ai-chat-action-status error">✗ ${msg.result?.error || 'Greška pri izvršavanju'}</div>`;
+            }
+          } else {
+            buttonsHtml = `<div class="ai-chat-action-status rejected">✗ Odbijeno</div>`;
+          }
+        } else {
+          buttonsHtml = `
+            <button class="ai-chat-action-btn accept" onclick="handleActionResponse('${msg.actionId}', true)">
+              <span class="material-symbols-outlined" style="font-size: 16px;">check</span> Prihvati
+            </button>
+            <button class="ai-chat-action-btn reject" onclick="handleActionResponse('${msg.actionId}', false)">
+              <span class="material-symbols-outlined" style="font-size: 16px;">close</span> Odbij
+            </button>
+          `;
+        }
+        
+        actionDiv.innerHTML = `
+          <div class="ai-chat-action-header">${icon} Predložena akcija</div>
+          <div class="ai-chat-action-message">${msg.action.display_message}</div>
+          <div class="ai-chat-action-buttons">${buttonsHtml}</div>
+        `;
+        
+        messagesContainer.appendChild(actionDiv);
+      }
 
       // Učitaj stanje iz sessionStorage
       function loadState() {
@@ -542,19 +998,19 @@
         if (saved) {
           try {
             const state = JSON.parse(saved);
-            if (state.lastResponse) {
-              responseEl.textContent = state.lastResponse;
-              responseEl.classList.remove('empty');
+            if (state.history && Array.isArray(state.history)) {
+              chatHistory = state.history;
             }
             if (state.isOpen) {
               panel.classList.add('open');
             }
-            if (state.history && Array.isArray(state.history)) {
-              chatHistory = state.history;
+            if (state.isExpanded) {
+              panel.classList.add('expanded');
+              isExpanded = true;
+              expandBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">close_fullscreen</span>';
+              expandBtn.title = 'Smanji';
             }
-            if (state.lastToolsCalled && state.lastToolsCalled.length > 0) {
-              showToolsInfo(state.lastToolsCalled);
-            }
+            renderMessages();
           } catch (e) {
             console.warn('Greška pri učitavanju AI chat stanja:', e);
           }
@@ -562,47 +1018,37 @@
       }
 
       // Spremi stanje u sessionStorage
-      function saveState(response, isOpen, toolsCalled) {
+      function saveState() {
         const state = {
-          lastResponse: response || responseEl.textContent,
-          isOpen: isOpen !== undefined ? isOpen : panel.classList.contains('open'),
-          history: chatHistory,
-          lastToolsCalled: toolsCalled || []
+          isOpen: panel.classList.contains('open'),
+          isExpanded: isExpanded,
+          history: chatHistory
         };
-        if (state.lastResponse === 'Postavite pitanje da biste započeli razgovor...') {
-          state.lastResponse = null;
-        }
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      }
-
-      // Prikaži info o pozvanim alatima
-      function showToolsInfo(tools) {
-        if (!tools || tools.length === 0) {
-          toolsInfoEl.style.display = 'none';
-          return;
-        }
-        
-        let html = '<div style="font-weight: 600; margin-bottom: 4px;">📊 Pretraženi podaci:</div>';
-        tools.forEach(tool => {
-          html += `<div class="tool-item"><span class="tool-icon">✓</span> ${tool}</div>`;
-        });
-        toolsInfoEl.innerHTML = html;
-        toolsInfoEl.style.display = 'block';
-      }
-
-      // Sakrij info o alatima
-      function hideToolsInfo() {
-        toolsInfoEl.style.display = 'none';
-        toolsInfoEl.innerHTML = '';
       }
 
       // Reset chat
       function resetChat() {
         chatHistory = [];
-        responseEl.textContent = 'Postavite pitanje da biste započeli razgovor...';
-        responseEl.classList.add('empty');
-        hideToolsInfo();
-        saveState(null, panel.classList.contains('open'), []);
+        renderMessages();
+        saveState();
+      }
+
+      // Toggle expand/minimize
+      function toggleExpand() {
+        isExpanded = !isExpanded;
+        panel.classList.toggle('expanded', isExpanded);
+        
+        if (isExpanded) {
+          expandBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">close_fullscreen</span>';
+          expandBtn.title = 'Smanji';
+        } else {
+          expandBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">open_in_full</span>';
+          expandBtn.title = 'Proširi';
+        }
+        
+        saveState();
+        scrollToBottom();
       }
 
       // Toggle panel
@@ -610,9 +1056,13 @@
         panel.classList.toggle('open');
         if (panel.classList.contains('open')) {
           input.focus();
+          scrollToBottom();
         }
-        saveState(null, panel.classList.contains('open'));
+        saveState();
       });
+
+      // Expand button handler
+      expandBtn.addEventListener('click', toggleExpand);
 
       // Reset button handler
       resetBtn.addEventListener('click', resetChat);
@@ -624,10 +1074,17 @@
 
         input.disabled = true;
         sendBtn.disabled = true;
-        responseEl.textContent = 'Razmišljam...';
-        responseEl.classList.remove('empty');
-        responseEl.classList.add('loading');
-        hideToolsInfo();
+        
+        // Add user message
+        chatHistory.push({ role: 'user', content: message });
+        addMessageBubble('user', message);
+        
+        // Add loading indicator
+        const loadingBubble = document.createElement('div');
+        loadingBubble.className = 'ai-chat-bubble assistant loading';
+        loadingBubble.textContent = 'Razmišljam...';
+        messagesContainer.appendChild(loadingBubble);
+        scrollToBottom();
 
         try {
           const response = await fetch('{% url "ai_chat" %}', {
@@ -636,31 +1093,46 @@
               'Content-Type': 'application/json',
               'X-CSRFToken': '{{ csrf_token }}'
             },
-            body: JSON.stringify({ message: message, history: chatHistory })
+            body: JSON.stringify({ message: message, history: chatHistory.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({role: m.role, content: m.content})) })
           });
 
           const data = await response.json();
           
+          // Remove loading bubble
+          loadingBubble.remove();
+          
           if (data.status === 'success') {
-            // Dodaj poruku korisnika i odgovor u povijest
-            chatHistory.push({ role: 'user', content: message });
-            chatHistory.push({ role: 'assistant', content: data.response });
+            // Add assistant response to history with tools info
+            chatHistory.push({ 
+              role: 'assistant', 
+              content: data.response,
+              toolsCalled: data.tools_called || []
+            });
             
-            // Prikaži pozvane alate ako postoje
+            // Render the assistant message
+            addMessageBubble('assistant', data.response, true);
+            
+            // Show tools info if available
             if (data.tools_called && data.tools_called.length > 0) {
-              showToolsInfo(data.tools_called);
+              addToolsInfo(data.tools_called);
             }
             
-            responseEl.textContent = data.response;
-            saveState(data.response, true, data.tools_called || []);
+            // Handle pending actions (proposals that need user confirmation)
+            if (data.pending_actions && data.pending_actions.length > 0) {
+              data.pending_actions.forEach(action => {
+                addActionProposal(action);
+              });
+            }
+            
+            saveState();
           } else {
-            responseEl.textContent = data.error || 'Došlo je do greške.';
+            addMessageBubble('assistant', data.error || 'Došlo je do greške.');
           }
         } catch (error) {
-          responseEl.textContent = 'Greška u komunikaciji s poslužiteljem.';
+          loadingBubble.remove();
+          addMessageBubble('assistant', 'Greška u komunikaciji s poslužiteljem.');
           console.error('AI Chat error:', error);
         } finally {
-          responseEl.classList.remove('loading');
           input.disabled = false;
           sendBtn.disabled = false;
           input.value = '';

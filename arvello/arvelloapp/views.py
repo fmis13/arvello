@@ -2104,6 +2104,12 @@ def ai_chat(request):
                 filter_clients_to_string,
                 filter_products_to_string,
                 filter_change_history_to_string,
+                get_employees_to_string,
+                get_salaries_to_string,
+                filter_offers_to_string,
+                propose_inventory_add,
+                propose_inventory_remove,
+                propose_inventory_update,
             )
             
             # Mapiranje naziva funkcija na stvarne funkcije
@@ -2116,6 +2122,12 @@ def ai_chat(request):
                 "filter_clients_to_string": filter_clients_to_string,
                 "filter_products_to_string": filter_products_to_string,
                 "filter_change_history_to_string": filter_change_history_to_string,
+                "get_employees_to_string": get_employees_to_string,
+                "get_salaries_to_string": get_salaries_to_string,
+                "filter_offers_to_string": filter_offers_to_string,
+                "propose_inventory_add": propose_inventory_add,
+                "propose_inventory_remove": propose_inventory_remove,
+                "propose_inventory_update": propose_inventory_update,
             }
             
             # Fallback nazivi alata ako AI ne navede reason
@@ -2128,6 +2140,19 @@ def ai_chat(request):
                 "filter_clients_to_string": "pretraživanje klijenata",
                 "filter_products_to_string": "pretraživanje proizvoda",
                 "filter_change_history_to_string": "pretraživanje povijesti",
+                "get_employees_to_string": "dohvaćanje zaposlenika",
+                "get_salaries_to_string": "dohvaćanje plaća",
+                "filter_offers_to_string": "pretraživanje ponuda",
+                "propose_inventory_add": "prijedlog dodavanja u inventar",
+                "propose_inventory_remove": "prijedlog uklanjanja iz inventara",
+                "propose_inventory_update": "prijedlog promjene inventara",
+            }
+            
+            # Lista funkcija koje predlažu akcije (ne izvršavaju ih odmah)
+            action_proposal_functions = {
+                "propose_inventory_add",
+                "propose_inventory_remove",
+                "propose_inventory_update",
             }
             
             # Izgradi prompt s poviješću razgovora
@@ -2150,6 +2175,9 @@ def ai_chat(request):
 
             # Lista za praćenje pozvanih alata (za prikaz korisniku)
             tools_called = []
+            
+            # Lista za akcije koje zahtijevaju potvrdu korisnika
+            pending_actions = []
             
             # Loop-based pristup: model odlučuje pozivati alate ili odgovoriti
             max_iterations = 10  # Ograničenje broja iteracija za sigurnost
@@ -2208,7 +2236,6 @@ def ai_chat(request):
                     
                     # Koristi AI-jev reason ako postoji, inače fallback
                     display_name = function_args.pop('reason', None) or tool_fallback_names.get(function_name, function_name)
-                    tools_called.append(display_name)
                     
                     # Izvršavanje funkcije
                     if function_name in tool_functions:
@@ -2218,6 +2245,29 @@ def ai_chat(request):
                             result = func()
                         else:
                             result = func(**function_args)
+                        
+                        # Provjeri je li rezultat akcija koja zahtijeva potvrdu
+                        if function_name in action_proposal_functions:
+                            try:
+                                result_data = json.loads(result)
+                                if result_data.get("status") == "action_required":
+                                    # Ovo je akcija koja zahtijeva potvrdu korisnika
+                                    pending_actions.append({
+                                        "action_type": result_data["action_type"],
+                                        "action_data": result_data["action_data"],
+                                        "display_message": result_data["display_message"],
+                                        "tool_call_id": tool_call.id
+                                    })
+                                    # Rezultat za model - da zna da je akcija predložena
+                                    result = f"AKCIJA PREDLOŽENA: {result_data['display_message']}. Čeka se potvrda korisnika."
+                                elif result_data.get("status") == "error":
+                                    # Greška - proslijedi modelu
+                                    result = f"GREŠKA: {result_data['message']}"
+                            except json.JSONDecodeError:
+                                pass  # Nije JSON, koristi originalni rezultat
+                        else:
+                            # Normalni alat za čitanje - dodaj u tools_called
+                            tools_called.append(display_name)
                     else:
                         result = f"Nepoznata funkcija: {function_name}"
                     
@@ -2232,11 +2282,12 @@ def ai_chat(request):
                 # Ako je dosegnuto max iteracija, generiraj odgovor bez alata
                 ai_response = "Došlo je do greške - previše iteracija. Pokušajte ponovo s jednostavnijim pitanjem."
             
-            # Vrati odgovor s informacijom o pozvanim alatima
+            # Vrati odgovor s informacijom o pozvanim alatima i akcijama na čekanju
             return JsonResponse({
                 'status': 'success',
                 'response': ai_response,
-                'tools_called': tools_called
+                'tools_called': tools_called,
+                'pending_actions': pending_actions
             })
             
         except json.JSONDecodeError:
@@ -2244,5 +2295,46 @@ def ai_chat(request):
         except Exception as e:
             logger.error(f"AI Chat greška: {str(e)}")
             return JsonResponse({'error': 'Greška u obradi zahtjeva'}, status=500)
+    
+    return JsonResponse({'error': 'Samo POST zahtjevi su dozvoljeni'}, status=405)
+
+
+@login_required
+def ai_execute_action(request):
+    """
+    Izvršava akciju koju je korisnik potvrdio u AI chatu.
+    Poziva se kada korisnik klikne "Prihvati" na predloženoj akciji.
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            action_type = data.get('action_type')
+            action_data = data.get('action_data')
+            
+            if not action_type or not action_data:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Nedostaju podaci o akciji.'
+                }, status=400)
+            
+            # Importaj funkciju za izvršavanje akcija
+            from .ai_tools import execute_inventory_action
+            
+            # Izvrši akciju
+            result = execute_inventory_action(action_type, action_data)
+            
+            return JsonResponse(result)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Neispravan JSON format.'
+            }, status=400)
+        except Exception as e:
+            logger.error(f"AI Execute Action greška: {str(e)}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Greška pri izvršavanju akcije: {str(e)}'
+            }, status=500)
     
     return JsonResponse({'error': 'Samo POST zahtjevi su dozvoljeni'}, status=405)

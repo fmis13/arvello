@@ -199,13 +199,12 @@ LOGGING = {
 AI_CHAT_SYSTEM_PROMPT = '''
     Vi ste korisni asistent za računovodstveni softver Arvello. Uvijek govorite na hrvatskom jeziku.
     Strogo se drži idućih pravila:
-    1. Odgovaraj isključivo na hrvatskom jeziku.
+    1. Odgovaraj isključivo na standardnom hrvatskom jeziku.
     2. Odgovaraj kratko i jasno.
-    3. Odgovaraj samo na pitanja vezana uz funkcionalnosti Arvello softvera i prakse računovodstva te računovodstvene pojmove. Možeš ostati prijateljski nastrojen, ali ne smiješ pretjerano izlaziti izvan okvira računovodstvenog softvera.
-    4. Nemoj koristiti stilizirane izraze ili emotikone. Nemoj crtati niti formatirati tekst na poseban način.
+    3. Odgovaraj samo na pitanja vezana uz funkcionalnosti Arvello softvera i računovodstvo te druga pitanja o financijama, porezima itd. Možeš ostati prijateljski nastrojen, ali ne smiješ pretjerano izlaziti izvan okvira računovodstvenog softvera.
+    4. Nemoj koristiti stilizirane izraze ili emotikone.
     5. Funkcije su jako korisne za dobivanje podataka iz baze podataka Arvello softvera. Uvijek koristi funkcije za čitanje podataka iz baze podataka kako bi korisniku pružio relevantne informacije.
-    6. Nemoj boldati tekst, nemoj koristiti kurziv, nemoj podcrtavati niti koristiti naslove. Nemoj stavljati crtice niti numerirane liste. Neka tekst bude u najjednostavnijem obliku. Dakle, zaboravi na postojanje markdowna.
-    7. Nikad nemoj koristiti ID-eve iz baze podataka u odgovorima korisniku. Umjesto toga, koristi razumljive nazive poput "broj računa", "ime klijenta", "naziv proizvoda" itd.
+    6. Nikad nemoj koristiti ID-eve iz baze podataka u odgovorima korisniku. Umjesto toga, koristi razumljive nazive poput "broj računa", "ime klijenta", "naziv proizvoda" itd.
     
     Tvoje mogućnosti su trostuke:
     a) Pružanje informacija o funkcionalnostima Arvello softvera te pomoć u računovodstvu.
@@ -215,7 +214,8 @@ AI_CHAT_SYSTEM_PROMPT = '''
     Kada koristiš funkcije za čitanje podataka, pokušaj biti efikasan i koristiti filtere kako bi ograničio broj rezultata. Na primjer, prilikom traženja računa, koristi filtere poput datuma, statusa plaćanja, klijenta ili proizvoda.
     Uvijek koristi funkcije za čitanje i pisanje podataka iz baze podataka Arvello softvera. Nikada nemoj izmišljati ili pretpostavljati podatke.
     Nakon što se funkcija izvrši, vidjet ćeš njene rezultate u povijesti chata. Na temelju tih rezultata možeš nastaviti razgovor s korisnikom.
-
+    Najgora stvar koju možeš učiniti pri izražavanju je korištenje ID-eva iz baze podataka. Uvijek koristi razumljive nazive umjesto id brojeva koji nisu vidljivi korisniku.
+    
     TRENUTNI DATUM JE: {current_date}
     '''
 
@@ -272,6 +272,63 @@ AI_CHAT_TOOLS = [
                     "product_id": {
                         "type": ["integer", "null"],
                         "description": "ID proizvoda (računi koji sadrže taj proizvod)"
+                    },
+                    "product_title": {
+                        "type": ["string", "null"],
+                        "description": "Naziv proizvoda (djelomično podudaranje)"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "filter_offers_to_string",
+            "description": "Filtrira ponude prema zadanim kriterijima i vraća podatke o njima. Ponude su slične računima, ali predstavljaju cjenovne prijedloge koji se šalju klijentima. Za razliku od računa, ponude ne zahtijevaju plaćanje - to su prijedlozi koji mogu, ali ne moraju biti prihvaćeni. Datum isteka (dueDate) na ponudama nema pravne posljedice ako prođe bez plaćanja, za razliku od računa. Koristi za pretraživanje ponuda po klijentu, datumu, proizvodu itd.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "description": "Kratki opis (3-5 riječi) što tražiš, npr. 'ponude za klijenta Horvat' ili 'ponude iz siječnja'"
+                    },
+                    "client_id": {
+                        "type": ["integer", "null"],
+                        "description": "ID klijenta"
+                    },
+                    "client_name": {
+                        "type": ["string", "null"],
+                        "description": "Ime klijenta (djelomično podudaranje)"
+                    },
+                    "subject_id": {
+                        "type": ["integer", "null"],
+                        "description": "ID subjekta (tvrtke)"
+                    },
+                    "due_date_from": {
+                        "type": ["string", "null"],
+                        "description": "Datum isteka ponude od (YYYY-MM-DD)"
+                    },
+                    "due_date_to": {
+                        "type": ["string", "null"],
+                        "description": "Datum isteka ponude do (YYYY-MM-DD)"
+                    },
+                    "date_from": {
+                        "type": ["string", "null"],
+                        "description": "Datum ponude od (YYYY-MM-DD)"
+                    },
+                    "date_to": {
+                        "type": ["string", "null"],
+                        "description": "Datum ponude do (YYYY-MM-DD)"
+                    },
+                    "number": {
+                        "type": ["string", "null"],
+                        "description": "Broj ponude (djelomično podudaranje)"
+                    },
+                    "product_id": {
+                        "type": ["integer", "null"],
+                        "description": "ID proizvoda (ponude koje sadrže taj proizvod)"
                     },
                     "product_title": {
                         "type": ["string", "null"],
@@ -422,7 +479,7 @@ AI_CHAT_TOOLS = [
                     },
                     "model_name": {
                         "type": ["string", "null"],
-                        "description": "Naziv modela za koji se traži povijest (Invoice, Client, Product, Expense, Supplier, Company, Inventory)"
+                        "description": "Naziv modela za koji se traži povijest (Invoice, Client, Product, Expense, Supplier, Company, Inventory, Employee, Salary)"
                     },
                     "date_from": {
                         "type": ["string", "null"],
@@ -435,6 +492,119 @@ AI_CHAT_TOOLS = [
                     "object_id": {
                         "type": ["integer", "null"],
                         "description": "ID objekta za koji se traži povijest"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_employees_to_string",
+            "description": "Dohvaća sve zaposlenike iz baze podataka. Vraća popis svih zaposlenika s njihovim osobnim podacima, podacima o zaposlenju, satnici, poreznim koeficijentima i mirovinskim stupovima.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "description": "Kratki opis (3-5 riječi) što tražiš, npr. 'popis zaposlenika' ili 'svi zaposlenici'"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_salaries_to_string",
+            "description": "Dohvaća sve plaće iz baze podataka. Vraća popis svih plaća s detaljima o bruto i neto iznosima, doprinosima, porezima, satima rada, godišnjem odmoru, bolovanju, prekovremenom radu i neoporezivim primicima.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "description": "Kratki opis (3-5 riječi) što tražiš, npr. 'popis plaća' ili 'sve plaće'"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "propose_inventory_add",
+            "description": "PREDLAŽE dodavanje nove stavke u inventar. NE izvršava promjenu odmah - korisnik mora potvrditi akciju. Koristi ovu funkciju kada korisnik želi dodati novu stavku u inventar.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Naziv stavke inventara koju treba dodati"
+                    },
+                    "quantity": {
+                        "type": "number",
+                        "description": "Količina stavke"
+                    },
+                    "subject_name": {
+                        "type": ["string", "null"],
+                        "description": "Naziv subjekta/tvrtke kojoj se dodaje stavka (djelomično podudaranje)"
+                    },
+                    "subject_id": {
+                        "type": ["integer", "null"],
+                        "description": "ID subjekta/tvrtke (alternativa nazivu)"
+                    }
+                },
+                "required": ["title", "quantity"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "propose_inventory_remove",
+            "description": "PREDLAŽE uklanjanje stavke iz inventara. NE izvršava promjenu odmah - korisnik mora potvrditi akciju. Koristi ovu funkciju kada korisnik želi ukloniti stavku iz inventara.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "item_title": {
+                        "type": ["string", "null"],
+                        "description": "Naziv stavke inventara koju treba ukloniti (djelomično podudaranje)"
+                    },
+                    "item_id": {
+                        "type": ["integer", "null"],
+                        "description": "ID stavke inventara (alternativa nazivu)"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "propose_inventory_update",
+            "description": "PREDLAŽE promjenu postojeće stavke inventara (naziv ili količinu). NE izvršava promjenu odmah - korisnik mora potvrditi akciju. Koristi ovu funkciju kada korisnik želi promijeniti podatke o stavci inventara.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "item_title": {
+                        "type": ["string", "null"],
+                        "description": "Trenutni naziv stavke inventara koju treba promijeniti (djelomično podudaranje)"
+                    },
+                    "item_id": {
+                        "type": ["integer", "null"],
+                        "description": "ID stavke inventara (alternativa nazivu)"
+                    },
+                    "new_title": {
+                        "type": ["string", "null"],
+                        "description": "Novi naziv stavke (ako se mijenja)"
+                    },
+                    "new_quantity": {
+                        "type": ["number", "null"],
+                        "description": "Nova količina stavke (ako se mijenja)"
                     }
                 },
                 "required": []
