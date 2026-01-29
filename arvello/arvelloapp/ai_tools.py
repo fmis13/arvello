@@ -749,6 +749,327 @@ def propose_inventory_update(item_title=None, item_id=None, new_title=None, new_
     })
 
 
+def propose_invoice_add(number, client_name=None, client_id=None, subject_name=None, subject_id=None,
+                        date=None, due_date=None, title=None, notes=None, products=None):
+    """
+    Proposes creating a new invoice. Does NOT execute the change.
+    Returns an action proposal that requires user confirmation.
+    
+    Parameters:
+    - number: Broj računa - unique identifier for the invoice. Common Croatian practice is to use 
+              format like "1/1/1" (broj/poslovni prostor/naplatni uređaj) or date-based like 
+              "2026-001" (year-sequential). Check existing invoices with filter_invoices_to_string 
+              to follow the established numbering convention used by this business.
+    - client_name: Ime klijenta (djelomično podudaranje) - name of the client being invoiced
+    - client_id: ID klijenta (alternativa imenu) - use if you know the exact client ID
+    - subject_name: Naziv subjekta/tvrtke izdavatelja (djelomično podudaranje) - the company issuing the invoice
+    - subject_id: ID subjekta/tvrtke izdavatelja - use if you know the exact subject ID
+    - date: Datum računa u formatu YYYY-MM-DD - the invoice date (defaults to today if not provided)
+    - due_date: Datum dospijeća u formatu YYYY-MM-DD - when payment is due (typically 15-30 days after date)
+    - title: Naslov računa (opcionalno) - brief description/title for the invoice
+    - notes: Napomene (opcionalno) - additional notes to appear on the invoice
+    - products: Lista proizvoda s količinama u formatu [{"product_name": "Naziv", "quantity": 1, "discount": 0, "rabat": 0}, ...]
+                Koristi filter_products_to_string da pronađeš dostupne proizvode prije kreiranja računa.
+    """
+    import json
+    from datetime import datetime, timedelta
+    
+    # Validate required fields
+    if not number:
+        return json.dumps({
+            "status": "error",
+            "message": "Broj računa je obavezan."
+        })
+    
+    # Find client
+    client = None
+    if client_id:
+        try:
+            client = Client.objects.get(id=client_id)
+        except Client.DoesNotExist:
+            return json.dumps({
+                "status": "error",
+                "message": f"Klijent s ID-em {client_id} nije pronađen."
+            })
+    elif client_name:
+        clients = Client.objects.filter(clientName__icontains=client_name)
+        if clients.count() == 0:
+            return json.dumps({
+                "status": "error",
+                "message": f"Klijent s imenom '{client_name}' nije pronađen."
+            })
+        elif clients.count() > 1:
+            names = ", ".join([c.clientName for c in clients[:5]])
+            return json.dumps({
+                "status": "error",
+                "message": f"Pronađeno više klijenata s imenom '{client_name}': {names}. Molimo budite precizniji."
+            })
+        client = clients.first()
+    else:
+        return json.dumps({
+            "status": "error",
+            "message": "Potrebno je navesti klijenta (client_name ili client_id)."
+        })
+    
+    # Find subject (company)
+    subject = None
+    if subject_id:
+        try:
+            subject = Company.objects.get(id=subject_id)
+        except Company.DoesNotExist:
+            return json.dumps({
+                "status": "error",
+                "message": f"Subjekt s ID-em {subject_id} nije pronađen."
+            })
+    elif subject_name:
+        subjects = Company.objects.filter(clientName__icontains=subject_name)
+        if subjects.count() == 0:
+            return json.dumps({
+                "status": "error",
+                "message": f"Subjekt s nazivom '{subject_name}' nije pronađen."
+            })
+        elif subjects.count() > 1:
+            names = ", ".join([s.clientName for s in subjects[:5]])
+            return json.dumps({
+                "status": "error",
+                "message": f"Pronađeno više subjekata s nazivom '{subject_name}': {names}. Molimo budite precizniji."
+            })
+        subject = subjects.first()
+    else:
+        # Try to get the first/default company
+        subject = Company.objects.first()
+        if not subject:
+            return json.dumps({
+                "status": "error",
+                "message": "Potrebno je navesti subjekt (subject_name ili subject_id)."
+            })
+    
+    # Parse and validate products
+    product_list = []
+    if products:
+        for prod in products:
+            product_name = prod.get('product_name') or prod.get('name') or prod.get('title')
+            if not product_name:
+                continue
+            
+            found_products = Product.objects.filter(title__icontains=product_name)
+            if found_products.count() == 0:
+                return json.dumps({
+                    "status": "error",
+                    "message": f"Proizvod '{product_name}' nije pronađen. Koristi filter_products_to_string za pregled dostupnih proizvoda."
+                })
+            elif found_products.count() > 1:
+                names = ", ".join([p.title for p in found_products[:5]])
+                return json.dumps({
+                    "status": "error",
+                    "message": f"Pronađeno više proizvoda s nazivom '{product_name}': {names}. Molimo budite precizniji."
+                })
+            
+            product = found_products.first()
+            product_list.append({
+                "product_id": product.id,
+                "product_title": product.title,
+                "product_price": float(product.price),
+                "product_currency": product.currency,
+                "quantity": prod.get('quantity', 1),
+                "discount": prod.get('discount', 0),
+                "rabat": prod.get('rabat', 0)
+            })
+    
+    if not product_list:
+        return json.dumps({
+            "status": "error",
+            "message": "Račun mora imati barem jedan proizvod. Koristi filter_products_to_string za pregled dostupnih proizvoda."
+        })
+    
+    # Set default dates
+    invoice_date = date or timezone.now().date().strftime('%Y-%m-%d')
+    invoice_due_date = due_date or (timezone.now().date() + timedelta(days=15)).strftime('%Y-%m-%d')
+    
+    # Build display message
+    products_summary = ", ".join([f"{p['product_title']} x{p['quantity']}" for p in product_list])
+    
+    return json.dumps({
+        "status": "action_required",
+        "action_type": "invoice_add",
+        "action_data": {
+            "number": number,
+            "client_id": client.id,
+            "client_name": client.clientName,
+            "subject_id": subject.id,
+            "subject_name": subject.clientName,
+            "date": invoice_date,
+            "due_date": invoice_due_date,
+            "title": title,
+            "notes": notes,
+            "products": product_list
+        },
+        "display_message": f"Kreiraj račun br. {number} za klijenta {client.clientName} (subjekt: {subject.clientName}). Proizvodi: {products_summary}"
+    })
+
+
+def propose_offer_add(number, client_name=None, client_id=None, subject_name=None, subject_id=None,
+                      date=None, due_date=None, title=None, notes=None, products=None):
+    """
+    Proposes creating a new offer/quote. Does NOT execute the change.
+    Returns an action proposal that requires user confirmation.
+    
+    Offers are price proposals sent to clients - they are NOT invoices and don't require payment.
+    The due_date on offers is an expiration date with no legal consequences if it passes.
+    
+    Parameters:
+    - number: Broj ponude - unique identifier for the offer. Common Croatian practice is similar 
+              to invoices: "P-2026-001" (P for ponuda + year + sequential) or following the same 
+              format as invoices. Check existing offers with filter_offers_to_string to follow 
+              the established numbering convention used by this business.
+    - client_name: Ime klijenta (djelomično podudaranje) - name of the client receiving the offer
+    - client_id: ID klijenta (alternativa imenu) - use if you know the exact client ID
+    - subject_name: Naziv subjekta/tvrtke izdavatelja (djelomično podudaranje) - the company issuing the offer
+    - subject_id: ID subjekta/tvrtke izdavatelja - use if you know the exact subject ID
+    - date: Datum ponude u formatu YYYY-MM-DD - the offer date (defaults to today if not provided)
+    - due_date: Datum isteka ponude u formatu YYYY-MM-DD - when the offer expires (typically 30 days after date)
+    - title: Naslov ponude (opcionalno) - brief description/title for the offer
+    - notes: Napomene (opcionalno) - additional notes to appear on the offer
+    - products: Lista proizvoda s količinama u formatu [{"product_name": "Naziv", "quantity": 1, "discount": 0, "rabat": 0}, ...]
+                Koristi filter_products_to_string da pronađeš dostupne proizvode prije kreiranja ponude.
+    """
+    import json
+    from datetime import datetime, timedelta
+    
+    # Validate required fields
+    if not number:
+        return json.dumps({
+            "status": "error",
+            "message": "Broj ponude je obavezan."
+        })
+    
+    # Find client
+    client = None
+    if client_id:
+        try:
+            client = Client.objects.get(id=client_id)
+        except Client.DoesNotExist:
+            return json.dumps({
+                "status": "error",
+                "message": f"Klijent s ID-em {client_id} nije pronađen."
+            })
+    elif client_name:
+        clients = Client.objects.filter(clientName__icontains=client_name)
+        if clients.count() == 0:
+            return json.dumps({
+                "status": "error",
+                "message": f"Klijent s imenom '{client_name}' nije pronađen."
+            })
+        elif clients.count() > 1:
+            names = ", ".join([c.clientName for c in clients[:5]])
+            return json.dumps({
+                "status": "error",
+                "message": f"Pronađeno više klijenata s imenom '{client_name}': {names}. Molimo budite precizniji."
+            })
+        client = clients.first()
+    else:
+        return json.dumps({
+            "status": "error",
+            "message": "Potrebno je navesti klijenta (client_name ili client_id)."
+        })
+    
+    # Find subject (company)
+    subject = None
+    if subject_id:
+        try:
+            subject = Company.objects.get(id=subject_id)
+        except Company.DoesNotExist:
+            return json.dumps({
+                "status": "error",
+                "message": f"Subjekt s ID-em {subject_id} nije pronađen."
+            })
+    elif subject_name:
+        subjects = Company.objects.filter(clientName__icontains=subject_name)
+        if subjects.count() == 0:
+            return json.dumps({
+                "status": "error",
+                "message": f"Subjekt s nazivom '{subject_name}' nije pronađen."
+            })
+        elif subjects.count() > 1:
+            names = ", ".join([s.clientName for s in subjects[:5]])
+            return json.dumps({
+                "status": "error",
+                "message": f"Pronađeno više subjekata s nazivom '{subject_name}': {names}. Molimo budite precizniji."
+            })
+        subject = subjects.first()
+    else:
+        # Try to get the first/default company
+        subject = Company.objects.first()
+        if not subject:
+            return json.dumps({
+                "status": "error",
+                "message": "Potrebno je navesti subjekt (subject_name ili subject_id)."
+            })
+    
+    # Parse and validate products
+    product_list = []
+    if products:
+        for prod in products:
+            product_name = prod.get('product_name') or prod.get('name') or prod.get('title')
+            if not product_name:
+                continue
+            
+            found_products = Product.objects.filter(title__icontains=product_name)
+            if found_products.count() == 0:
+                return json.dumps({
+                    "status": "error",
+                    "message": f"Proizvod '{product_name}' nije pronađen. Koristi filter_products_to_string za pregled dostupnih proizvoda."
+                })
+            elif found_products.count() > 1:
+                names = ", ".join([p.title for p in found_products[:5]])
+                return json.dumps({
+                    "status": "error",
+                    "message": f"Pronađeno više proizvoda s nazivom '{product_name}': {names}. Molimo budite precizniji."
+                })
+            
+            product = found_products.first()
+            product_list.append({
+                "product_id": product.id,
+                "product_title": product.title,
+                "product_price": float(product.price),
+                "product_currency": product.currency,
+                "quantity": prod.get('quantity', 1),
+                "discount": prod.get('discount', 0),
+                "rabat": prod.get('rabat', 0)
+            })
+    
+    if not product_list:
+        return json.dumps({
+            "status": "error",
+            "message": "Ponuda mora imati barem jedan proizvod. Koristi filter_products_to_string za pregled dostupnih proizvoda."
+        })
+    
+    # Set default dates (offers typically have longer validity)
+    offer_date = date or timezone.now().date().strftime('%Y-%m-%d')
+    offer_due_date = due_date or (timezone.now().date() + timedelta(days=30)).strftime('%Y-%m-%d')
+    
+    # Build display message
+    products_summary = ", ".join([f"{p['product_title']} x{p['quantity']}" for p in product_list])
+    
+    return json.dumps({
+        "status": "action_required",
+        "action_type": "offer_add",
+        "action_data": {
+            "number": number,
+            "client_id": client.id,
+            "client_name": client.clientName,
+            "subject_id": subject.id,
+            "subject_name": subject.clientName,
+            "date": offer_date,
+            "due_date": offer_due_date,
+            "title": title,
+            "notes": notes,
+            "products": product_list
+        },
+        "display_message": f"Kreiraj ponudu br. {number} za klijenta {client.clientName} (subjekt: {subject.clientName}). Proizvodi: {products_summary}"
+    })
+
+
 # =============================================================================
 # ACTION EXECUTION FUNCTIONS
 # These functions actually execute the changes after user confirmation.
@@ -812,4 +1133,121 @@ def execute_inventory_action(action_type, action_data):
         return {
             "status": "error",
             "message": f"Greška pri izvršavanju akcije: {str(e)}"
+        }
+
+
+def execute_invoice_action(action_type, action_data):
+    """
+    Executes an invoice action after user confirmation.
+    Returns a result message.
+    """
+    from datetime import datetime
+    from decimal import Decimal
+    
+    try:
+        if action_type == "invoice_add":
+            # Get client and subject
+            client = Client.objects.get(id=action_data["client_id"])
+            subject = Company.objects.get(id=action_data["subject_id"])
+            
+            # Parse dates
+            invoice_date = datetime.strptime(action_data["date"], '%Y-%m-%d').date()
+            due_date = datetime.strptime(action_data["due_date"], '%Y-%m-%d').date()
+            
+            # Create the invoice
+            invoice = Invoice.objects.create(
+                number=action_data["number"],
+                client=client,
+                subject=subject,
+                date=invoice_date,
+                dueDate=due_date,
+                title=action_data.get("title"),
+                notes=action_data.get("notes"),
+                is_paid=False
+            )
+            
+            # Create invoice products
+            for prod in action_data.get("products", []):
+                product = Product.objects.get(id=prod["product_id"])
+                InvoiceProduct.objects.create(
+                    invoice=invoice,
+                    product=product,
+                    quantity=Decimal(str(prod.get("quantity", 1))),
+                    discount=Decimal(str(prod.get("discount", 0))),
+                    rabat=Decimal(str(prod.get("rabat", 0)))
+                )
+            
+            return {
+                "status": "success",
+                "message": f"Račun br. {action_data['number']} uspješno kreiran za klijenta {client.clientName}."
+            }
+        
+        else:
+            return {
+                "status": "error",
+                "message": f"Nepoznata vrsta akcije za račun: {action_type}"
+            }
+    
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Greška pri kreiranju računa: {str(e)}"
+        }
+
+
+def execute_offer_action(action_type, action_data):
+    """
+    Executes an offer action after user confirmation.
+    Returns a result message.
+    """
+    from datetime import datetime
+    from decimal import Decimal
+    
+    try:
+        if action_type == "offer_add":
+            # Get client and subject
+            client = Client.objects.get(id=action_data["client_id"])
+            subject = Company.objects.get(id=action_data["subject_id"])
+            
+            # Parse dates
+            offer_date = datetime.strptime(action_data["date"], '%Y-%m-%d').date()
+            due_date = datetime.strptime(action_data["due_date"], '%Y-%m-%d').date()
+            
+            # Create the offer
+            offer = Offer.objects.create(
+                number=action_data["number"],
+                client=client,
+                subject=subject,
+                date=offer_date,
+                dueDate=due_date,
+                title=action_data.get("title"),
+                notes=action_data.get("notes")
+            )
+            
+            # Create offer products
+            for prod in action_data.get("products", []):
+                product = Product.objects.get(id=prod["product_id"])
+                OfferProduct.objects.create(
+                    offer=offer,
+                    product=product,
+                    quantity=Decimal(str(prod.get("quantity", 1))),
+                    discount=Decimal(str(prod.get("discount", 0))),
+                    rabat=Decimal(str(prod.get("rabat", 0)))
+                )
+            
+            return {
+                "status": "success",
+                "message": f"Ponuda br. {action_data['number']} uspješno kreirana za klijenta {client.clientName}."
+            }
+        
+        else:
+            return {
+                "status": "error",
+                "message": f"Nepoznata vrsta akcije za ponudu: {action_type}"
+            }
+    
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Greška pri kreiranju ponude: {str(e)}"
         }

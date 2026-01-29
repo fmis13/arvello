@@ -610,5 +610,153 @@ AI_CHAT_TOOLS = [
                 "required": []
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "propose_invoice_add",
+            "description": "PREDLAŽE kreiranje novog računa. NE izvršava promjenu odmah - korisnik mora potvrditi akciju. Račun je službeni dokument koji zahtijeva plaćanje do datuma dospijeća. Prije pozivanja ove funkcije, provjeri postojeće račune s filter_invoices_to_string da vidiš konvenciju numeriranja koja se koristi, te provjeri dostupne proizvode s filter_products_to_string.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "number": {
+                        "type": "string",
+                        "description": "Broj računa - jedinstveni identifikator. Uobičajena hrvatska praksa je format poput '1/1/1' (broj/poslovni prostor/naplatni uređaj) ili datumski format poput '2026-001' (godina-sekvencijalni broj). UVIJEK provjeri postojeće račune s filter_invoices_to_string kako bi pratio ustaljenu konvenciju numeriranja koju koristi ovo poduzeće."
+                    },
+                    "client_name": {
+                        "type": ["string", "null"],
+                        "description": "Ime klijenta kojem se izdaje račun (djelomično podudaranje). Klijent je kupac/primatelj računa."
+                    },
+                    "client_id": {
+                        "type": ["integer", "null"],
+                        "description": "ID klijenta ako je poznat (alternativa imenu)"
+                    },
+                    "subject_name": {
+                        "type": ["string", "null"],
+                        "description": "Naziv subjekta/tvrtke koja izdaje račun (djelomično podudaranje). Subjekt je prodavatelj/izdavatelj računa."
+                    },
+                    "subject_id": {
+                        "type": ["integer", "null"],
+                        "description": "ID subjekta/tvrtke ako je poznat (alternativa nazivu)"
+                    },
+                    "date": {
+                        "type": ["string", "null"],
+                        "description": "Datum računa u formatu YYYY-MM-DD (npr. '2026-01-29'). Ako nije naveden, koristi se današnji datum."
+                    },
+                    "due_date": {
+                        "type": ["string", "null"],
+                        "description": "Datum dospijeća plaćanja u formatu YYYY-MM-DD (npr. '2026-02-13'). Uobičajeno je 15-30 dana nakon datuma računa. Ako nije naveden, postavlja se na 15 dana od datuma računa."
+                    },
+                    "title": {
+                        "type": ["string", "null"],
+                        "description": "Naslov/opis računa (opcionalno, maksimalno 30 znakova)"
+                    },
+                    "notes": {
+                        "type": ["string", "null"],
+                        "description": "Dodatne napomene koje će se prikazati na računu (opcionalno)"
+                    },
+                    "products": {
+                        "type": "array",
+                        "description": "Lista proizvoda/usluga na računu. OBAVEZNO - račun mora imati barem jedan proizvod. Format: [{\"product_name\": \"Naziv proizvoda\", \"quantity\": 1, \"discount\": 0, \"rabat\": 0}]. Koristi filter_products_to_string da pronađeš točne nazive dostupnih proizvoda.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "product_name": {
+                                    "type": "string",
+                                    "description": "Naziv proizvoda (djelomično podudaranje)"
+                                },
+                                "quantity": {
+                                    "type": "number",
+                                    "description": "Količina proizvoda (zadano: 1)"
+                                },
+                                "discount": {
+                                    "type": "number",
+                                    "description": "Postotak popusta (0-100, zadano: 0)"
+                                },
+                                "rabat": {
+                                    "type": "number",
+                                    "description": "Postotak rabata (0-100, zadano: 0)"
+                                }
+                            }
+                        }
+                    }
+                },
+                "required": ["number", "products"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "propose_offer_add",
+            "description": "PREDLAŽE kreiranje nove ponude. NE izvršava promjenu odmah - korisnik mora potvrditi akciju. Ponuda je cjenovni prijedlog koji se šalje klijentu - NIJE račun i ne zahtijeva plaćanje. Datum isteka na ponudi nema pravne posljedice ako prođe bez prihvaćanja. Ponude se mogu pretvoriti u račune kada ih klijent prihvati. Prije pozivanja ove funkcije, provjeri postojeće ponude s filter_offers_to_string da vidiš konvenciju numeriranja koja se koristi, te provjeri dostupne proizvode s filter_products_to_string.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "number": {
+                        "type": "string",
+                        "description": "Broj ponude - jedinstveni identifikator. Uobičajena hrvatska praksa je slična računima: 'P-2026-001' (P za ponuda + godina + sekvencijalni broj) ili isti format kao računi. UVIJEK provjeri postojeće ponude s filter_offers_to_string kako bi pratio ustaljenu konvenciju numeriranja koju koristi ovo poduzeće."
+                    },
+                    "client_name": {
+                        "type": ["string", "null"],
+                        "description": "Ime klijenta kojem se šalje ponuda (djelomično podudaranje). Klijent je potencijalni kupac. Provjeri kupce s filter_clients_to_string ako nisi siguran u točan naziv."
+                    },
+                    "client_id": {
+                        "type": ["integer", "null"],
+                        "description": "ID klijenta ako je poznat (alternativa imenu)"
+                    },
+                    "subject_name": {
+                        "type": ["string", "null"],
+                        "description": "Naziv subjekta/tvrtke koja izdaje ponudu (djelomično podudaranje). Subjekt je prodavatelj/ponuditelj. Provjeri subjekte s filter_subjects_to_string ako nisi siguran u točan naziv."
+                    },
+                    "subject_id": {
+                        "type": ["integer", "null"],
+                        "description": "ID subjekta/tvrtke ako je poznat (alternativa nazivu)"
+                    },
+                    "date": {
+                        "type": ["string", "null"],
+                        "description": "Datum ponude u formatu YYYY-MM-DD (npr. '2026-01-29'). Ako nije naveden, koristi se današnji datum."
+                    },
+                    "due_date": {
+                        "type": ["string", "null"],
+                        "description": "Datum isteka ponude u formatu YYYY-MM-DD (npr. '2026-02-28'). Ovo je datum do kojeg ponuda vrijedi. Uobičajeno je 30 dana nakon datuma ponude. Ako nije naveden, postavlja se na 30 dana od datuma ponude."
+                    },
+                    "title": {
+                        "type": ["string", "null"],
+                        "description": "Naslov/opis ponude (opcionalno, maksimalno 30 znakova)"
+                    },
+                    "notes": {
+                        "type": ["string", "null"],
+                        "description": "Dodatne napomene koje će se prikazati na ponudi (opcionalno)"
+                    },
+                    "products": {
+                        "type": "array",
+                        "description": "Lista proizvoda/usluga na ponudi. OBAVEZNO - ponuda mora imati barem jedan proizvod. Format: [{\"product_name\": \"Naziv proizvoda\", \"quantity\": 1, \"discount\": 0, \"rabat\": 0}]. Koristi filter_products_to_string da pronađeš točne nazive dostupnih proizvoda.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "product_name": {
+                                    "type": "string",
+                                    "description": "Naziv proizvoda (djelomično podudaranje)"
+                                },
+                                "quantity": {
+                                    "type": "number",
+                                    "description": "Količina proizvoda (zadano: 1)"
+                                },
+                                "discount": {
+                                    "type": "number",
+                                    "description": "Postotak popusta (0-100, zadano: 0)"
+                                },
+                                "rabat": {
+                                    "type": "number",
+                                    "description": "Postotak rabata (0-100, zadano: 0)"
+                                }
+                            }
+                        }
+                    }
+                },
+                "required": ["number", "products"]
+            }
+        }
     }
 ]

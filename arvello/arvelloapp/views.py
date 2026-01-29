@@ -2070,9 +2070,8 @@ def mark_offer_finished(request, offer_id):
         for invoice_product in invoice_products:
             invoice_product.save()
 
-        # Obriši ponudu nakon uspješnog transfera
-        offer.delete()
-        messages.success(request, f"Ponuda {offer.number} je pretvorena u račun {invoice.number}.")
+        # Ponuda se zadržava u bazi podataka, samo se kreira kopija kao račun
+        messages.success(request, f"Ponuda {offer.number} je pretvorena u račun {invoice.number}. Ponuda je zadržana u sustavu.")
     return redirect('invoices')
 
 
@@ -2110,6 +2109,8 @@ def ai_chat(request):
                 propose_inventory_add,
                 propose_inventory_remove,
                 propose_inventory_update,
+                propose_invoice_add,
+                propose_offer_add,
             )
             
             # Mapiranje naziva funkcija na stvarne funkcije
@@ -2128,6 +2129,8 @@ def ai_chat(request):
                 "propose_inventory_add": propose_inventory_add,
                 "propose_inventory_remove": propose_inventory_remove,
                 "propose_inventory_update": propose_inventory_update,
+                "propose_invoice_add": propose_invoice_add,
+                "propose_offer_add": propose_offer_add,
             }
             
             # Fallback nazivi alata ako AI ne navede reason
@@ -2146,6 +2149,8 @@ def ai_chat(request):
                 "propose_inventory_add": "prijedlog dodavanja u inventar",
                 "propose_inventory_remove": "prijedlog uklanjanja iz inventara",
                 "propose_inventory_update": "prijedlog promjene inventara",
+                "propose_invoice_add": "prijedlog kreiranja računa",
+                "propose_offer_add": "prijedlog kreiranja ponude",
             }
             
             # Lista funkcija koje predlažu akcije (ne izvršavaju ih odmah)
@@ -2153,6 +2158,8 @@ def ai_chat(request):
                 "propose_inventory_add",
                 "propose_inventory_remove",
                 "propose_inventory_update",
+                "propose_invoice_add",
+                "propose_offer_add",
             }
             
             # Izgradi prompt s poviješću razgovora
@@ -2317,11 +2324,21 @@ def ai_execute_action(request):
                     'message': 'Nedostaju podaci o akciji.'
                 }, status=400)
             
-            # Importaj funkciju za izvršavanje akcija
-            from .ai_tools import execute_inventory_action
+            # Importaj funkcije za izvršavanje akcija
+            from .ai_tools import execute_inventory_action, execute_invoice_action, execute_offer_action
             
-            # Izvrši akciju
-            result = execute_inventory_action(action_type, action_data)
+            # Izvrši akciju ovisno o tipu
+            if action_type.startswith('inventory_'):
+                result = execute_inventory_action(action_type, action_data)
+            elif action_type.startswith('invoice_'):
+                result = execute_invoice_action(action_type, action_data)
+            elif action_type.startswith('offer_'):
+                result = execute_offer_action(action_type, action_data)
+            else:
+                result = {
+                    'status': 'error',
+                    'message': f'Nepoznata vrsta akcije: {action_type}'
+                }
             
             return JsonResponse(result)
             
