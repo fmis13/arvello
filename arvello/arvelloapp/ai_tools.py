@@ -333,13 +333,24 @@ def filter_products_to_string(**criteria):
     queryset = Product.objects.all()
     
     if 'title' in criteria:
-        queryset = queryset.filter(title__icontains=criteria['title'])
-    if 'price_min' in criteria:
-        queryset = queryset.filter(price__gte=criteria['price_min'])
-    if 'price_max' in criteria:
-        queryset = queryset.filter(price__lte=criteria['price_max'])
-    if 'currency' in criteria:
-        queryset = queryset.filter(currency=criteria['currency'])
+        # Case-insensitive search that works with Croatian characters (SQLite doesn't handle Unicode case folding)
+        search_term = criteria['title'].lower()
+        queryset = [p for p in queryset if search_term in p.title.lower()]
+    # If title filter was applied, queryset is now a list - convert remaining filters to list comprehension
+    if isinstance(queryset, list):
+        if 'price_min' in criteria:
+            queryset = [p for p in queryset if p.price >= criteria['price_min']]
+        if 'price_max' in criteria:
+            queryset = [p for p in queryset if p.price <= criteria['price_max']]
+        if 'currency' in criteria:
+            queryset = [p for p in queryset if p.currency == criteria['currency']]
+    else:
+        if 'price_min' in criteria:
+            queryset = queryset.filter(price__gte=criteria['price_min'])
+        if 'price_max' in criteria:
+            queryset = queryset.filter(price__lte=criteria['price_max'])
+        if 'currency' in criteria:
+            queryset = queryset.filter(currency=criteria['currency'])
     
     result = []
     for product in queryset:

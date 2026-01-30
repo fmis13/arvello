@@ -37,8 +37,9 @@ from weasyprint import HTML, CSS
 from .utils.email_utils import send_email_with_attachment
 from django.conf import settings
 import os
+import time
 from django.utils.timezone import now
-from groq import Groq
+from mistralai import Mistral
 
 logger = logging.getLogger(__name__)
 
@@ -2081,14 +2082,155 @@ def ai_chat(request):
     Koristi loop-based pristup gdje model može pozivati alate dok ne odluči odgovoriti."""
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            user_message = data.get('message', '').strip()
-            chat_history = data.get('history', [])  # Dohvati povijest razgovora
+            # Provjeri je li FormData (s datotekom) ili JSON
+            content_type = request.content_type or ''
+            
+            client = Mistral(api_key=settings.MISTRAL_API_KEY)
+
+            if 'multipart/form-data' in content_type:
+                # FormData - datoteka je uključena
+                user_message = request.POST.get('message', '').strip()
+                history_json = request.POST.get('history', '[]')
+                try:
+                    chat_history = json.loads(history_json)
+                except json.JSONDecodeError:
+                    chat_history = []
+                
+                uploaded_file = request.FILES.get('file')
+                file_content = None
+                file_info = None
+                
+                if uploaded_file:
+                    file_info = {
+                        'name': uploaded_file.name,
+                        'size': uploaded_file.size,
+                        'type': uploaded_file.content_type
+                    }
+                    
+                    # Obradi datoteku ovisno o tipu
+                    file_extension = uploaded_file.name.lower().split('.')[-1] if '.' in uploaded_file.name else ''
+                    
+                    if file_extension in ['txt', 'csv']:
+                        # Tekstualne datoteke - čitaj sadržaj
+                        try:
+                            file_content = uploaded_file.read().decode('utf-8')
+                        except UnicodeDecodeError:
+                            file_content = uploaded_file.read().decode('latin-1')
+                    elif file_extension in ['pdf']:
+                        # PDF - pokušaj izvući tekst
+                        try:
+                            import PyPDF2
+                            pdf_reader = PyPDF2.PdfReader(uploaded_file)
+                            file_content = ""
+                            for page in pdf_reader.pages:
+                                file_content += page.extract_text() + "\n"
+                        except Exception as e:
+                            file_content = f"[Nije moguće pročitati PDF: {str(e)}]"
+                    elif file_extension in ['doc', 'docx']:
+                        # Word dokumenti
+                        try:
+                            import docx
+                            doc = docx.Document(uploaded_file)
+                            file_content = "\n".join([para.text for para in doc.paragraphs])
+                        except Exception as e:
+                            file_content = f"[Nije moguće pročitati Word dokument: {str(e)}]"
+                    elif file_extension in ['xls', 'xlsx']:
+                        # Excel datoteke
+                        try:
+                            import openpyxl
+                            wb = openpyxl.load_workbook(uploaded_file, read_only=True)
+                            file_content = ""
+                            for sheet_name in wb.sheetnames:
+                                sheet = wb[sheet_name]
+                                file_content += f"--- Sheet: {sheet_name} ---\n"
+                                for row in sheet.iter_rows(max_row=100, values_only=True):
+                                    row_str = "\t".join([str(cell) if cell is not None else "" for cell in row])
+                                    file_content += row_str + "\n"
+                        except Exception as e:
+                            file_content = f"[Nije moguće pročitati Excel: {str(e)}]"
+                    elif file_extension in ['png', 'jpg', 'jpeg', 'gif']:
+                        # Slike - koristi Pixtral za opis slike
+                        try:
+                            import base64
+                            # Pročitaj sliku i kodiraj u base64
+                            uploaded_file.seek(0)
+                            image_data = base64.b64encode(uploaded_file.read()).decode('utf-8')
+                            
+                            # Odredi MIME tip
+                            mime_types = {
+                                'png': 'image/png',
+                                'jpg': 'image/jpeg',
+                                'jpeg': 'image/jpeg',
+                                'gif': 'image/gif'
+                            }
+                            mime_type = mime_types.get(file_extension, 'image/jpeg')
+                            
+                            # Poruke za Pixtral model - lista rječnika s ispravnom strukturom
+                            vision_messages = [
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {
+                                            "type": "image_url",
+                                            "image_url": f"data:{mime_type};base64,{image_data}"
+                                        },
+                                        {
+                                            "type": "text",
+                                            "text": "Opiši priloženu sliku. Fokusiraj se na tekst i druge vrste pisanih podataka na slici. Odgovori na hrvatskom jeziku."
+                                        }
+                                    ]
+                                }
+                            ]
+                            
+                            # Retry logika za rate limit (1 req/sec)
+                            pixtral_max_retries = 3
+                            pixtral_retry_delay = 2
+                            image_response = None
+                            
+                            for pixtral_attempt in range(pixtral_max_retries):
+                                try:
+                                    # Pričekaj prije poziva ako nije prvi pokušaj
+                                    if pixtral_attempt > 0:
+                                        time.sleep(pixtral_retry_delay * (2 ** (pixtral_attempt - 1)))
+                                    
+                                    image_response = client.chat.complete(
+                                        model='pixtral-large-latest',
+                                        messages=vision_messages,
+                                        max_tokens=500
+                                    )
+                                    break  # Uspješno, izađi iz petlje
+                                except Exception as pixtral_error:
+                                    error_str = str(pixtral_error).lower()
+                                    if '429' in str(pixtral_error) or 'rate' in error_str or 'limit' in error_str:
+                                        if pixtral_attempt < pixtral_max_retries - 1:
+                                            print(f"DEBUG: Pixtral rate limit hit, retry {pixtral_attempt + 2}/{pixtral_max_retries}")
+                                            continue
+                                    raise  # Ako nije rate limit ili iscrpljeni pokušaji, proslijedi grešku
+                            
+                            if image_response:
+                                file_content = image_response.choices[0].message.content
+                            else:
+                                file_content = "[Nije moguće analizirati sliku nakon više pokušaja]"
+                        except Exception as e:
+                            file_content = f"[Nije moguće analizirati sliku: {str(e)}]"
+                    else:
+                        file_content = f"[Datoteka: {uploaded_file.name} - format nije podržan za čitanje sadržaja]"
+                    
+                    if file_content and len(file_content) > 50000:
+                        file_content = file_content[:50000] + "\n...[skraćeno zbog veličine]..."
+
+                    # Dodaj sadržaj datoteke u poruku
+                    if file_content:
+                        print("DEBUG: File content extracted:", file_content[:500])  # Prvih 500 znakova za debug
+                        user_message = f"{user_message}\n\n--- Priložena datoteka: {uploaded_file.name} ---\n{file_content[:50000]}"  # Ograniči na 50k znakova
+            else:
+                # JSON zahtjev
+                data = json.loads(request.body)
+                user_message = data.get('message', '').strip()
+                chat_history = data.get('history', [])
             
             if not user_message:
                 return JsonResponse({'error': 'Poruka je prazna'}, status=400)
-            
-            client = Groq(api_key=settings.GROQ_API_KEY)
             
             # Dohvati alate iz settings
             tools = settings.AI_CHAT_TOOLS
@@ -2189,19 +2331,53 @@ def ai_chat(request):
             # Loop-based pristup: model odlučuje pozivati alate ili odgovoriti
             max_iterations = 10  # Ograničenje broja iteracija za sigurnost
             iteration = 0
+            last_api_call_time = 0  # Praćenje vremena zadnjeg API poziva (1 req/sec limit)
             
             while iteration < max_iterations:
                 iteration += 1
                 
-                # Poziv API-ja s alatima
-                chat_completion = client.chat.completions.create(
-                    model="openai/gpt-oss-120b",
-                    messages=chat_prompt,
-                    tools=tools,
-                    tool_choice="auto",
-                    max_tokens=1500,
-                    temperature=0.6,
-                )
+                # Osiguraj minimalno 1 sekundu između API poziva (Mistral rate limit)
+                time_since_last_call = time.time() - last_api_call_time
+                if time_since_last_call < 1.0 and last_api_call_time > 0:
+                    time.sleep(1.0 - time_since_last_call)
+                
+                # Retry logika za capacity exceeded greške
+                max_retries = 3
+                retry_delay = 2  # Početni delay u sekundama
+                
+                for retry_attempt in range(max_retries):
+                    try:
+                        last_api_call_time = time.time()
+                        # Poziv API-ja s alatima
+                        chat_completion = client.chat.complete(
+                            model="mistral-medium-latest",
+                            messages=chat_prompt,
+                            tools=tools,
+                            tool_choice="auto",
+                            max_tokens=1500,
+                            temperature=0.5,
+                        )
+                        break  # Uspješan poziv, izađi iz retry petlje
+                    except Exception as api_error:
+                        error_str = str(api_error).lower()
+                        # Provjeri je li greška zbog kapaciteta ili rate limita
+                        if '429' in str(api_error) or 'capacity' in error_str or 'rate' in error_str:
+                            if retry_attempt < max_retries - 1:
+                                wait_time = retry_delay * (2 ** retry_attempt)  # Exponential backoff: 2s, 4s, 8s
+                                print(f"DEBUG: API capacity/rate limit hit, waiting {wait_time}s before retry {retry_attempt + 2}/{max_retries}")
+                                time.sleep(wait_time)
+                                continue
+                            else:
+                                # Iscrpljeni svi pokušaji
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'response': 'Mistral AI servis je trenutno preopterećen. Molimo pokušajte ponovo za nekoliko sekundi.',
+                                    'tools_called': tools_called,
+                                    'pending_actions': []
+                                })
+                        else:
+                            # Druga vrsta greške - proslijedi dalje
+                            raise
 
                 response_message = chat_completion.choices[0].message
                 
@@ -2247,11 +2423,22 @@ def ai_chat(request):
                     # Izvršavanje funkcije
                     if function_name in tool_functions:
                         func = tool_functions[function_name]
-                        # Provjeri prima li funkcija argumente
-                        if function_name.startswith("get_"):
-                            result = func()
-                        else:
-                            result = func(**function_args)
+                        try:
+                            # Provjeri prima li funkcija argumente
+                            if function_name.startswith("get_"):
+                                result = func()
+                            else:
+                                result = func(**function_args)
+                        except TypeError as e:
+                            # Greška s argumentima (npr. neočekivani argument) - daj feedback modelu
+                            error_msg = str(e)
+                            result = f"GREŠKA PRI POZIVU FUNKCIJE: {error_msg}. Molim te provjeri ispravne parametre za ovu funkciju i pokušaj ponovo."
+                            print(f"DEBUG: Tool {function_name} argument error: {error_msg}")
+                        except Exception as e:
+                            # Ostale greške - daj feedback modelu
+                            error_msg = str(e)
+                            result = f"GREŠKA: {error_msg}. Pokušaj ponovo s ispravnim parametrima."
+                            print(f"DEBUG: Tool {function_name} error: {error_msg}")
                         
                         # Provjeri je li rezultat akcija koja zahtijeva potvrdu
                         if function_name in action_proposal_functions:
@@ -2277,6 +2464,8 @@ def ai_chat(request):
                             tools_called.append(display_name)
                     else:
                         result = f"Nepoznata funkcija: {function_name}"
+                    
+                    print(f"DEBUG: Tool {function_name} returned result: {result}")
                     
                     # Dodaj rezultat alata u prompt
                     chat_prompt.append({
@@ -2310,19 +2499,27 @@ def ai_chat(request):
 def ai_execute_action(request):
     """
     Izvršava akciju koju je korisnik potvrdio u AI chatu.
-    Poziva se kada korisnik klikne "Prihvati" na predloženoj akciji.
+    Poziva se kada korisnik klikne "Prihvati" ili "Odbij" na predloženoj akciji.
     """
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             action_type = data.get('action_type')
             action_data = data.get('action_data')
+            accepted = data.get('accepted', False)  # Provjeri je li korisnik prihvatio akciju
             
             if not action_type or not action_data:
                 return JsonResponse({
                     'status': 'error',
                     'message': 'Nedostaju podaci o akciji.'
                 }, status=400)
+            
+            # Ako korisnik nije prihvatio akciju, vrati uspjeh bez izvršavanja
+            if not accepted:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Akcija je odbijena od strane korisnika.'
+                })
             
             # Importaj funkcije za izvršavanje akcija
             from .ai_tools import execute_inventory_action, execute_invoice_action, execute_offer_action

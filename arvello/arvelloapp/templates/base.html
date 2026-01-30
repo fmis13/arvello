@@ -100,12 +100,12 @@
       width: 56px;
       height: 56px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border: none;
+      background: #343a40;
+      border: 2px solid #495057;
       color: white;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -113,22 +113,24 @@
 
     .ai-chat-toggle:hover {
       transform: scale(1.05);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+      background: #495057;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
     }
 
     .ai-chat-panel {
       position: absolute;
       bottom: 70px;
       right: 0;
-      width: 340px;
-      max-height: 400px;
-      background: white;
+      width: 360px;
+      max-height: 450px;
+      background: #f8f9fa;
       border-radius: 12px;
-      box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 5px 30px rgba(0, 0, 0, 0.2);
       display: none;
       flex-direction: column;
       overflow: hidden;
       transition: width 0.3s ease, max-height 0.3s ease;
+      border: 1px solid #dee2e6;
     }
 
     .ai-chat-panel.open {
@@ -136,12 +138,12 @@
     }
 
     .ai-chat-panel.expanded {
-      width: 500px;
-      max-height: 600px;
+      width: 520px;
+      max-height: 650px;
     }
 
     .ai-chat-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #343a40;
       color: white;
       padding: 12px 16px;
       font-weight: 600;
@@ -177,16 +179,16 @@
       flex: 1;
       padding: 16px;
       overflow-y: auto;
-      min-height: 150px;
-      max-height: 250px;
-      background: #f8f9fa;
+      min-height: 180px;
+      max-height: 280px;
+      background: #ffffff;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
     .ai-chat-panel.expanded .ai-chat-body {
-      max-height: 450px;
+      max-height: 480px;
     }
 
     .ai-chat-messages {
@@ -197,7 +199,7 @@
 
     .ai-chat-bubble {
       padding: 10px 14px;
-      border-radius: 16px;
+      border-radius: 12px;
       max-width: 85%;
       font-size: 0.9rem;
       line-height: 1.5;
@@ -205,18 +207,18 @@
     }
 
     .ai-chat-bubble.user {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #343a40;
       color: white;
       align-self: flex-end;
       border-bottom-right-radius: 4px;
     }
 
     .ai-chat-bubble.assistant {
-      background: white;
-      color: #333;
+      background: #e9ecef;
+      color: #212529;
       align-self: flex-start;
       border-bottom-left-radius: 4px;
-      border: 1px solid #e0e0e0;
+      border: 1px solid #dee2e6;
     }
 
     .ai-chat-bubble.assistant p {
@@ -263,6 +265,26 @@
       color: inherit;
     }
 
+    .ai-chat-bubble.assistant h1,
+    .ai-chat-bubble.assistant h2,
+    .ai-chat-bubble.assistant h3,
+    .ai-chat-bubble.assistant h4,
+    .ai-chat-bubble.assistant h5,
+    .ai-chat-bubble.assistant h6 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 8px 0 4px 0;
+      line-height: 1.3;
+    }
+
+    .ai-chat-bubble.assistant h1 {
+      font-size: 1.3rem;
+    }
+
+    .ai-chat-bubble.assistant h2 {
+      font-size: 1.2rem;
+    }
+
     .ai-chat-bubble.empty {
       color: #888;
       font-style: italic;
@@ -273,19 +295,19 @@
     }
 
     .ai-chat-bubble.loading {
-      color: #667eea;
-      background: white;
-      border: 1px solid #667eea;
+      color: #495057;
+      background: #e9ecef;
+      border: 1px solid #adb5bd;
       align-self: flex-start;
     }
 
     .ai-chat-tools-info {
       font-size: 0.75rem;
-      color: #888;
+      color: #6c757d;
       padding: 6px 10px;
-      background: #e8f4f8;
+      background: #e9ecef;
       border-radius: 6px;
-      border-left: 3px solid #667eea;
+      border-left: 3px solid #495057;
       align-self: flex-start;
     }
 
@@ -298,58 +320,196 @@
 
     .ai-chat-tools-info .tool-icon {
       font-size: 14px;
-      color: #667eea;
+      color: #28a745;
     }
 
     .ai-chat-footer {
       padding: 12px;
-      border-top: 1px solid #eee;
-      background: white;
+      border-top: 1px solid #dee2e6;
+      background: #f8f9fa;
     }
 
     .ai-chat-input-group {
       display: flex;
       gap: 8px;
+      align-items: center;
     }
 
     .ai-chat-input {
       flex: 1;
-      border: 1px solid #ddd;
+      border: 1px solid #ced4da;
       border-radius: 8px;
       padding: 10px 12px;
       font-size: 0.9rem;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: white;
     }
 
     .ai-chat-input:focus {
-      border-color: #667eea;
+      border-color: #495057;
+      box-shadow: 0 0 0 2px rgba(73, 80, 87, 0.15);
     }
 
     .ai-chat-send {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #28a745;
       border: none;
       border-radius: 8px;
-      padding: 10px 16px;
+      padding: 10px 14px;
       color: white;
       cursor: pointer;
-      transition: opacity 0.2s;
+      transition: background 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .ai-chat-send:hover {
-      opacity: 0.9;
+      background: #218838;
+      transform: scale(1.02);
     }
 
     .ai-chat-send:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+      transform: none;
+    }
+
+    /* File Upload Styles */
+    .ai-chat-upload-btn {
+      background: transparent;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      padding: 8px;
+      color: #6c757d;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ai-chat-upload-btn:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
+      color: #495057;
+    }
+
+    .ai-chat-upload-btn.has-file {
+      background: #d4edda;
+      border-color: #28a745;
+      color: #28a745;
+    }
+
+    .ai-chat-file-preview {
+      display: none;
+      padding: 8px 12px;
+      background: #e9ecef;
+      border-top: 1px solid #dee2e6;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+    }
+
+    .ai-chat-file-preview.active {
+      display: flex;
+    }
+
+    .ai-chat-file-icon {
+      width: 32px;
+      height: 32px;
+      background: #343a40;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+    }
+
+    .ai-chat-file-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .ai-chat-file-name {
+      font-weight: 500;
+      color: #212529;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ai-chat-file-size {
+      color: #6c757d;
+      font-size: 0.7rem;
+    }
+
+    .ai-chat-file-remove {
+      background: transparent;
+      border: none;
+      color: #dc3545;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .ai-chat-file-remove:hover {
+      background: #f8d7da;
+    }
+
+    .ai-chat-file-input {
+      display: none;
+    }
+
+    /* Attached file in message bubble */
+    .ai-chat-attached-file {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-bottom: 6px;
+    }
+
+    .ai-chat-attached-icon {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+
+    .ai-chat-attached-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .ai-chat-attached-name {
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ai-chat-attached-size {
+      font-size: 0.65rem;
+      opacity: 0.7;
+    }
+
+    .ai-chat-message-text {
+      margin-top: 2px;
     }
 
     /* Action Proposal Styles */
     .ai-chat-action {
-      background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-      border: 2px solid #ff9800;
-      border-radius: 12px;
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 10px;
       padding: 12px;
       align-self: flex-start;
       max-width: 95%;
@@ -361,13 +521,13 @@
       gap: 8px;
       margin-bottom: 8px;
       font-weight: 600;
-      color: #e65100;
+      color: #856404;
       font-size: 0.8rem;
     }
 
     .ai-chat-action-message {
       font-size: 0.9rem;
-      color: #333;
+      color: #212529;
       margin-bottom: 12px;
       line-height: 1.4;
     }
@@ -391,22 +551,23 @@
     }
 
     .ai-chat-action-btn.accept {
-      background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+      background: #28a745;
       color: white;
     }
 
     .ai-chat-action-btn.accept:hover {
-      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+      background: #218838;
+      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
     }
 
     .ai-chat-action-btn.reject {
-      background: #f5f5f5;
-      color: #666;
-      border: 1px solid #ddd;
+      background: #f8f9fa;
+      color: #495057;
+      border: 1px solid #ced4da;
     }
 
     .ai-chat-action-btn.reject:hover {
-      background: #eeeeee;
+      background: #e9ecef;
     }
 
     .ai-chat-action-btn:disabled {
@@ -420,13 +581,13 @@
     }
 
     .ai-chat-action.accepted {
-      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-      border-color: #4caf50;
+      background: #d4edda;
+      border-color: #28a745;
     }
 
     .ai-chat-action.rejected {
-      background: linear-gradient(135deg, #fafafa 0%, #eeeeee 100%);
-      border-color: #9e9e9e;
+      background: #f8f9fa;
+      border-color: #6c757d;
     }
 
     .ai-chat-action-status {
@@ -439,13 +600,19 @@
       gap: 4px;
     }
 
-    .ai-chat-action-status.accepted {
-      background: #4caf50;
+    .ai-chat-action-status.accepted,
+    .ai-chat-action-status.success {
+      background: #28a745;
       color: white;
     }
 
     .ai-chat-action-status.rejected {
-      background: #9e9e9e;
+      background: #6c757d;
+      color: white;
+    }
+
+    .ai-chat-action-status.error {
+      background: #dc3545;
       color: white;
     }
     </style>
@@ -726,10 +893,27 @@
             </div>
           </div>
         </div>
+        <div class="ai-chat-file-preview" id="aiChatFilePreview">
+          <div class="ai-chat-file-icon" id="aiChatFileIcon">
+            <span class="material-symbols-outlined" style="font-size: 18px;">attach_file</span>
+          </div>
+          <div class="ai-chat-file-info">
+            <div class="ai-chat-file-name" id="aiChatFileName">dokument.pdf</div>
+            <div class="ai-chat-file-size" id="aiChatFileSize">1.2 MB</div>
+          </div>
+          <button class="ai-chat-file-remove" id="aiChatFileRemove" title="Ukloni datoteku">
+            <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+          </button>
+        </div>
         <div class="ai-chat-footer">
           <div class="ai-chat-input-group">
+            <input type="file" class="ai-chat-file-input" id="aiChatFileInput" 
+                   accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg,.gif">
+            <button class="ai-chat-upload-btn" id="aiChatUpload" title="Prenesi datoteku (PDF, Word, Excel, slike)">
+              <span class="material-symbols-outlined" style="font-size: 20px;">attach_file</span>
+            </button>
             <input type="text" class="ai-chat-input" id="aiChatInput" placeholder="Upišite poruku..." autocomplete="off">
-            <button class="ai-chat-send" id="aiChatSend">
+            <button class="ai-chat-send" id="aiChatSend" title="Pošalji">
               <span class="material-symbols-outlined" style="font-size: 20px;">send</span>
             </button>
           </div>
@@ -743,6 +927,7 @@
     <script>
     (function() {
       const STORAGE_KEY = 'arvello_ai_chat';
+      const PENDING_KEY = 'arvello_ai_chat_pending';
       const toggleBtn = document.getElementById('aiChatToggle');
       const panel = document.getElementById('aiChatPanel');
       const input = document.getElementById('aiChatInput');
@@ -752,10 +937,21 @@
       const resetBtn = document.getElementById('aiChatReset');
       const expandBtn = document.getElementById('aiChatExpand');
       const emptyMsg = document.getElementById('aiChatEmpty');
+      
+      // File upload elements
+      const uploadBtn = document.getElementById('aiChatUpload');
+      const fileInput = document.getElementById('aiChatFileInput');
+      const filePreview = document.getElementById('aiChatFilePreview');
+      const fileName = document.getElementById('aiChatFileName');
+      const fileSize = document.getElementById('aiChatFileSize');
+      const fileIcon = document.getElementById('aiChatFileIcon');
+      const fileRemove = document.getElementById('aiChatFileRemove');
 
       // Chat history array
       let chatHistory = [];
       let isExpanded = false;
+      let isRequestInFlight = false;
+      let selectedFile = null; // Trenutno odabrana datoteka
 
       // Configure marked for safe rendering
       marked.setOptions({
@@ -772,23 +968,110 @@
         }
       }
 
+      // File type icons mapping
+      function getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const iconMap = {
+          'pdf': 'picture_as_pdf',
+          'doc': 'description',
+          'docx': 'description',
+          'xls': 'table_chart',
+          'xlsx': 'table_chart',
+          'csv': 'table_chart',
+          'txt': 'article',
+          'png': 'image',
+          'jpg': 'image',
+          'jpeg': 'image',
+          'gif': 'image'
+        };
+        return iconMap[ext] || 'attach_file';
+      }
+
+      // Format file size
+      function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      }
+
+      // Handle file selection
+      function handleFileSelect(file) {
+        if (!file) return;
+        
+        // Check file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          alert('Datoteka je prevelika. Maksimalna veličina je 10 MB.');
+          return;
+        }
+        
+        selectedFile = file;
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        fileIcon.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px;">${getFileIcon(file.name)}</span>`;
+        filePreview.classList.add('active');
+        uploadBtn.classList.add('has-file');
+      }
+
+      // Clear selected file
+      function clearSelectedFile() {
+        selectedFile = null;
+        fileInput.value = '';
+        filePreview.classList.remove('active');
+        uploadBtn.classList.remove('has-file');
+      }
+
+      // File upload button click
+      uploadBtn.addEventListener('click', function() {
+        fileInput.click();
+      });
+
+      // File input change
+      fileInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+          handleFileSelect(e.target.files[0]);
+        }
+      });
+
+      // Remove file button
+      fileRemove.addEventListener('click', clearSelectedFile);
+
       // Scroll to bottom of chat
       function scrollToBottom() {
         chatBody.scrollTop = chatBody.scrollHeight;
       }
 
       // Add a message bubble to the chat
-      function addMessageBubble(role, content, isMarkdown = false) {
+      function addMessageBubble(role, content, isMarkdown = false, fileInfo = null) {
         // Hide empty message
         if (emptyMsg) emptyMsg.style.display = 'none';
         
         const bubble = document.createElement('div');
         bubble.className = `ai-chat-bubble ${role}`;
         
+        let html = '';
+        
+        // Ako ima priloženu datoteku, prikaži je
+        if (fileInfo && role === 'user') {
+          html += `<div class="ai-chat-attached-file">
+            <span class="material-symbols-outlined ai-chat-attached-icon">${fileInfo.icon}</span>
+            <div class="ai-chat-attached-info">
+              <span class="ai-chat-attached-name">${fileInfo.name}</span>
+              <span class="ai-chat-attached-size">${fileInfo.size}</span>
+            </div>
+          </div>`;
+        }
+        
         if (role === 'assistant' && isMarkdown) {
-          bubble.innerHTML = renderMarkdown(content);
-        } else {
-          bubble.textContent = content;
+          html += renderMarkdown(content);
+          bubble.innerHTML = html;
+        } else if (content) {
+          if (html) {
+            bubble.innerHTML = html + `<div class="ai-chat-message-text">${content}</div>`;
+          } else {
+            bubble.textContent = content;
+          }
+        } else if (html) {
+          bubble.innerHTML = html;
         }
         
         messagesContainer.appendChild(bubble);
@@ -934,7 +1217,7 @@
         
         chatHistory.forEach((msg, index) => {
           if (msg.role === 'user' || msg.role === 'assistant') {
-            addMessageBubble(msg.role, msg.content, msg.role === 'assistant');
+            addMessageBubble(msg.role, msg.content, msg.role === 'assistant', msg.file || null);
           }
           // Show tools info after assistant message if available
           if (msg.role === 'assistant' && msg.toolsCalled && msg.toolsCalled.length > 0) {
@@ -1031,9 +1314,43 @@
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       }
 
+      // Spremi pending zahtjev (za slučaj navigacije tijekom generiranja)
+      function savePendingRequest(message, history) {
+        sessionStorage.setItem(PENDING_KEY, JSON.stringify({
+          message: message,
+          history: history,
+          timestamp: Date.now()
+        }));
+      }
+
+      // Očisti pending zahtjev
+      function clearPendingRequest() {
+        sessionStorage.removeItem(PENDING_KEY);
+      }
+
+      // Dohvati pending zahtjev ako postoji
+      function getPendingRequest() {
+        const pending = sessionStorage.getItem(PENDING_KEY);
+        if (pending) {
+          try {
+            const data = JSON.parse(pending);
+            // Ignoriraj zahtjeve starije od 5 minuta
+            if (Date.now() - data.timestamp < 5 * 60 * 1000) {
+              return data;
+            } else {
+              clearPendingRequest();
+            }
+          } catch (e) {
+            clearPendingRequest();
+          }
+        }
+        return null;
+      }
+
       // Reset chat
       function resetChat() {
         chatHistory = [];
+        clearPendingRequest(); // Očisti i pending zahtjev
         renderMessages();
         saveState();
       }
@@ -1071,36 +1388,83 @@
       // Reset button handler
       resetBtn.addEventListener('click', resetChat);
 
-      // Pošalji poruku
-      async function sendMessage() {
-        const message = input.value.trim();
-        if (!message) return;
+      // Pošalji poruku (može se pozvati s opcionalnim parametrima za resume)
+      async function sendMessage(resumeMessage = null, resumeHistory = null) {
+        const message = resumeMessage || input.value.trim();
+        if (!message && !selectedFile) return;
 
         input.disabled = true;
         sendBtn.disabled = true;
+        isRequestInFlight = true;
         
-        // Add user message
-        chatHistory.push({ role: 'user', content: message });
-        addMessageBubble('user', message);
+        // Pripremi prikaz poruke s datotekom
+        let displayMessage = message;
+        let fileInfo = null;
+        if (selectedFile && !resumeMessage) {
+          fileInfo = {
+            name: selectedFile.name,
+            size: formatFileSize(selectedFile.size),
+            icon: getFileIcon(selectedFile.name)
+          };
+        }
+        
+        // Ako nije resume, dodaj poruku u povijest i prikaži je
+        if (!resumeMessage) {
+          chatHistory.push({ role: 'user', content: message, file: fileInfo });
+          addMessageBubble('user', message, false, fileInfo);
+        }
+        
+        // Pripremi history za slanje
+        const historyToSend = resumeHistory || chatHistory.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({role: m.role, content: m.content}));
+        
+        // Spremi pending zahtjev prije slanja (za slučaj navigacije)
+        savePendingRequest(message, historyToSend);
+        saveState();
         
         // Add loading indicator
         const loadingBubble = document.createElement('div');
         loadingBubble.className = 'ai-chat-bubble assistant loading';
-        loadingBubble.textContent = 'Razmišljam...';
+        loadingBubble.textContent = resumeMessage ? 'Nastavljam generiranje...' : 'Razmišljam...';
         messagesContainer.appendChild(loadingBubble);
         scrollToBottom();
 
         try {
-          const response = await fetch('{% url "ai_chat" %}', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ message: message, history: chatHistory.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({role: m.role, content: m.content})) })
-          });
+          let response;
+          
+          // Ako imamo datoteku, koristi FormData
+          if (selectedFile && !resumeMessage) {
+            const formData = new FormData();
+            formData.append('message', message);
+            formData.append('history', JSON.stringify(historyToSend));
+            formData.append('file', selectedFile);
+            
+            response = await fetch('{% url "ai_chat" %}', {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+              },
+              body: formData
+            });
+            
+            // Očisti datoteku nakon slanja
+            clearSelectedFile();
+          } else {
+            // Bez datoteke - koristi JSON
+            response = await fetch('{% url "ai_chat" %}', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+              },
+              body: JSON.stringify({ message: message, history: historyToSend })
+            });
+          }
 
           const data = await response.json();
+          
+          // Očisti pending zahtjev - uspješno završeno
+          clearPendingRequest();
+          isRequestInFlight = false;
           
           // Remove loading bubble
           loadingBubble.remove();
@@ -1130,11 +1494,14 @@
             
             saveState();
           } else {
-            addMessageBubble('assistant', data.error || 'Došlo je do greške.');
+            addMessageBubble('assistant', data.error || data.response || 'Došlo je do greške.');
+            clearPendingRequest();
           }
         } catch (error) {
           loadingBubble.remove();
-          addMessageBubble('assistant', 'Greška u komunikaciji s poslužiteljem.');
+          // Ne brišemo pending zahtjev kod greške - možda će korisnik reload napraviti
+          isRequestInFlight = false;
+          addMessageBubble('assistant', 'Greška u komunikaciji s poslužiteljem. Osvježite stranicu za ponovni pokušaj.');
           console.error('AI Chat error:', error);
         } finally {
           input.disabled = false;
@@ -1144,15 +1511,40 @@
         }
       }
 
-      sendBtn.addEventListener('click', sendMessage);
+      sendBtn.addEventListener('click', function() { sendMessage(); });
       input.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
           sendMessage();
         }
       });
 
+      // Upozorenje prije napuštanja stranice ako je zahtjev u tijeku
+      window.addEventListener('beforeunload', function(e) {
+        if (isRequestInFlight) {
+          e.preventDefault();
+          e.returnValue = 'AI asistent još generira odgovor. Ako napustite stranicu, zahtjev će se nastaviti pri povratku.';
+          return e.returnValue;
+        }
+      });
+
       // Učitaj stanje pri pokretanju
       loadState();
+      
+      // Provjeri ima li pending zahtjeva koji treba nastaviti
+      const pendingRequest = getPendingRequest();
+      if (pendingRequest) {
+        // Otvori panel i nastavi zahtjev
+        panel.classList.add('open');
+        saveState();
+        
+        // Prikaži poruku o nastavku
+        console.log('Nastavljam prekinuti AI chat zahtjev...');
+        
+        // Mali delay da se stranica učita
+        setTimeout(function() {
+          sendMessage(pendingRequest.message, pendingRequest.history);
+        }, 500);
+      }
     })();
     </script>
     {% endif %}
