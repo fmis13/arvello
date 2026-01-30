@@ -2149,9 +2149,11 @@ def ai_chat(request):
                         except Exception as e:
                             file_content = f"[Nije moguće pročitati Excel: {str(e)}]"
                     elif file_extension in ['png', 'jpg', 'jpeg', 'gif']:
-                        # Slike - koristi Pixtral za opis slike
+                        # Slike - koristi Groq Llama 4 Scout za opis slike
                         try:
                             import base64
+                            import requests as http_requests
+                            
                             # Pročitaj sliku i kodiraj u base64
                             uploaded_file.seek(0)
                             image_data = base64.b64encode(uploaded_file.read()).decode('utf-8')
@@ -2165,52 +2167,50 @@ def ai_chat(request):
                             }
                             mime_type = mime_types.get(file_extension, 'image/jpeg')
                             
-                            # Poruke za Pixtral model - lista rječnika s ispravnom strukturom
-                            vision_messages = [
-                                {
-                                    "role": "user",
-                                    "content": [
-                                        {
-                                            "type": "image_url",
-                                            "image_url": f"data:{mime_type};base64,{image_data}"
-                                        },
-                                        {
-                                            "type": "text",
-                                            "text": "Opiši priloženu sliku. Fokusiraj se na tekst i druge vrste pisanih podataka na slici. Odgovori na hrvatskom jeziku."
-                                        }
-                                    ]
-                                }
-                            ]
+                            # Groq API poziv putem HTTP
+                            groq_headers = {
+                                "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                                "Content-Type": "application/json"
+                            }
                             
-                            # Retry logika za rate limit (1 req/sec)
-                            pixtral_max_retries = 3
-                            pixtral_retry_delay = 2
-                            image_response = None
+                            groq_payload = {
+                                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                                "messages": [
+                                    {
+                                        "role": "user",
+                                        "content": [
+                                            {
+                                                "type": "text",
+                                                "text": "Describe the following picture. Focus on text and other written elemenrts / tables if present. Make the description of anything other than text brief."
+                                            },
+                                            {
+                                                "type": "image_url",
+                                                "image_url": {
+                                                    "url": f"data:{mime_type};base64,{image_data}"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "max_tokens": 500
+                            }
                             
-                            for pixtral_attempt in range(pixtral_max_retries):
-                                try:
-                                    # Pričekaj prije poziva ako nije prvi pokušaj
-                                    if pixtral_attempt > 0:
-                                        time.sleep(pixtral_retry_delay * (2 ** (pixtral_attempt - 1)))
-                                    
-                                    image_response = client.chat.complete(
-                                        model='pixtral-large-latest',
-                                        messages=vision_messages,
-                                        max_tokens=500
-                                    )
-                                    break  # Uspješno, izađi iz petlje
-                                except Exception as pixtral_error:
-                                    error_str = str(pixtral_error).lower()
-                                    if '429' in str(pixtral_error) or 'rate' in error_str or 'limit' in error_str:
-                                        if pixtral_attempt < pixtral_max_retries - 1:
-                                            print(f"DEBUG: Pixtral rate limit hit, retry {pixtral_attempt + 2}/{pixtral_max_retries}")
-                                            continue
-                                    raise  # Ako nije rate limit ili iscrpljeni pokušaji, proslijedi grešku
+                            groq_response = http_requests.post(
+                                "https://api.groq.com/openai/v1/chat/completions",
+                                headers=groq_headers,
+                                json=groq_payload,
+                                timeout=60
+                            )
                             
-                            if image_response:
-                                file_content = image_response.choices[0].message.content
+                            if groq_response.status_code == 200:
+                                groq_data = groq_response.json()
+                                file_content = groq_data['choices'][0]['message']['content']
                             else:
-                                file_content = "[Nije moguće analizirati sliku nakon više pokušaja]"
+                                if groq_response.status_code == 413:
+                                    error = ("Greška Groq API: Zahtjev je prevelik (413 Payload Too Large).")
+                                else:
+                                    error = groq_response.status_code
+                                file_content = f"[Nije moguće analizirati sliku: {error}]"
                         except Exception as e:
                             file_content = f"[Nije moguće analizirati sliku: {str(e)}]"
                     else:
