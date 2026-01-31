@@ -466,6 +466,44 @@
       display: none;
     }
 
+    /* Drag and drop styles */
+    .ai-chat-body.drag-over {
+      background: #e3f2fd;
+      border: 2px dashed #2196f3;
+    }
+
+    .ai-chat-drop-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(33, 150, 243, 0.1);
+      border: 2px dashed #2196f3;
+      border-radius: 12px;
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .ai-chat-drop-overlay.active {
+      display: flex;
+    }
+
+    .ai-chat-drop-text {
+      background: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      font-weight: 500;
+      color: #2196f3;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     /* Attached file in message bubble */
     .ai-chat-attached-file {
       display: flex;
@@ -874,6 +912,12 @@
     
     <div class="ai-chat-widget" id="aiChatWidget">
       <div class="ai-chat-panel" id="aiChatPanel">
+        <div class="ai-chat-drop-overlay" id="aiChatDropOverlay">
+          <div class="ai-chat-drop-text">
+            <span class="material-symbols-outlined">upload_file</span>
+            Ispustite datoteku ovdje
+          </div>
+        </div>
         <div class="ai-chat-header">
           <span class="material-symbols-outlined">smart_toy</span>
           AI Asistent
@@ -946,6 +990,7 @@
       const fileSize = document.getElementById('aiChatFileSize');
       const fileIcon = document.getElementById('aiChatFileIcon');
       const fileRemove = document.getElementById('aiChatFileRemove');
+      const dropOverlay = document.getElementById('aiChatDropOverlay');
 
       // Chat history array
       let chatHistory = [];
@@ -1034,6 +1079,42 @@
 
       // Remove file button
       fileRemove.addEventListener('click', clearSelectedFile);
+
+      // Drag and drop handling
+      let dragCounter = 0;
+
+      panel.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter++;
+        dropOverlay.classList.add('active');
+      });
+
+      panel.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter--;
+        if (dragCounter === 0) {
+          dropOverlay.classList.remove('active');
+        }
+      });
+
+      panel.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      panel.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter = 0;
+        dropOverlay.classList.remove('active');
+        
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+          handleFileSelect(files[0]);
+        }
+      });
 
       // Scroll to bottom of chat
       function scrollToBottom() {
