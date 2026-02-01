@@ -26,5 +26,6 @@ python-decouple==3.8
 PyPDF2==3.0.1
 python-docx==1.1.2
 groq==0.11.0
-#nisam siguran jel ovo dobro: mistralai==1.11.1
+mistralai==1.11.1
+dotenv==0.9.9
 #django-otp==1.5.1
