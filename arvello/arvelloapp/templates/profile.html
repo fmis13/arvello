@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Moj profil - Arvello{% endblock %}
+
+{% block css %}
+<style>
+    .profile-header {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .profile-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    .profile-info h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    .profile-info p {
+        margin: 0.25rem 0 0;
+        color: #6c757d;
+    }
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .form-section-header {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .current-info {
+        background: #e7f1ff;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .current-info h6 {
+        color: #0d6efd;
+        margin-bottom: 0.75rem;
+    }
+    .current-info .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.25rem 0;
+    }
+    .current-info .info-label {
+        color: #6c757d;
+    }
+    .current-info .info-value {
+        font-weight: 500;
+    }
+    #id_custom_academic_title_wrapper {
+        transition: opacity 0.2s ease;
+    }
+    .hidden-field {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        {{ request.user.first_name|slice:":1"|upper }}{{ request.user.last_name|slice:":1"|upper }}
+                    </div>
+                    <div class="profile-info">
+                        <h2>
+                            {% if profile.get_full_name_with_title %}
+                                {{ profile.get_full_name_with_title }}
+                            {% else %}
+                                {{ request.user.get_full_name|default:request.user.username }}
+                            {% endif %}
+                        </h2>
+                        <p>{{ request.user.email }}</p>
+                        <small class="text-muted">Korisnik od: {{ request.user.date_joined|date:"d.m.Y." }}</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Current Profile Info -->
+                <div class="current-info">
+                    <h6><i class="bi bi-info-circle me-2"></i>Trenutne informacije</h6>
+                    <div class="info-row">
+                        <span class="info-label">Korisničko ime:</span>
+                        <span class="info-value">{{ request.user.username }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Puno ime:</span>
+                        <span class="info-value">{{ request.user.get_full_name|default:"Nije postavljeno" }}</span>
+                    </div>
+                    {% if profile.get_academic_title_display_value %}
+                    <div class="info-row">
+                        <span class="info-label">Akademska titula:</span>
+                        <span class="info-value">{{ profile.get_academic_title_display_value }}</span>
+                    </div>
+                    {% endif %}
+                    {% if profile.display_name %}
+                    <div class="info-row">
+                        <span class="info-label">Prikazno ime:</span>
+                        <span class="info-value">{{ profile.display_name }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Edit Form -->
+                <form method="post">
+                    {% csrf_token %}
+                    {% crispy form %}
+                    
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'invoices' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Odustani
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Spremi promjene
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Additional Info Card -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Sigurnost računa</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    Za promjenu lozinke ili drugih sigurnosnih postavki, kontaktirajte administratora sustava.
+                </p>
+                <div class="info-row d-flex justify-content-between py-2 border-bottom">
+                    <span>Zadnja prijava:</span>
+                    <span class="fw-medium">{{ request.user.last_login|date:"d.m.Y. H:i"|default:"Nepoznato" }}</span>
+                </div>
+                <div class="info-row d-flex justify-content-between py-2">
+                    <span>Status računa:</span>
+                    {% if request.user.is_active %}
+                        <span class="badge bg-success">Aktivan</span>
+                    {% else %}
+                        <span class="badge bg-danger">Neaktivan</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const academicTitleSelect = document.getElementById('id_academic_title');
+    const customTitleInput = document.getElementById('id_custom_academic_title');
+    const customTitleWrapper = customTitleInput ? customTitleInput.closest('.col-md-6') : null;
+    
+    function toggleCustomTitle() {
+        if (academicTitleSelect && customTitleWrapper) {
+            if (academicTitleSelect.value === 'custom') {
+                customTitleWrapper.classList.remove('hidden-field');
+                customTitleInput.required = true;
+            } else {
+                customTitleWrapper.classList.add('hidden-field');
+                customTitleInput.required = false;
+                // Optionally clear the custom title when switching away from custom
+                // customTitleInput.value = '';
+            }
+        }
+    }
+    
+    // Initial state
+    toggleCustomTitle();
+    
+    // Listen for changes
+    if (academicTitleSelect) {
+        academicTitleSelect.addEventListener('change', toggleCustomTitle);
+    }
+});
+</script>
+{% endblock %}

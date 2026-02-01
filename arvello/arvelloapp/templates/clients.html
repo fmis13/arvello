@@ -3,35 +3,47 @@
 {% load crispy_forms_tags %}
 {% load history_extras %}
 
-
-
-{% block css %}
-<link href="{% static '/css/bootstrap.min.css' %}" rel="stylesheet">
-{% endblock %}
-
-
-
-
 {% block main %}
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Klijenti</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-      <div class="btn-group me-2">
-        <a href="{% get_history_url 'Client' %}" class="btn btn-primary">
-          <span class="material-symbols-outlined align-icon">history</span>
-          Povijest promjena</a>
-        <div class="vr mx-1"></div>
-        <button href="#addClientModal" type="button" class="btn btn-primary" data-bs-toggle="modal">Novi klijent</button>
-      </div>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Klijenti</h1>
+    <div class="d-flex gap-2">
+      <a href="{% get_history_url 'Client' %}" class="btn btn-secondary">
+        <i class="bi bi-clock-history me-1"></i>Povijest promjena
+      </a>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+        <i class="bi bi-plus-circle me-1"></i>Novi klijent
+      </button>
     </div>
   </div>
 
   <!-- <canvas class="my-4 w-100" id="myChart" width="900" height="380"></canvas> -->
 
   {% if clients|length > 0 %}
-  <div class="table-responsive">
-    <table class="table table-striped table-sm">
+  <!-- Search form -->
+  <form method="get" class="mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-6">
+        <div class="input-group">
+          <input type="text" name="q" class="form-control" placeholder="Pretraži po imenu, OIB-u, emailu..." value="{{ q }}">
+          <button type="submit" class="btn btn-outline-primary">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </div>
+      <div class="col-md-2">
+        {% if q %}
+        <a href="{% url 'clients' %}" class="btn btn-outline-secondary">Očisti</a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+  <div class="card">
+    <div class="card-header">
+      <h5 class="card-title mb-0">Popis klijenata</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" role="table" aria-label="Tablica klijenata">
       <thead>
         <tr>
           <th scope="col">Ime klijenta</th>
@@ -53,22 +65,43 @@
         <td>{{client.province}}</td>
         <td>{{client.clientUniqueId}}</td>
       </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center text-secondary py-4">Nema klijenata za prikaz.</td>
+        </tr>
         {% endfor %}
 
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   </div>
+</div>
+  <!-- Pagination controls -->
+  {% if clients.has_other_pages %}
+  <nav class="mt-3">
+    <ul class="pagination justify-content-center">
+      {% if clients.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ clients.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">Prethodna</a>
+      </li>
+      {% endif %}
+      <li class="page-item active">
+        <span class="page-link">{{ clients.number }} / {{ clients.paginator.num_pages }}</span>
+      </li>
+      {% if clients.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ clients.next_page_number }}{% if q %}&q={{ q }}{% endif %}">Sljedeća</a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
   {% else %}
-  <div class="row">
-    <div class="col-lg-2">
-
-    </div>
-    <div class="col-lg-8">
-      <h3>Nadodajte prvog klijenta</h3>
-      <img src="{% static '/img/empty.svg' %}" alt="">
-    </div>
-    <div class="col-lg-3">
-
+  <div class="card">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-people display-4 text-muted mb-3"></i>
+      <h4 class="text-muted">Nadodajte prvog klijenta</h4>
+      <p class="text-secondary">Kliknite gumb "Novi klijent" za početak.</p>
     </div>
   </div>
   {% endif %}
@@ -76,31 +109,179 @@
   <div class="modal-dialog">
     <div class="modal-content rounded-6 shadow">
 
-      <form class="" action="#" method="post" enctype="multipart/form-data">
+      <form class="" action="#" method="post" enctype="multipart/form-data" id="clientForm" autocomplete="off">
         {% csrf_token %}
 
 
       <div class="modal-header border-bottom-0">
-        <h5 class="modal-title"></h5>
+        <h5 class="modal-title">Novi klijent</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
       </div>
 
       <div class="modal-body py-0">
-
-
+        <!-- Court Registry Lookup Section -->
+        <div class="card bg-light mb-3">
+          <div class="card-body py-3">
+            <h6 class="card-title mb-2">
+              <i class="bi bi-search me-1"></i>Dohvati podatke iz Sudskog registra
+            </h6>
+            <div class="row g-2">
+              <div class="col-8">
+                <input type="text" id="lookupOib" class="form-control form-control-sm" 
+                       placeholder="Unesite OIB (11 znamenki)" maxlength="11" pattern="\d{11}" autocomplete="off">
+              </div>
+              <div class="col-4">
+                <button type="button" class="btn btn-outline-primary btn-sm w-100" 
+                        id="fetchFromRegistryBtn" onclick="fetchClientFromRegistry()">
+                  <i class="bi bi-download me-1"></i>Dohvati
+                </button>
+              </div>
+            </div>
+            <div id="registryStatus" class="mt-2 small"></div>
+          </div>
+        </div>
+        
         {{form.as_p}}
 
 
       </div>
       <div class="modal-footer flex-column border-top-0">
-        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi izmjene</button>
-        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Zatvori</button>
+        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2"><i class="bi bi-check-lg me-1"></i>Spremi izmjene</button>
+        <button type="button" class="btn btn-lg btn-outline-secondary w-100 mx-0 mb-2" onclick="clearClientForm()"><i class="bi bi-eraser me-1"></i>Očisti formu</button>
+        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Zatvori</button>
       </div>
 
       </form>
     </div>
   </div>
 </div>
-<footer> <a href="{% url 'admin:arvelloapp_client_changelist' %}" style="color: white;">Jedino administrator može brisati klijente, klikom ovdje.</a> </footer>
-</main>
+<div class="mt-3 text-muted small">
+  <a href="{% url 'admin:arvelloapp_client_changelist' %}" class="text-decoration-none">Jedino administrator može brisati klijente, klikom ovdje.</a>
+</div>
+
+<script>
+// Clear form function
+function clearClientForm() {
+    const form = document.getElementById('clientForm');
+    const statusDiv = document.getElementById('registryStatus');
+    const lookupOib = document.getElementById('lookupOib');
+    
+    // Reset all form inputs except CSRF token
+    const inputs = form.querySelectorAll('input:not([name="csrfmiddlewaretoken"]), select, textarea');
+    inputs.forEach(input => {
+        if (input.type === 'checkbox' || input.type === 'radio') {
+            input.checked = false;
+        } else {
+            input.value = '';
+        }
+        // Trigger change event for select fields to update any dependent UI
+        if (input.tagName === 'SELECT') {
+            input.dispatchEvent(new Event('change'));
+        }
+    });
+    
+    // Clear status message
+    if (statusDiv) {
+        statusDiv.innerHTML = '';
+    }
+    
+    // Clear lookup OIB field
+    if (lookupOib) {
+        lookupOib.value = '';
+    }
+}
+
+// Clear form when modal is opened (to prevent stale data from browser autocomplete)
+document.addEventListener('DOMContentLoaded', function() {
+    const addClientModal = document.getElementById('addClientModal');
+    if (addClientModal) {
+        addClientModal.addEventListener('show.bs.modal', function() {
+            clearClientForm();
+        });
+    }
+});
+
+function fetchClientFromRegistry() {
+    const oibInput = document.getElementById('lookupOib');
+    const statusDiv = document.getElementById('registryStatus');
+    const fetchBtn = document.getElementById('fetchFromRegistryBtn');
+    const oib = oibInput.value.trim();
+    
+    // Validate OIB
+    if (!oib) {
+        statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Molimo unesite OIB.</span>';
+        return;
+    }
+    
+    if (!/^\d{11}$/.test(oib)) {
+        statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>OIB mora sadržavati točno 11 znamenki.</span>';
+        return;
+    }
+    
+    // Show loading state
+    fetchBtn.disabled = true;
+    fetchBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Dohvaćam...';
+    statusDiv.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Pretražujem sudski registar...</span>';
+    
+    // Make API request
+    fetch(`{% url 'fetch_client_from_registry' %}?oib=${encodeURIComponent(oib)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate form fields with the fetched data
+                const formData = data.data;
+                
+                // Map API response to form field IDs
+                const fieldMappings = {
+                    'clientName': 'id_clientName',
+                    'addressLine1': 'id_addressLine1',
+                    'postalCode': 'id_postalCode',
+                    'province': 'id_province',
+                    'OIB': 'id_OIB',
+                    'VATID': 'id_VATID',
+                    'clientType': 'id_clientType'
+                };
+                
+                // Populate each field
+                for (const [apiField, formFieldId] of Object.entries(fieldMappings)) {
+                    const field = document.getElementById(formFieldId);
+                    if (field && formData[apiField]) {
+                        field.value = formData[apiField];
+                        // Trigger change event for select fields
+                        if (field.tagName === 'SELECT') {
+                            field.dispatchEvent(new Event('change'));
+                        }
+                    }
+                }
+                
+                statusDiv.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${data.message}</span>`;
+                
+            } else {
+                statusDiv.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>${data.error}</span>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching from registry:', error);
+            statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Greška pri komunikaciji s API-jem. Pokušajte ponovo.</span>';
+        })
+        .finally(() => {
+            // Reset button state
+            fetchBtn.disabled = false;
+            fetchBtn.innerHTML = '<i class="bi bi-download me-1"></i>Dohvati';
+        });
+}
+
+// Allow pressing Enter in the OIB input to trigger fetch
+document.getElementById('lookupOib').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        fetchClientFromRegistry();
+    }
+});
+
+// Auto-format OIB input (only digits)
+document.getElementById('lookupOib').addEventListener('input', function(e) {
+    this.value = this.value.replace(/\D/g, '').slice(0, 11);
+});
+</script>
 {% endblock %}

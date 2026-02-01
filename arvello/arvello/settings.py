@@ -36,6 +36,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'arvelloapp',
+    'arvello_fiscal',
 ]
 
 INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + LOCAL_APPS

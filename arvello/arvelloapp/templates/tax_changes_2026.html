@@ -1,0 +1,394 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block main %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Porezne i fiskalne promjene od 2026. godine</h1>
+        <a href="{% url 'tax_changes_2025' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Pogledaj promjene 2025.
+        </a>
+    </div>
+
+    <!-- Uvodni sažetak -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Sažetak ključnih promjena</h5>
+                <p class="mb-0">Od 1. siječnja 2026. godine stupaju na snagu značajne promjene u sustavu fiskalizacije i elektroničkog izdavanja računa. Ove promjene obuhvaćaju proširenje obveze fiskalizacije na sve načine plaćanja, obvezno korištenje eRačuna za B2B i B2G transakcije, te novu klasifikaciju proizvoda prema KPD 2025 standardu.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Fiskalizacija -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-receipt me-2"></i>Proširenje fiskalizacije (B2C)</h5>
+                </div>
+                <div class="card-body">
+                    <p>Od 1. siječnja 2026. godine <strong>fiskalizacija postaje obvezna za sve načine plaćanja</strong>, uključujući bezgotovinska plaćanja koja su do sada bila izuzeta:</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Način plaćanja</th>
+                                    <th>Do 31.12.2025.</th>
+                                    <th>Od 01.01.2026.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Gotovina (G)</td>
+                                    <td class="text-success">Obvezna fiskalizacija</td>
+                                    <td class="text-success">Obvezna fiskalizacija</td>
+                                </tr>
+                                <tr>
+                                    <td>Kartica (K)</td>
+                                    <td class="text-success">Obvezna fiskalizacija</td>
+                                    <td class="text-success">Obvezna fiskalizacija</td>
+                                </tr>
+                                <tr>
+                                    <td>Transakcijski račun - virman (T)</td>
+                                    <td class="text-secondary">Nije obvezna</td>
+                                    <td class="text-success"><strong>Obvezna fiskalizacija</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Ostali načini plaćanja (O)</td>
+                                    <td class="text-secondary">Nije obvezna</td>
+                                    <td class="text-success"><strong>Obvezna fiskalizacija</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <strong>Važno:</strong> Svi računi izdani fizičkim osobama (B2C transakcije) moraju se fiskalizirati bez obzira na način plaćanja.
+                    </div>
+                </div>
+            </div>
+
+            <!-- eRačun -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Obvezni eRačun za B2B i B2G</h5>
+                </div>
+                <div class="card-body">
+                    <p>Elektronički račun (eRačun) postaje <strong>obvezan za sve transakcije između poslovnih subjekata (B2B)</strong> te za transakcije s tijelima javne vlasti (B2G).</p>
+                    
+                    <h6>Ključne značajke eRačuna:</h6>
+                    <ul>
+                        <li><strong>Strukturirani format:</strong> eRačun mora biti u standardiziranom XML formatu (UBL 2.1 ili UN/CEFACT CII)</li>
+                        <li><strong>Elektronička razmjena:</strong> Računi se razmjenjuju putem certificiranih servisnih pružatelja (PEPPOL mreža)</li>
+                        <li><strong>Digitalni potpis:</strong> Svaki eRačun mora sadržavati kvalificirani elektronički potpis</li>
+                    </ul>
+                    
+                    <div class="table-responsive mt-3">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Vrsta transakcije</th>
+                                    <th>Obveza eRačuna</th>
+                                    <th>Napomena</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>B2G (prema javnom sektoru)</td>
+                                    <td class="text-success"><strong>Obvezno</strong></td>
+                                    <td>Već obvezno od 01.07.2019., nastavlja se</td>
+                                </tr>
+                                <tr>
+                                    <td>B2B (između poduzeća)</td>
+                                    <td class="text-success"><strong>Obvezno</strong></td>
+                                    <td>Nova obveza od 01.01.2026.</td>
+                                </tr>
+                                <tr>
+                                    <td>B2C (prema građanima)</td>
+                                    <td class="text-secondary">Nije obvezno</td>
+                                    <td>Fiskalizirani računi i dalje vrijede</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dvostruka fiskalizacija -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Dvostruka fiskalizacija eRačuna</h5>
+                </div>
+                <div class="card-body">
+                    <p>Nova obveza <strong>dvostruke fiskalizacije</strong> za eRačune uvodi se za B2B i B2G transakcije:</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">1. Fiskalizacija izdavatelja</h6>
+                                    <p class="card-text small">Izdavatelj računa fiskalizira račun i dobiva JIR (Jedinstveni Identifikator Računa)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">2. Fiskalizacija primatelja</h6>
+                                    <p class="card-text small">Primatelj računa također fiskalizira primljeni račun kod Porezne uprave</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="mt-2">Ovaj sustav omogućuje Poreznoj upravi potpun uvid u sve B2B transakcije i automatsku provjeru usklađenosti podataka između izdavatelja i primatelja.</p>
+                </div>
+            </div>
+
+            <!-- KPD klasifikacija -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-tags me-2"></i>KPD 2025 klasifikacija proizvoda</h5>
+                </div>
+                <div class="card-body">
+                    <p>Svi proizvodi i usluge na eRačunima moraju biti klasificirani prema <strong>Klasifikaciji proizvoda po djelatnostima (KPD 2025)</strong>.</p>
+                    
+                    <h6>Što je KPD?</h6>
+                    <p>KPD (Klasifikacija proizvoda po djelatnostima) je statistička klasifikacija koja svrstava proizvode i usluge prema njihovoj ekonomskoj aktivnosti. Verzija 2025 donosi ažurirane šifre usklađene s EU standardima.</p>
+                    
+                    <h6>Primjer KPD kodova:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>KPD šifra</th>
+                                    <th>Opis</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>62.01.1</code></td>
+                                    <td>Usluge dizajniranja, razvoja i programiranja aplikacijskog softvera</td>
+                                </tr>
+                                <tr>
+                                    <td><code>69.20.1</code></td>
+                                    <td>Usluge računovodstva i revizije</td>
+                                </tr>
+                                <tr>
+                                    <td><code>47.00.7</code></td>
+                                    <td>Maloprodaja uredske opreme i računala</td>
+                                </tr>
+                                <tr>
+                                    <td><code>56.10.1</code></td>
+                                    <td>Usluge pripreme i usluživanja hrane</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <strong>Napomena:</strong> Svaka stavka na eRačunu mora sadržavati pripadajuću KPD šifru. Arvello automatski omogućuje dodjelu KPD šifre proizvodima i uslugama.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Novi načini plaćanja -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-credit-card me-2"></i>Oznake načina plaćanja</h5>
+                </div>
+                <div class="card-body">
+                    <p>Proširene oznake za način plaćanja na fiskalnim računima:</p>
+                    
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><strong>G</strong> - Gotovina</span>
+                            <span class="badge bg-primary">Postojeće</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><strong>K</strong> - Kartica</span>
+                            <span class="badge bg-primary">Postojeće</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><strong>T</strong> - Transakcijski račun</span>
+                            <span class="badge bg-success">Novo</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><strong>O</strong> - Ostalo</span>
+                            <span class="badge bg-success">Novo</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Format broja računa -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-hash me-2"></i>Format broja računa</h5>
+                </div>
+                <div class="card-body">
+                    <p>Obvezni format broja fiskalnog računa:</p>
+                    
+                    <div class="bg-light p-3 rounded text-center mb-3">
+                        <code class="fs-5">[Broj]/[Lokacija]/[Uređaj]</code>
+                    </div>
+                    
+                    <p><strong>Primjer:</strong> <code>123/PROD1/1</code></p>
+                    
+                    <ul class="small">
+                        <li><strong>Broj:</strong> Redni broj računa</li>
+                        <li><strong>Lokacija:</strong> Oznaka poslovnog prostora</li>
+                        <li><strong>Uređaj:</strong> Oznaka naplatnog uređaja</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Rokovi -->
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Važni datumi</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="timeline list-unstyled">
+                        <li class="mb-3 pb-3 border-bottom">
+                            <strong>1. siječnja 2026.</strong>
+                            <p class="mb-0 small text-muted">Stupanje na snagu svih novih odredbi</p>
+                        </li>
+                        <li class="mb-3 pb-3 border-bottom">
+                            <strong>31. ožujka 2026.</strong>
+                            <p class="mb-0 small text-muted">Kraj prijelaznog razdoblja za tehničku prilagodbu</p>
+                        </li>
+                        <li class="mb-3">
+                            <strong>30. lipnja 2026.</strong>
+                            <p class="mb-0 small text-muted">Početak pojačanog nadzora i sankcija</p>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Kazne -->
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Kazne za nepoštivanje</h5>
+                </div>
+                <div class="card-body">
+                    <p>Prekršajne odredbe za kršenje obveza:</p>
+                    <ul class="small">
+                        <li>Nefiskalizacija računa: <strong>2.000 - 40.000 €</strong></li>
+                        <li>Neizdavanje eRačuna: <strong>1.000 - 20.000 €</strong></li>
+                        <li>Pogrešna KPD klasifikacija: <strong>500 - 10.000 €</strong></li>
+                        <li>Nepravilan format računa: <strong>500 - 5.000 €</strong></li>
+                    </ul>
+                    <p class="small text-muted">Iznosi kazni ovise o veličini poduzeća i težini prekršaja.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Praktične upute -->
+    <div class="row mt-2">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Priprema u Arvellu</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Koraci za prilagodbu:</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">1. Postavljanje fiskalizacije</h6>
+                                    <p class="card-text small">Provjerite da su svi poslovni prostori i naplatni uređaji ispravno konfigurirani u postavkama fiskalizacije.</p>
+                                    <a href="{% url 'fiscal_configs' %}" class="btn btn-sm btn-outline-primary">Otvori postavke</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">2. Ažuriranje proizvoda</h6>
+                                    <p class="card-text small">Dodijelite KPD šifre svim proizvodima i uslugama koji će se koristiti na eRačunima.</p>
+                                    <a href="{% url 'products' %}" class="btn btn-sm btn-outline-primary">Otvori proizvode</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">3. Konfiguracija klijenata</h6>
+                                    <p class="card-text small">Označite klijente koji zahtijevaju eRačun (pravne osobe i javni sektor).</p>
+                                    <a href="{% url 'clients' %}" class="btn btn-sm btn-outline-primary">Otvori klijente</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usporedba 2025 vs 2026 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-table me-2"></i>Usporedba sustava 2025. i 2026.</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 25%;">Element</th>
+                                    <th style="width: 37.5%;">Sustav 2025.</th>
+                                    <th style="width: 37.5%;">Sustav 2026.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Fiskalizacija - gotovina/kartica</td>
+                                    <td>Obvezna</td>
+                                    <td>Obvezna (nepromijenjeno)</td>
+                                </tr>
+                                <tr>
+                                    <td>Fiskalizacija - virman/ostalo</td>
+                                    <td class="text-secondary">Nije obvezna</td>
+                                    <td class="text-success"><strong>Obvezna</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>eRačun za B2B</td>
+                                    <td class="text-secondary">Nije obvezno</td>
+                                    <td class="text-success"><strong>Obvezno</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>eRačun za B2G</td>
+                                    <td>Obvezno</td>
+                                    <td>Obvezno (nepromijenjeno)</td>
+                                </tr>
+                                <tr>
+                                    <td>Dvostruka fiskalizacija</td>
+                                    <td class="text-secondary">Ne postoji</td>
+                                    <td class="text-success"><strong>Obvezna za eRačune</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>KPD klasifikacija na računima</td>
+                                    <td class="text-secondary">Nije obvezna</td>
+                                    <td class="text-success"><strong>Obvezna na eRačunima</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Oznake načina plaćanja</td>
+                                    <td>G, K, Č</td>
+                                    <td><strong>G, K, T, O, Č</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

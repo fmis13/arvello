@@ -1,5 +1,6 @@
 {% load static %}
 {% load crispy_forms_tags %}
+{% load user_extras %}
 
 <!doctype html>
 <html lang="hr">
@@ -94,7 +95,7 @@
             <div>Poziv na broj: {{invoice.poziv_na_broj}}<br>Hvala!</div>
             <p style="margin-top: 0.1cm;"><strong>Napomena:</strong> račun je pravovaljan bez pečata i/ili potpisa jer je elektronički izrađen.</p>
             <img style="width: 5.5cm; height: auto; margin-left: 3cm" src="data:image/png;base64,{{ barcode_image|safe }}">
-            <p style="margin-left: 3.5cm;"><strong>Referent</strong> - {{ request.user.get_full_name }}</p>
+            <p style="margin-left: 3.5cm;"><strong>Referent</strong> - {{ request.user|full_name_with_title }}</p>
         </div>
         <table class="table table-striped right-align-table" border="1" style="flex: 0 0 auto; width: 7cm;">
             <tr>
@@ -123,3 +124,45 @@
             </tr>
         </table>
     </div>
+    
+    {% comment %} Fiscal Information Section {% endcomment %}
+    {% if invoice.fiscal_status == 'processed' %}
+    <div style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; background-color: #f8f9fa;">
+        <h4 style="margin-bottom: 10px; font-size: 1em;">
+            {% with ftype=invoice.get_fiscalization_type %}
+                {% if ftype == 'F1' %}
+                    <span style="background-color: #0d6efd; color: white; padding: 2px 8px; border-radius: 4px;">F1</span>
+                    Podaci o fiskalizaciji - Maloprodaja
+                {% else %}
+                    <span style="background-color: #198754; color: white; padding: 2px 8px; border-radius: 4px;">F2</span>
+                    Podaci o fiskalizaciji - Veleprodaja
+                {% endif %}
+            {% endwith %}
+        </h4>
+        <div style="font-size: 0.85em;">
+            {% with ftype=invoice.get_fiscalization_type %}
+                {% if ftype == 'F1' %}
+                    {% if invoice.fiscal_jir %}
+                    <div><strong>JIR:</strong> {{ invoice.fiscal_jir }}</div>
+                    {% endif %}
+                    {% if invoice.fiscal_zki %}
+                    <div><strong>ZKI:</strong> {{ invoice.fiscal_zki }}</div>
+                    {% endif %}
+                {% else %}
+                    {% if invoice.eracun_uuid %}
+                    <div><strong>eRačun UUID:</strong> {{ invoice.eracun_uuid }}</div>
+                    {% endif %}
+                    {% if invoice.ubl_xml_reference %}
+                    <div><strong>UBL XML referenca:</strong> {{ invoice.ubl_xml_reference }}</div>
+                    {% endif %}
+                {% endif %}
+            {% endwith %}
+            {% if invoice.fiscalized_at %}
+            <div><strong>Datum fiskalizacije:</strong> {{ invoice.fiscalized_at|date:"d.m.Y. H:i:s" }}</div>
+            {% endif %}
+            {% if invoice.fiscal_operator_oib %}
+            <div><strong>OIB operatera:</strong> {{ invoice.fiscal_operator_oib }}</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}

@@ -4,7 +4,6 @@
 {% load employee_filters %}
 
 {% block main %}
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">JOPPD Izvještaj</h1>
     </div>
@@ -39,8 +38,7 @@
                         </div>
                         
                         <button type="submit" class="btn btn-primary mt-3">
-                            <span class="material-symbols-outlined">file_download</span> 
-                            Generiraj JOPPD
+                            <i class="bi bi-file-earmark-arrow-down me-1"></i>Generiraj JOPPD
                         </button>
                     </form>
                 </div>
@@ -132,8 +130,7 @@
                             <input type="hidden" name="month" value="{{ month }}">
                             <input type="hidden" name="year" value="{{ year }}">
                             <button type="submit" class="btn btn-success">
-                                <span class="material-symbols-outlined">file_download</span> 
-                                Preuzmi XML
+                                <i class="bi bi-file-earmark-code me-1"></i>Preuzmi XML
                             </button>
                         </form>
                     </div>
@@ -142,5 +139,4 @@
         </div>
     </div>
     {% endif %}
-</main>
 {% endblock %}

@@ -1,5 +1,6 @@
 from io import BytesIO
 import os
+import logging
 from django.conf import settings
 from django.template.loader import get_template, render_to_string
 from xhtml2pdf import pisa
@@ -9,6 +10,8 @@ from decimal import Decimal
 from weasyprint import HTML
 from .payslip_context import get_payslip_context 
 from .email_utils import send_payslip_email
+
+logger = logging.getLogger(__name__)
 
 def html_to_pdf(template_src, context_dict={}):
     """Generira PDF iz HTML predloška.
@@ -79,9 +82,9 @@ def generate_payslip_pdf(salary, request, template_name='salary_payslip_pdf.html
     email_sent = send_payslip_email(subject, message, recipient_email, pdf_path, sender_name, reply_to_email, salary)
 
     if email_sent:
-        print("E-mail uspješno poslan.")
+        logger.info("E-mail uspješno poslan.")
     else:
-        print("Greška pri slanju e-maila.")
+        logger.error("Greška pri slanju e-maila.")
 
     # Vrati PDF kao HTTP odgovor
     response = HttpResponse(content_type='application/pdf')

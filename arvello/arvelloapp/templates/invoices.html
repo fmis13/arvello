@@ -3,113 +3,168 @@
 {% load crispy_forms_tags %}
 {% load history_extras %}
 
+{% block title %}Računi - {{ block.super }}{% endblock %}
 
 {% block main %}
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Računi</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-      <div class="btn-group me-2">
-        {% comment %} <button type="button" class="btn btn-sm btn-outline-secondary">Print</button>
-        <a type="button" class="btn btn-primary" href="{% url 'create_invoice' %}">Izradi račun</a> 
-        <button href="#addInvoiceModal" type="button" class="btn btn-primary" data-bs-toggle="modal">Novi račun</button>{% endcomment %}
-        <a href="{% get_history_url 'Invoice' %}" class="btn btn-primary">
-          <span class="material-symbols-outlined align-icon">history</span>
-          Povijest promjena</a>
-        <div class="vr mx-1"></div>
-        <a href="{% url 'create_invoice' %}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Novi račun</a>
-      </div>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Računi</h1>
+  <div class="d-flex gap-2">
+    <a href="{% get_history_url 'Invoice' %}" class="btn btn-secondary">
+      <i class="bi bi-clock-history me-1"></i>Povijest promjena
+    </a>
+    <a href="{% url 'create_invoice' %}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+      <i class="bi bi-plus-circle me-1"></i>Novi račun
+    </a>
   </div>
+</div>
 
-  <div class="table-responsive">
-    <table class="table table-striped table-sm">
-      <thead>
-        <tr>
-          <th scope="col">Naslov</th>
-          <th scope="col">Klijent</th>
-          <th scope="col">Broj računa</th>
-          <th scope="col">Subjekt</th>
-          <th scope="col">Dospijeće</th>
-          <th scope="col">Bilješke</th>
-            <th scope="col" colspan="3">Akcije</th>
-        </tr>
-      </thead>
-      <tbody>
-
-        {% for invoice in invoices %}
-      <tr 
-        {% if invoice.get_overdue_status == "warning" %}
-          class="table-warning"
-        {% elif invoice.get_overdue_status == "danger" %}
-          class="table-danger"
-        {% endif %}
-      >
-        {% if invoice.title == None %}
-        <td>∅</td>
-        {% else %}
-        <td>{{invoice.title}}</td>
-        {% endif %}
-        <td>{{invoice.client.clientName}}</td>
-        <td>{{invoice.number}}</td>
-        <td>{{invoice.subject.clientName}}</td>
-        <td>{{invoice.dueDate}}</td>
-        <td>{{invoice.notes}}</td>
-        <td class="p-1"><a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer">
-          <button type="button" class="btn btn-sm m-0"><img src="{% static 'img/download.svg' %}" alt="Preuzmi" title="Preuzmi" width="16" height="16"></button></a></td>
-        <td class="p-1" style="width: 2rem;">
-          <form method="post" action="{% url 'mark_invoice_paid' invoice.id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm m-0 {% if invoice.is_paid %}btn-success{% else %}btn-outline-secondary{% endif %}">
-              <span class="material-symbols-outlined align-icon">check</span>
+<div class="card">
+  <div class="card-header">
+    <h2 class="h3 mb-0">Popis računa</h2>
+  </div>
+  <div class="card-body">
+    <!-- Search and filter form -->
+    <form method="get" class="mb-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label for="q" class="form-label small mb-1">Pretraži</label>
+          <div class="input-group">
+            <input type="text" name="q" id="q" class="form-control" placeholder="Broj računa, klijent, naslov..." value="{{ q }}">
+            <button type="submit" class="btn btn-outline-primary">
+              <i class="bi bi-search"></i>
             </button>
-          </form>
-        </td>
-        <td class="p-1" style="width: 2rem;">
-          <form method="post" action="{% url 'send_invoice_email' invoice.id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm m-0 btn-outline-secondary">
-              <span class="material-symbols-outlined align-icon">email</span>
-            </button>
-          </form>
-        </td>
-      </tr>
-        {% endfor %}
-
-      </tbody>
-    </table>
-  </div>
-  <footer> <a href="{% url 'admin:arvelloapp_invoice_changelist' %}" style="color: white;">Jedino administrator može brisati račune, klikom ovdje.</a> </footer>
-  {% comment %}
-  <div class="modal modal-sheet py-5" tabindex="-1" id="addInvoiceModal">
-    <div class="modal-dialog">
-      <div class="modal-content rounded-6 shadow">
-  
-        <form class="" action="#" method="post" enctype="multipart/form-data">
-          {% csrf_token %}
-  
-  
-        <div class="modal-header border-bottom-0">
-          <h5 class="modal-title"></h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+          </div>
         </div>
-  
-        <div class="modal-body py-0">
-  
-  
-          {{form.as_p}}
-  
-  
+        <div class="col-md-3">
+          <label for="date_from" class="form-label small mb-1">Datum od</label>
+          <input type="date" name="date_from" id="date_from" class="form-control" value="{{ date_from }}">
         </div>
-        <div class="modal-footer flex-column border-top-0">
-          <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi izmjene</button>
-          <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Zatvori</button>
+        <div class="col-md-3">
+          <label for="date_to" class="form-label small mb-1">Datum do</label>
+          <input type="date" name="date_to" id="date_to" class="form-control" value="{{ date_to }}">
         </div>
-  
-        </form>
+        <div class="col-md-2">
+          {% if q or date_from or date_to %}
+          <a href="{% url 'invoices' %}" class="btn btn-outline-secondary w-100">Očisti</a>
+          {% endif %}
+        </div>
       </div>
+    </form>
+    <div class="table-responsive-xl" style="overflow-x: auto;">
+      <table class="table table-hover mb-0 wrap invoice-table" style="min-width: 1100px;" role="table" aria-label="Tablica računa">
+        <thead>
+          <tr>
+            <th scope="col" class="col-title wrap break-word">Naslov</th>
+            <th scope="col" class="col-client">Klijent</th>
+            <th scope="col" class="col-number">Broj računa</th>
+            <th scope="col" class="col-subject">Subjekt</th>
+            <th scope="col" class="col-due">Dospijeće</th>
+            <th scope="col" class="col-type">Tip</th>
+            <th scope="col" class="col-fiscal">Fiskalni status</th>
+            <th scope="col" class="col-notes wrap break-word">Bilješke</th>
+            <th scope="col" class="text-center text-nowrap actions-col actions" style="min-width: 180px;">Akcije</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for invoice in invoices %}
+          <tr class="{% if invoice.get_overdue_status == 'warning' %}row-overdue-warning{% elif invoice.get_overdue_status == 'danger' %}row-overdue-danger{% endif %}">
+              <td class="wrap break-word">{% if invoice.title %}{{ invoice.title }}{% else %}<span class="empty-value" aria-hidden="true">∅</span><span class="sr-only">(prazno)</span>{% endif %}</td>
+            <td>{{ invoice.client.clientName }}</td>
+            <td>{{ invoice.number }}</td>
+            <td>{{ invoice.subject.clientName }}</td>
+            <td>{{ invoice.dueDate|date:"d.m.Y." }}</td>
+            <td>
+              {% with ftype=invoice.get_fiscalization_type %}
+                {% if ftype == 'F1' %}
+                  <span class="badge bg-primary" title="Fiskalizacija 1.0 - Maloprodaja (XML/SOAP)">
+                    <i class="bi bi-shop me-1"></i>F1
+                  </span>
+                {% else %}
+                  <span class="badge bg-success" title="Fiskalizacija 2.0 - Veleprodaja (eRačun/UBL)">
+                    <i class="bi bi-building me-1"></i>F2
+                  </span>
+                {% endif %}
+              {% endwith %}
+            </td>
+            <td>
+              {% if invoice.fiscal_status == 'pending' %}
+                <span class="badge bg-secondary">Na čekanju</span>
+              {% elif invoice.fiscal_status == 'enqueued' %}
+                <span class="badge bg-info">U redu</span>
+              {% elif invoice.fiscal_status == 'processed' %}
+                <span class="badge bg-success" title="JIR: {{ invoice.fiscal_jir|default:'-' }}">Fiskalizirano</span>
+              {% elif invoice.fiscal_status == 'failed' %}
+                <span class="badge bg-danger">Neuspješno</span>
+              {% elif invoice.fiscal_status == 'exempt' %}
+                <span class="badge bg-warning">Izuzeto</span>
+              {% else %}
+                <span class="badge bg-light text-dark">-</span>
+              {% endif %}
+            </td>
+            <td class="wrap break-word" title="{{ invoice.notes|escape }}">{{ invoice.notes|truncatechars:50 }}</td>
+            <td class="text-center text-nowrap actions-col actions" style="min-width: 180px;">
+              <div class="d-flex justify-content-center gap-1 flex-nowrap">
+                <a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer"
+                   class="btn btn-sm btn-outline-secondary action-btn" aria-label="Ispiši račun {{ invoice.number }}" title="Ispiši">
+                  <i class="bi bi-printer"></i>
+                </a>
+                <a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" rel="noopener noreferrer"
+                   class="btn btn-sm btn-outline-secondary action-btn" aria-label="Preuzmi PDF računa {{ invoice.number }}" title="Preuzmi">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" action="{% url 'mark_invoice_paid' invoice.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm action-btn {% if invoice.is_paid %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                          aria-label="{% if invoice.is_paid %}Označi kao neplaćeno{% else %}Označi kao plaćeno{% endif %}" title="{% if invoice.is_paid %}Neplaćeno{% else %}Plaćeno{% endif %}">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                </form>
+                <form method="post" action="{% url 'send_invoice_email' invoice.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-secondary action-btn"
+                          aria-label="Pošalji račun emailom" title="Pošalji email">
+                    <i class="bi bi-envelope"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center text-secondary py-4">
+              Nema računa za prikaz.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+    <!-- Pagination controls -->
+    {% if invoices.has_other_pages %}
+    <nav class="mt-3">
+      <ul class="pagination justify-content-center mb-0">
+        {% if invoices.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ invoices.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Prethodna</a>
+        </li>
+        {% endif %}
+        <li class="page-item active">
+          <span class="page-link">{{ invoices.number }} / {{ invoices.paginator.num_pages }}</span>
+        </li>
+        {% if invoices.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ invoices.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">Sljedeća</a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
   </div>
-  {% endcomment %}
-</main>
+</div>
+
+<div class="mt-3 text-muted small">
+  <a href="{% url 'admin:arvelloapp_invoice_changelist' %}" class="text-decoration-none">
+    Administrator može brisati račune
+  </a>
+</div>
 {% endblock %}

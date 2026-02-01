@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-
+{% load user_extras %}
 {% block main %}
 
 <style>
@@ -224,16 +224,15 @@
     }
 </style>
 
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
     <div class="no-print">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <h1 class="h2">Platna lista</h1>
             <div class="btn-toolbar mb-2 mb-md-0">
                 <button onclick="window.print();" class="btn btn-sm btn-outline-secondary me-2">
-                    <span class="material-symbols-outlined">print</span> Ispiši
+                    <i class="bi bi-printer me-1"></i>Ispiši
                 </button>
                 <a href="{% url 'salaries' %}" class="btn btn-sm btn-outline-secondary">
-                    <span class="material-symbols-outlined">arrow_back</span> Natrag
+                    <i class="bi bi-arrow-left me-1"></i>Natrag
                 </a>
             </div>
         </div>
@@ -411,7 +410,7 @@
     <div class="footer-info">
         <p>Ispis: {{ generated_at|date:"d.m.Y. H:i" }}<br>
         Datum predaje dokumenta: {{ generated_at|date:"d.m.Y." }}<br>
-        Odgovorna osoba poslodavca: {{ salary.created_by.get_full_name }}</p>
+        Odgovorna osoba poslodavca: {{ salary.created_by|full_name_with_title }}</p>
     </div>
 
     <!-- Signature section for print -->
@@ -423,7 +422,7 @@
                     <div style="position: fixed; left: 0.2cm; bottom: 0.45cm; width: 7.9cm; height: 4cm; background-color: #e9ecef; border-radius: 15px;"></div>
                     <div style="position: fixed; left: 0.2cm; bottom: -0.05cm; width: 7.9cm; text-align: center; font-size: 0.7em;">
                         <br>
-                        {{ salary.created_by.get_full_name }} u ime {{ company.clientName }}
+                        {{ salary.created_by|full_name_with_title }} u ime {{ company.clientName }}
                     </div>
                 </td>
                 <!-- Desna kućica -->
@@ -438,5 +437,4 @@
         </table>
     </div>
 
-</main>
 {% endblock %}

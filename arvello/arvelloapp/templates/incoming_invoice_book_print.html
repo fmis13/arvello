@@ -1,145 +1,56 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load user_extras %}
 {% block main %}
 
 <title>Knjiga ulaznih računa</title>
 <link rel="stylesheet" href="{% static 'css/invoice_book_print.css' %}">
 <style>
+    /* ==== PAGE SETUP ==== */
+    @page {
+        size: A4 landscape;
+        margin: 0.8cm;
+    }
+
+    /* ==== PRINT STYLES ==== */
     @media print {
-        .no-print {
-            display: none !important;
-        }
-        .page-break {
-            page-break-after: always;
-        }
-        body {
-            counter-reset: page 1;
-            font-size: 10px !important;
-        }
-        .page-number:after {
-            content: counter(page) "/" counter(pages);
-        }
-        .table {
-            width: 95% !important;
-            table-layout: fixed !important;
-            font-size: 9px !important;
-        }
-        .table td, .table th {
-            padding: 0.15rem !important;
-            text-align: center !important;
-            height: auto !important;
-            vertical-align: middle !important;
-            overflow: visible !important;
-            white-space: nowrap !important;
-        }
-        .table th.multiline {
-            width: 1% !important;
-        }
-        .table th.small-heading {
-            width: 5%;
-            min-width: 50px;
-        }
-        .table th[colspan="2"] {
-            width: 10%;
-            min-width: 100px;
-        }
-        .table th[colspan="6"] {
-            width: 15%;
-        }
-        .table th[colspan="8"] {
-            width: 20%;
-        }
+        /* Hide screen-only elements */
+        .no-print,
         .navbar,
         header.navbar,
         .sticky-top,
         .sidebar,
-        .alert {
+        .alert,
+        form {
             display: none !important;
         }
+        
+        /* Show print footer */
+        .print-footer {
+            display: flex !important;
+        }
+        
+        /* Layout reset */
+        body {
+            font-size: 9pt !important;
+            margin: 0;
+            padding: 0;
+            padding-bottom: 2cm; /* Space for fixed footer */
+        }
+        
         .main-content,
         .content-area {
             margin-left: 0 !important;
             padding-left: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
         }
+        
         .main-container,
         main {
             margin-top: 0 !important;
             padding-top: 0 !important;
-        }
-        .supplier-name-heading {
-            width: 15% !important;
-            min-width: 120px !important;
-            white-space: normal !important;
-            height: auto !important;
-        }
-        
-        .supplier-name-heading br {
-            margin: 0 !important;
-            line-height: 1 !important;
-        }
-        
-        table.invoice-table {
-            table-layout: fixed !important;
-            width: 100% !important;
-        }
-        
-        .invoice-table th.supplier-name-heading,
-        .invoice-table td:nth-child(4) {
-            width: 30% !important;
-        }
-        
-        .invoice-table th:not(.supplier-name-heading),
-        .invoice-table td:not(:nth-child(4)) {
-            width: auto !important;
-            max-width: 6% !important;
-        }
-        
-        .invoice-table th.multiline,
-        .invoice-table td:first-child {
-            width: 2% !important;
-            min-width: 25px !important;
-            max-width: 30px !important;
-            padding: 0.2rem !important;
-            font-weight: normal !important;
-            vertical-align: middle !important;
-            text-align: center !important;
-        }
-        
-        .invoice-table td:nth-child(2),
-        .invoice-table td:nth-child(3) {
-            width: 3% !important;
-            max-width: 50px !important;
-        }
-        
-        .text-end {
-            width: auto !important;
-            white-space: nowrap !important;
-            text-align: right !important;
-        }
-
-        tfoot td.text-end {
-            text-align: right !important;
-            padding-right: 10px !important;
-        }
-
-        .main-content {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-        }
-        
-        .table-container {
-            overflow-x: visible !important;
-            width: 95% !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-            display: block !important;
-        }
-        
-        .table {
-            margin: 0 auto !important;
-            width: 100% !important;
-            max-width: none !important;
         }
         
         .container-fluid {
@@ -147,165 +58,151 @@
             margin: 0 !important;
             width: 100% !important;
         }
-
-        .table td.numeric {
-            text-align: right !important;
-            padding-right: 2px !important;
-            width: 45px !important;
+        
+        .table-container {
+            overflow: visible !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            margin-bottom: 1.5cm !important; /* Space for footer */
         }
-
+        
+        /* Table base styles */
+        .table {
+            width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+            font-size: 8pt !important;
+            margin: 0 !important;
+        }
+        
+        .table td, .table th {
+            padding: 2px 3px !important;
+            vertical-align: middle !important;
+            border: 1px solid #000 !important;
+        }
+        
+        /* Table pagination - headers repeat on each page */
+        thead {
+            display: table-header-group !important;
+        }
+        
+        thead tr {
+            page-break-after: avoid;
+        }
+        
+        tfoot {
+            display: table-footer-group !important;
+        }
+        
+        /* Prevent row breaking */
+        tr {
+            page-break-inside: avoid;
+        }
+        
+        /* Table allows natural page breaks */
+        table {
+            page-break-inside: auto;
+        }
+        
+        /* Invoice table specific */
+        .invoice-table {
+            font-size: 7pt !important;
+        }
+        
+        .invoice-table th,
+        .invoice-table td {
+            padding: 1px 2px !important;
+            font-size: 7pt !important;
+        }
+        
+        /* Column widths */
+        .invoice-table th.multiline,
+        .invoice-table td:first-child {
+            width: 3% !important;
+            text-align: center !important;
+        }
+        
+        .invoice-table td:nth-child(2),
+        .invoice-table td:nth-child(3) {
+            width: 5% !important;
+        }
+        
+        .supplier-name-heading,
+        .invoice-table td:nth-child(4) {
+            width: 12% !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            text-align: left !important;
+            line-height: 1.2 !important;
+        }
+        
+        .invoice-table td:nth-child(5) {
+            width: 6% !important;
+        }
+        
+        /* Numeric columns */
+        .numeric,
         .table td.numeric,
         .invoice-table td.numeric {
             text-align: right !important;
-            padding-right: 2px !important;
-            width: 45px !important;
+            padding-right: 3px !important;
             white-space: nowrap !important;
-        }
-
-        .invoice-table td:first-child { width: 20px !important; }
-        .invoice-table td:nth-child(2) { width: 40px !important; }
-        .invoice-table td:nth-child(3) { width: 45px !important; }
-
-        .supplier-name-heading,
-        .invoice-table td:nth-child(4) {
-            width: auto !important;
-            max-width: 150px !important;
-        }
-
-        .invoice-table td:nth-child(4) {
-            white-space: normal !important;
-            word-wrap: break-word !important;
-            width: 15% !important;
-            min-width: 120px !important;
-            max-width: none !important;
-            height: auto !important;
-            padding: 2px 3px !important;
-            text-align: left !important;
-            line-height: 1.1 !important;
-        }
-
-        .table td:not(:nth-child(4)) {
-            white-space: nowrap !important;
-        }
-
-        .supplier-name-heading {
-            width: 15% !important;
-            min-width: 120px !important;
-            max-width: 180px !important;
-            word-break: break-word !important;
-            overflow-wrap: break-word !important;
-            white-space: normal !important;
-            font-size: 8px !important;
-            line-height: 1 !important;
-            padding: 2px !important;
-            height: auto !important;
-            vertical-align: middle !important;
-        }
-
-        .invoice-table td:nth-child(4) {
-            width: 15% !important;
-            max-width: 180px !important;
-            word-break: break-word !important;
-            white-space: normal !important;
-            text-align: left !important;
-            padding: 2px !important;
-        }
-
-        .supplier-name-heading {
-            width: 15% !important;
-            min-width: 100px !important;
-            max-width: 150px !important;
-            font-size: 7px !important;
-            line-height: 0.9 !important;
-            word-spacing: -1px !important;
-            letter-spacing: -0.3px !important;
-            padding: 1px !important;
-            word-break: break-all !important;
-            hyphens: auto !important;
-        }
-
-        .supplier-name-heading br {
-            line-height: 0.8 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        .page-break {
-            page-break-after: always;
-            height: 0;
-            display: block;
-        }
-
-        .invoice-table td:not(:nth-child(4)),
-        .invoice-table th:not(.supplier-name-heading) {
-            padding: 1px !important;
-            font-size: 8px !important;
-        }
-
-        .supplier-name-heading {
-            width: 15% !important;
-            min-width: 120px !important;
-            max-width: 150px !important;
-            font-size: 8px !important;
-            line-height: 1.2 !important;
-            letter-spacing: normal !important;
-            word-spacing: normal !important;
-            padding: 2px 3px !important;
-            word-break: normal !important;
-            text-align: left !important;
-            white-space: normal !important;
-            font-weight: bold !important;
-            vertical-align: middle !important;
-        }
-
-        .supplier-name-heading br {
-            display: block !important;
-            margin: 1px 0 !important;
-            content: "" !important;
-            line-height: 1.1 !important;
-        }
-
-        table.invoice-table > tbody > tr > td:nth-child(n+6):not(:nth-child(4)),
-        table.invoice-table > tfoot > tr > td.numeric {
-            text-align: right !important;
-            padding-right: 2px !important;
-            width: 45px !important;
-            white-space: nowrap !important;
-            font-size: 8px !important;
             font-family: monospace !important;
         }
-
-        .table td.numeric,
-        .numeric,
-        td.numeric {
+        
+        .text-end {
             text-align: right !important;
-            padding-right: 2px !important;
+        }
+        
+        tfoot td.text-end {
+            text-align: right !important;
+            padding-right: 10px !important;
+        }
+        
+        /* Print footer - fixed at bottom of each page */
+        .print-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1.5cm;
+            padding: 0.3cm 1cm;
+            font-size: 7pt;
+            border-top: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            background: white;
         }
     }
 
-    @page {
-        size: A4 landscape;
-        counter-increment: page;
-        margin: 0.5cm !important;
+    /* ==== SCREEN STYLES ==== */
+    @media screen {
+        .print-footer {
+            display: none;
+        }
+        
+        .content-wrapper {
+            margin-left: 0;
+        }
     }
-
+    
     .table-container {
         overflow-x: auto;
         width: 100%;
         display: flex;
         justify-content: center;
     }
+    
     .small-text {
         font-size: 0.9em;
     }
+    
     .footer-info {
-        position: fixed;
-        bottom: 1cm;
-        left: 1cm;
-        right: 1cm;
-        width: calc(100% - 2cm);
-        display: flex;
-        justify-content: space-between;
+        margin-top: 20px;
+        padding-top: 10px;
+        border-top: 1px solid #dee2e6;
     }
 
     .footer-left {
@@ -318,28 +215,9 @@
         flex: 0 0 auto;
     }
 
-    .page-number-container {
-        white-space: nowrap;
-    }
-
-    .content-area {
-        width: 100%;
-        position: relative;
-    }
     .content-wrapper {
-        margin-left: 0;
         width: 100%;
         padding: 20px;
-    }
-
-    @media screen {
-        .content-wrapper {
-            margin-left: 250px;
-        }
-        .main-content {
-            padding-left: 250px !important;
-            padding: 20px;
-        }
     }
 
     .text-center {
@@ -350,15 +228,9 @@
         font-style: italic;
         font-size: 0.8em;
     }
-
-    .page-number-container {
-        justify-self: end;
-        text-align: right;
-        width: 100%;
-    }
 </style>
 
-<main class="col-md-10 col-lg-11 px-md-2 ms-sm-0 main-content">
+<div class="invoice-book-content">
     <div class="container-fluid mb-4 no-print">
         <div class="row">
             <div class="col-12">
@@ -485,7 +357,7 @@
                 </thead>
                 <tbody>
                     {% for expense in expenses %}
-                    <tr{% if forloop.counter|divisibleby:35 and not forloop.last %} class="page-break"{% endif %}>
+                    <tr>
                         <td class="text-center">{{ forloop.counter }}</td>
                         <td>{{ expense.invoice_number|default:"-" }}</td>
                         <td>{{ expense.date|date:"d.m.Y."|default:"-" }}</td>
@@ -534,22 +406,36 @@
                 </tfoot>
             </table>
         </div>
-        <div class="footer-info">
+        <!-- Screen-only footer with print button hint -->
+        <div class="footer-info no-print">
             <div class="footer-left">
                 <span class="small-text">
-                    Korisnik: {{request.user.get_full_name}}<br>
+                    Korisnik: {{ request.user|full_name_with_title }}<br>
                     Generirano: {{ generated_at|date:"d.m.Y. H:i:s" }}<br>
                     Napravljeno sukladno čl. 165 Pravilnika o porezu na dodatnu vrijednost ("Narodne novine" br. 79/13., 85/13., 160/13., 35/14., 157/14.,<br>
                     130/15., 115/16., 1/17., 41/17., 128/17., 106/18., 1/19., 1/20., 138/20., 1/21., 73/21., 41/22., 133/22., 43/23., 1/24., 39/24., 16/25.)
                 </span>
             </div>
             <div class="footer-right">
-                <span class="small-text page-number-container">Stranica <span class="page-number"></span></span>
+                <span class="small-text">Pritisnite "Ispiši" za ispis</span>
+            </div>
+        </div>
+        
+        <!-- Print footer - visible on every printed page -->
+        <div class="print-footer">
+            <div class="footer-left">
+                <span class="small-text">
+                    Korisnik: {{ request.user|full_name_with_title }} | Generirano: {{ generated_at|date:"d.m.Y. H:i:s" }}<br>
+                    Čl. 165 Pravilnika o PDV-u (NN 79/13., 85/13., 160/13., 35/14., 157/14., 130/15., 115/16., 1/17., 41/17., 128/17., 106/18., 1/19., 1/20., 138/20., 1/21., 73/21., 41/22., 133/22., 43/23., 1/24., 39/24., 16/25.)
+                </span>
+            </div>
+            <div class="footer-right">
+                <span class="small-text">{{ company.clientName }}</span>
             </div>
         </div>
     </div>
     {% endif %}
-</main>
+</div>
 
 <script src="{% static 'js/bootstrap.min.js' %}"></script>
 <script>
@@ -575,28 +461,5 @@
 
         updateFilters();
     });
-
-    (function() {
-        function countPages() {
-            const style = document.createElement('style');
-            style.textContent = '@page { size: A4 landscape; }';
-            document.head.appendChild(style);
-            
-            const totalRows = document.querySelectorAll('.invoice-table tbody tr').length;
-            const rowsPerPage = 35;
-            const estimatedPages = Math.ceil(totalRows / rowsPerPage);
-            
-            document.documentElement.style.setProperty('--total-pages', estimatedPages);
-            
-            const styleElement = document.createElement('style');
-            styleElement.textContent = `@page { counter-increment: page; } html { counter-reset: pages ${estimatedPages}; }`;
-            document.head.appendChild(styleElement);
-            
-            style.remove();
-        }
-
-        window.addEventListener('beforeprint', countPages);
-    })();
-    
 </script>
 {% endblock %}
