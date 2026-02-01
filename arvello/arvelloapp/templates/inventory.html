@@ -10,6 +10,15 @@
       <a href="{% get_history_url 'Inventory' %}" class="btn btn-secondary">
         <i class="bi bi-clock-history me-1"></i>Povijest promjena
       </a>
+      <div class="btn-group">
+        <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-download me-1"></i>Izvoz
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="{% url 'export_inventory_to_excel' %}"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a></li>
+          <li><a class="dropdown-item" href="{% url 'export_inventory_to_csv' %}"><i class="bi bi-filetype-csv me-1"></i>CSV</a></li>
+        </ul>
+      </div>
       <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
         <i class="bi bi-plus-circle me-1"></i>Novi inventar
       </button>

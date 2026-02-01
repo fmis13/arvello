@@ -39,7 +39,12 @@ document_patterns = [
     path('inventory_label/<int:pk>/', views.inventory_label, name='inventory_label'),
     path('product_label/<int:pk>/', views.product_label, name='product_label'),
     path('invoices/send_email/<int:invoice_id>/', views.send_invoice_email, name='send_invoice_email'),
+    path('mark_offer_finished/<int:offer_id>/', views.mark_offer_finished, name='mark_offer_finished'),
+]
 
+table_exports = [
+    path('export_inventory_excel/', views.export_inventory_to_excel, name='export_inventory_to_excel'),
+    path('export_inventory_csv/', views.export_inventory_to_csv, name='export_inventory_to_csv'),
 ]
 
 # Financijski URL-ovi
@@ -86,6 +91,8 @@ info_patterns = [
 api_patterns = [
     path('local-tax-data/<int:tax_id>/', views.get_local_tax_data, name='get_local_tax_data'),
     path('invoices/<int:invoice_id>/mark-paid/', views.mark_invoice_paid, name='mark_invoice_paid'),
+    path('api/ai-chat/', views.ai_chat, name='ai_chat'),
+    path('api/ai-execute-action/', views.ai_execute_action, name='ai_execute_action'),
     path('api/court-registry/fetch/', views.fetch_client_from_registry, name='fetch_client_from_registry'),
     path('api/kpd/search/', views.search_kpd_codes, name='search_kpd_codes'),
 ]
@@ -119,6 +126,7 @@ urlpatterns = [
     *history_patterns,
     *info_patterns,
     *api_patterns,
+    *table_exports,
     *fiscal_patterns,
     *admin_patterns,
     *user_patterns,

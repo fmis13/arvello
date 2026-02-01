@@ -39,7 +39,9 @@ from weasyprint import HTML, CSS
 from .utils.email_utils import send_email_with_attachment
 from django.conf import settings
 import os
+import time
 from django.utils.timezone import now
+from mistralai import Mistral
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +105,7 @@ def products(request):
         if form.is_valid():
             # Ako je forma ispravna, spremi proizvod
             form.save()
-            messages.success(request, 'Nadoan je novi proizvod/usluga')
+            messages.success(request, 'Nadodan je novi proizvod/usluga')
             return redirect('products')
         else:
             # Ako forma nije ispravna, prikaži greške
@@ -249,6 +251,75 @@ def create_invoice(request):
 
     return render(request, 'makeinvoice.html', context)
 
+
+@login_required
+def export_inventory_to_excel(request):
+    # Izvozi inventar u Excel datoteku
+    inventory_items = Inventory.objects.all()
+
+    # Pripremi podatke za DataFrame
+    data = []
+    for item in inventory_items:
+        data.append({
+            'Naziv': item.title,
+            'Količina': item.quantity,
+            'Datum dodavanja': item.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+            'Zadnje ažuriranje': item.last_updated.strftime('%Y-%m-%d %H:%M:%S'),
+            'Subjekt': item.subject.clientName if item.subject else '',
+        })
+
+    # Kreiraj DataFrame
+    df = pd.DataFrame(data)
+
+    # Kreiraj privremenu Excel datoteku
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+        excel_path = tmp.name
+        df.to_excel(excel_path, index=False)
+
+    # Otvori datoteku za čitanje i pripremi odgovor
+    with open(excel_path, 'rb') as f:
+        response = HttpResponse(f.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="inventory.xlsx"'
+
+    # Obriši privremenu datoteku
+    os.remove(excel_path)
+
+    return response
+
+@login_required
+def export_inventory_to_csv(request):
+    # Izvozi inventar u CSV datoteku
+    inventory_items = Inventory.objects.all()
+
+    # Pripremi podatke za DataFrame
+    data = []
+    for item in inventory_items:
+        data.append({
+            'Naziv': item.title,
+            'Količina': item.quantity,
+            'Datum dodavanja': item.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+            'Zadnje ažuriranje': item.last_updated.strftime('%Y-%m-%d %H:%M:%S'),
+            'Subjekt': item.subject.clientName if item.subject else '',
+        })
+
+    # Kreiraj DataFrame
+    df = pd.DataFrame(data)
+
+    # Kreiraj privremenu CSV datoteku
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp:
+        csv_path = tmp.name
+        df.to_csv(csv_path, index=False)
+
+    # Otvori datoteku za čitanje i pripremi odgovor
+    with open(csv_path, 'rb') as f:
+        response = HttpResponse(f.read(), content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="inventory.csv"'
+
+    # Obriši privremenu datoteku
+    os.remove(csv_path)
+
+    return response
+
 @login_required
 def create_offer(request):
     # Kreira novu ponudu s više stavki (proizvoda/usluga)
@@ -278,7 +349,7 @@ def create_offer(request):
             for offer_product in offer_products:
                 offer_product.save()
             messages.success(request, 'Nadodana je nova ponuda')
-            return redirect('offers')
+            return redirect('invoices')  # Changed from 'offers' to 'invoices'
         if not offer_formset.is_valid():
             # Ako formset nije ispravan, prikaži greške
             logger.error(f"Offer formset errors: {offer_formset.errors}")
@@ -377,7 +448,7 @@ def offers(request):
             # Ako je forma ispravna, spremi ponudu
             form.save()
             messages.success(request, 'Nadodana je nova ponuda')
-            return redirect('offers')
+            return redirect('invoices')  # Changed from 'offers' to 'invoices'
         else:
             # Ako forma nije ispravna, prikaži greške
             messages.error(request, 'Problem pri obradi zahtjeva')
@@ -1838,7 +1909,7 @@ def send_invoice_email(request, invoice_id):
         subject = invoice.subject # Dohvati subjekt
         products = InvoiceProduct.objects.filter(invoice=invoice) # Dohvati proizvode
         sender_name = invoice.subject.clientName
-        reply_to_email = invoice.subject.emailAddress
+        reply_to_email = invoice.subject.emailAddress 
 
         url = "https://hub3.bigfish.software/api/v2/barcode"
         headers = {'Content-Type': 'application/json'}
@@ -1948,6 +2019,536 @@ def mark_invoice_paid(request, invoice_id):
         messages.success(request, f"Račun {invoice.number} je označen kao plaćen.")
     return redirect('invoices')
 
+@login_required
+def mark_offer_finished(request, offer_id):
+    """Označava ponudu kao završenu i pretvara je u račun."""
+    offer = get_object_or_404(Offer, id=offer_id)
+    if request.method == "POST":
+        # Kreiraj račun iz ponude koristeći istu logiku kao create_invoice
+        invoice = Invoice(
+            title=offer.title,
+            client=offer.client,
+            number=offer.number,  # Koristi isti broj kao ponuda (ili prilagodi prema potrebi)
+            subject=offer.subject,
+            dueDate=offer.dueDate,
+            notes=offer.notes,
+            date=offer.date if hasattr(offer, 'date') else timezone.now(),  # Koristi datum ponude ili trenutni
+            is_paid=True,  # Ponuda je plaćena (zato se pretvara u račun)
+            payment_date=timezone.now().date(),  # Datum plaćanja je trenutni datum
+            # Ne postavljaj total ovdje - izračunat će se nakon kreiranja proizvoda
+        )
+        invoice.save()
+
+        # Kreiraj stavke računa iz stavki ponude i izračunaj total (kao u create_invoice)
+        invoice_products = []
+        total = Decimal('0.00')
+
+        for offer_product in offer.offerproduct_set.all():
+            # Kreiraj InvoiceProduct slično kao u create_invoice, uključujući sva polja
+            invoice_product = InvoiceProduct(
+                invoice=invoice,
+                product=offer_product.product,
+                quantity=offer_product.quantity,
+                discount=offer_product.discount or Decimal('0.00'),
+                rabat=offer_product.rabat or Decimal('0.00'),
+            )
+            
+            # Izračunaj ukupni iznos
+            try:
+                product_price = Decimal(str(offer_product.product.price))
+                product_quantity = Decimal(str(offer_product.quantity))
+                total += product_price * product_quantity
+                invoice_products.append(invoice_product)
+            except (ValueError, TypeError) as e:
+                messages.error(request, f"Greška u podacima stavke: {e}")
+                invoice.delete()  # Obriši nezavršen račun
+                return redirect('invoices')
+
+        # Spremi sve stavke računa
+        for invoice_product in invoice_products:
+            invoice_product.save()
+
+        # Ponuda se zadržava u bazi podataka, samo se kreira kopija kao račun
+        messages.success(request, f"Ponuda {offer.number} je pretvorena u račun {invoice.number}. Ponuda je zadržana u sustavu.")
+    return redirect('invoices')
+
+
+@login_required
+def ai_chat(request):
+    """API endpoint za AI chatbot - obrađuje korisničke poruke i vraća AI odgovor.
+    Koristi loop-based pristup gdje model može pozivati alate dok ne odluči odgovoriti."""
+    if request.method == 'POST':
+        try:
+            # Provjeri je li FormData (s datotekom) ili JSON
+            content_type = request.content_type or ''
+            
+            client = Mistral(api_key=settings.MISTRAL_API_KEY)
+
+            if 'multipart/form-data' in content_type:
+                # FormData - datoteka je uključena
+                user_message = request.POST.get('message', '').strip()
+                history_json = request.POST.get('history', '[]')
+                try:
+                    chat_history = json.loads(history_json)
+                except json.JSONDecodeError:
+                    chat_history = []
+                
+                uploaded_file = request.FILES.get('file')
+                file_content = None
+                file_info = None
+                
+                if uploaded_file:
+                    file_info = {
+                        'name': uploaded_file.name,
+                        'size': uploaded_file.size,
+                        'type': uploaded_file.content_type
+                    }
+                    
+                    # Obradi datoteku ovisno o tipu
+                    file_extension = uploaded_file.name.lower().split('.')[-1] if '.' in uploaded_file.name else ''
+                    
+                    if file_extension in ['txt', 'csv']:
+                        # Tekstualne datoteke - čitaj sadržaj
+                        try:
+                            file_content = uploaded_file.read().decode('utf-8')
+                        except UnicodeDecodeError:
+                            file_content = uploaded_file.read().decode('latin-1')
+                    elif file_extension in ['pdf']:
+                        # PDF - pokušaj izvući tekst
+                        try:
+                            import PyPDF2
+                            pdf_reader = PyPDF2.PdfReader(uploaded_file)
+                            file_content = ""
+                            for page in pdf_reader.pages:
+                                file_content += page.extract_text() + "\n"
+                        except Exception as e:
+                            file_content = f"[Nije moguće pročitati PDF: {str(e)}]"
+                    elif file_extension in ['doc', 'docx']:
+                        # Word dokumenti
+                        try:
+                            import docx
+                            doc = docx.Document(uploaded_file)
+                            file_content = "\n".join([para.text for para in doc.paragraphs])
+                        except Exception as e:
+                            file_content = f"[Nije moguće pročitati Word dokument: {str(e)}]"
+                    elif file_extension in ['xls', 'xlsx']:
+                        # Excel datoteke
+                        try:
+                            import openpyxl
+                            wb = openpyxl.load_workbook(uploaded_file, read_only=True)
+                            file_content = ""
+                            for sheet_name in wb.sheetnames:
+                                sheet = wb[sheet_name]
+                                file_content += f"--- Sheet: {sheet_name} ---\n"
+                                for row in sheet.iter_rows(max_row=100, values_only=True):
+                                    row_str = "\t".join([str(cell) if cell is not None else "" for cell in row])
+                                    file_content += row_str + "\n"
+                        except Exception as e:
+                            file_content = f"[Nije moguće pročitati Excel: {str(e)}]"
+                    elif file_extension in ['png', 'jpg', 'jpeg', 'gif']:
+                        # Slike - koristi Groq Llama 4 Scout za opis slike
+                        try:
+                            import base64
+                            import requests as http_requests
+                            
+                            # Pročitaj sliku i kodiraj u base64
+                            uploaded_file.seek(0)
+                            image_data = base64.b64encode(uploaded_file.read()).decode('utf-8')
+                            
+                            # Odredi MIME tip
+                            mime_types = {
+                                'png': 'image/png',
+                                'jpg': 'image/jpeg',
+                                'jpeg': 'image/jpeg',
+                                'gif': 'image/gif'
+                            }
+                            mime_type = mime_types.get(file_extension, 'image/jpeg')
+                            
+                            # Groq API poziv putem HTTP
+                            groq_headers = {
+                                "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                                "Content-Type": "application/json"
+                            }
+                            
+                            groq_payload = {
+                                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                                "messages": [
+                                    {
+                                        "role": "user",
+                                        "content": [
+                                            {
+                                                "type": "text",
+                                                "text": "Describe the following picture. Focus on text and other written elemenrts / tables if present. Make the description of anything other than text brief."
+                                            },
+                                            {
+                                                "type": "image_url",
+                                                "image_url": {
+                                                    "url": f"data:{mime_type};base64,{image_data}"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "max_tokens": 500
+                            }
+                            
+                            groq_response = http_requests.post(
+                                "https://api.groq.com/openai/v1/chat/completions",
+                                headers=groq_headers,
+                                json=groq_payload,
+                                timeout=60
+                            )
+                            
+                            if groq_response.status_code == 200:
+                                groq_data = groq_response.json()
+                                file_content = groq_data['choices'][0]['message']['content']
+                            else:
+                                if groq_response.status_code == 413:
+                                    error = ("Greška Groq API: Zahtjev je prevelik (413 Payload Too Large).")
+                                else:
+                                    error = groq_response.status_code
+                                file_content = f"[Nije moguće analizirati sliku: {error}]"
+                        except Exception as e:
+                            file_content = f"[Nije moguće analizirati sliku: {str(e)}]"
+                    else:
+                        file_content = f"[Datoteka: {uploaded_file.name} - format nije podržan za čitanje sadržaja]"
+                    
+                    if file_content and len(file_content) > 50000:
+                        file_content = file_content[:50000] + "\n...[skraćeno zbog veličine]..."
+
+                    # Dodaj sadržaj datoteke u poruku
+                    if file_content:
+                        print("DEBUG: File content extracted:", file_content[:500])  # Prvih 500 znakova za debug
+                        user_message = f"{user_message}\n\n--- Priložena datoteka: {uploaded_file.name} ---\n{file_content[:50000]}"  # Ograniči na 50k znakova
+            else:
+                # JSON zahtjev
+                data = json.loads(request.body)
+                user_message = data.get('message', '').strip()
+                chat_history = data.get('history', [])
+            
+            if not user_message:
+                return JsonResponse({'error': 'Poruka je prazna'}, status=400)
+            
+            # Dohvati alate iz settings
+            tools = settings.AI_CHAT_TOOLS
+            
+            # Importaj funkcije za alate
+            from .ai_tools import (
+                filter_invoices_to_string,
+                get_suppliers_to_string,
+                get_expenses_to_string,
+                get_subjects_to_string,
+                get_inventory_to_string,
+                filter_clients_to_string,
+                filter_products_to_string,
+                filter_change_history_to_string,
+                get_employees_to_string,
+                get_salaries_to_string,
+                filter_offers_to_string,
+                propose_inventory_add,
+                propose_inventory_remove,
+                propose_inventory_update,
+                propose_invoice_add,
+                propose_offer_add,
+            )
+            
+            # Mapiranje naziva funkcija na stvarne funkcije
+            tool_functions = {
+                "filter_invoices_to_string": filter_invoices_to_string,
+                "get_suppliers_to_string": get_suppliers_to_string,
+                "get_expenses_to_string": get_expenses_to_string,
+                "get_subjects_to_string": get_subjects_to_string,
+                "get_inventory_to_string": get_inventory_to_string,
+                "filter_clients_to_string": filter_clients_to_string,
+                "filter_products_to_string": filter_products_to_string,
+                "filter_change_history_to_string": filter_change_history_to_string,
+                "get_employees_to_string": get_employees_to_string,
+                "get_salaries_to_string": get_salaries_to_string,
+                "filter_offers_to_string": filter_offers_to_string,
+                "propose_inventory_add": propose_inventory_add,
+                "propose_inventory_remove": propose_inventory_remove,
+                "propose_inventory_update": propose_inventory_update,
+                "propose_invoice_add": propose_invoice_add,
+                "propose_offer_add": propose_offer_add,
+            }
+            
+            # Fallback nazivi alata ako AI ne navede reason
+            tool_fallback_names = {
+                "filter_invoices_to_string": "pretraživanje računa",
+                "get_suppliers_to_string": "dohvaćanje dobavljača",
+                "get_expenses_to_string": "dohvaćanje troškova",
+                "get_subjects_to_string": "dohvaćanje subjekata",
+                "get_inventory_to_string": "dohvaćanje inventara",
+                "filter_clients_to_string": "pretraživanje klijenata",
+                "filter_products_to_string": "pretraživanje proizvoda",
+                "filter_change_history_to_string": "pretraživanje povijesti",
+                "get_employees_to_string": "dohvaćanje zaposlenika",
+                "get_salaries_to_string": "dohvaćanje plaća",
+                "filter_offers_to_string": "pretraživanje ponuda",
+                "propose_inventory_add": "prijedlog dodavanja u inventar",
+                "propose_inventory_remove": "prijedlog uklanjanja iz inventara",
+                "propose_inventory_update": "prijedlog promjene inventara",
+                "propose_invoice_add": "prijedlog kreiranja računa",
+                "propose_offer_add": "prijedlog kreiranja ponude",
+            }
+            
+            # Lista funkcija koje predlažu akcije (ne izvršavaju ih odmah)
+            action_proposal_functions = {
+                "propose_inventory_add",
+                "propose_inventory_remove",
+                "propose_inventory_update",
+                "propose_invoice_add",
+                "propose_offer_add",
+            }
+            
+            # Izgradi prompt s poviješću razgovora
+            current_date = timezone.now().date().strftime("%Y-%m-%d")
+            system_prompt = settings.AI_CHAT_SYSTEM_PROMPT.format(current_date=current_date)
+            chat_prompt = [
+                {"role": "system", "content": system_prompt}
+            ]
+            
+            # Dodaj povijest razgovora (ograniči na zadnjih 20 poruka)
+            for msg in chat_history[-20:]:
+                if msg.get('role') in ['user', 'assistant', 'tool'] and msg.get('content'):
+                    chat_prompt.append({
+                        "role": msg['role'],
+                        "content": msg['content']
+                    })
+            
+            # Dodaj trenutnu poruku korisnika
+            chat_prompt.append({"role": "user", "content": user_message})
+
+            # Lista za praćenje pozvanih alata (za prikaz korisniku)
+            tools_called = []
+            
+            # Lista za akcije koje zahtijevaju potvrdu korisnika
+            pending_actions = []
+            
+            # Loop-based pristup: model odlučuje pozivati alate ili odgovoriti
+            max_iterations = 10  # Ograničenje broja iteracija za sigurnost
+            iteration = 0
+            last_api_call_time = 0  # Praćenje vremena zadnjeg API poziva (1 req/sec limit)
+            
+            while iteration < max_iterations:
+                iteration += 1
+                
+                # Osiguraj minimalno 1 sekundu između API poziva (Mistral rate limit)
+                time_since_last_call = time.time() - last_api_call_time
+                if time_since_last_call < 1.0 and last_api_call_time > 0:
+                    time.sleep(1.0 - time_since_last_call)
+                
+                # Retry logika za capacity exceeded greške
+                max_retries = 3
+                retry_delay = 2  # Početni delay u sekundama
+                
+                for retry_attempt in range(max_retries):
+                    try:
+                        last_api_call_time = time.time()
+                        # Poziv API-ja s alatima
+                        chat_completion = client.chat.complete(
+                            model="mistral-medium-latest",
+                            messages=chat_prompt,
+                            tools=tools,
+                            tool_choice="auto",
+                            max_tokens=1500,
+                            temperature=0.5,
+                        )
+                        break  # Uspješan poziv, izađi iz retry petlje
+                    except Exception as api_error:
+                        error_str = str(api_error).lower()
+                        # Provjeri je li greška zbog kapaciteta ili rate limita
+                        if '429' in str(api_error) or 'capacity' in error_str or 'rate' in error_str:
+                            if retry_attempt < max_retries - 1:
+                                wait_time = retry_delay * (2 ** retry_attempt)  # Exponential backoff: 2s, 4s, 8s
+                                print(f"DEBUG: API capacity/rate limit hit, waiting {wait_time}s before retry {retry_attempt + 2}/{max_retries}")
+                                time.sleep(wait_time)
+                                continue
+                            else:
+                                # Iscrpljeni svi pokušaji
+                                return JsonResponse({
+                                    'status': 'error',
+                                    'response': 'Mistral AI servis je trenutno preopterećen. Molimo pokušajte ponovo za nekoliko sekundi.',
+                                    'tools_called': tools_called,
+                                    'pending_actions': []
+                                })
+                        else:
+                            # Druga vrsta greške - proslijedi dalje
+                            raise
+
+                response_message = chat_completion.choices[0].message
+                
+                # Ako model nije pozvao alat, završi loop i vrati odgovor
+                if not response_message.tool_calls:
+                    ai_response = response_message.content
+                    break
+                
+                # Model je pozvao alat(e) - obradi ih
+                # Dodaj assistant poruku s tool_calls u prompt
+                assistant_message = {
+                    "role": "assistant",
+                    "content": response_message.content or "",
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments
+                            }
+                        }
+                        for tc in response_message.tool_calls
+                    ]
+                }
+                chat_prompt.append(assistant_message)
+                
+                # Obradi sve pozive alata
+                for tool_call in response_message.tool_calls:
+                    function_name = tool_call.function.name
+                    print(f"DEBUG: Iteration {iteration} - Processing tool call {function_name} with arguments {tool_call.function.arguments}")
+                    
+                    try:
+                        function_args = json.loads(tool_call.function.arguments)
+                        # Očisti None vrijednosti iz argumenata
+                        function_args = {k: v for k, v in function_args.items() if v is not None}
+                    except json.JSONDecodeError:
+                        function_args = {}
+                    
+                    # Koristi AI-jev reason ako postoji, inače fallback
+                    display_name = function_args.pop('reason', None) or tool_fallback_names.get(function_name, function_name)
+                    
+                    # Izvršavanje funkcije
+                    if function_name in tool_functions:
+                        func = tool_functions[function_name]
+                        try:
+                            # Provjeri prima li funkcija argumente
+                            if function_name.startswith("get_"):
+                                result = func()
+                            else:
+                                result = func(**function_args)
+                        except TypeError as e:
+                            # Greška s argumentima (npr. neočekivani argument) - daj feedback modelu
+                            error_msg = str(e)
+                            result = f"GREŠKA PRI POZIVU FUNKCIJE: {error_msg}. Molim te provjeri ispravne parametre za ovu funkciju i pokušaj ponovo."
+                            print(f"DEBUG: Tool {function_name} argument error: {error_msg}")
+                        except Exception as e:
+                            # Ostale greške - daj feedback modelu
+                            error_msg = str(e)
+                            result = f"GREŠKA: {error_msg}. Pokušaj ponovo s ispravnim parametrima."
+                            print(f"DEBUG: Tool {function_name} error: {error_msg}")
+                        
+                        # Provjeri je li rezultat akcija koja zahtijeva potvrdu
+                        if function_name in action_proposal_functions:
+                            try:
+                                result_data = json.loads(result)
+                                if result_data.get("status") == "action_required":
+                                    # Ovo je akcija koja zahtijeva potvrdu korisnika
+                                    pending_actions.append({
+                                        "action_type": result_data["action_type"],
+                                        "action_data": result_data["action_data"],
+                                        "display_message": result_data["display_message"],
+                                        "tool_call_id": tool_call.id
+                                    })
+                                    # Rezultat za model - da zna da je akcija predložena
+                                    result = f"AKCIJA PREDLOŽENA: {result_data['display_message']}. Čeka se potvrda korisnika."
+                                elif result_data.get("status") == "error":
+                                    # Greška - proslijedi modelu
+                                    result = f"GREŠKA: {result_data['message']}"
+                            except json.JSONDecodeError:
+                                pass  # Nije JSON, koristi originalni rezultat
+                        else:
+                            # Normalni alat za čitanje - dodaj u tools_called
+                            tools_called.append(display_name)
+                    else:
+                        result = f"Nepoznata funkcija: {function_name}"
+                    
+                    print(f"DEBUG: Tool {function_name} returned result: {result}")
+                    
+                    # Dodaj rezultat alata u prompt
+                    chat_prompt.append({
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
+                        "name": function_name,
+                        "content": result
+                    })
+            else:
+                # Ako je dosegnuto max iteracija, generiraj odgovor bez alata
+                ai_response = "Došlo je do greške - previše iteracija. Pokušajte ponovo s jednostavnijim pitanjem."
+            
+            # Vrati odgovor s informacijom o pozvanim alatima i akcijama na čekanju
+            return JsonResponse({
+                'status': 'success',
+                'response': ai_response,
+                'tools_called': tools_called,
+                'pending_actions': pending_actions
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Neispravan JSON format'}, status=400)
+        except Exception as e:
+            logger.error(f"AI Chat greška: {str(e)}")
+            return JsonResponse({'error': 'Greška u obradi zahtjeva'}, status=500)
+    
+    return JsonResponse({'error': 'Samo POST zahtjevi su dozvoljeni'}, status=405)
+
+
+@login_required
+def ai_execute_action(request):
+    """
+    Izvršava akciju koju je korisnik potvrdio u AI chatu.
+    Poziva se kada korisnik klikne "Prihvati" ili "Odbij" na predloženoj akciji.
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            action_type = data.get('action_type')
+            action_data = data.get('action_data')
+            accepted = data.get('accepted', False)  # Provjeri je li korisnik prihvatio akciju
+            
+            if not action_type or not action_data:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Nedostaju podaci o akciji.'
+                }, status=400)
+            
+            # Ako korisnik nije prihvatio akciju, vrati uspjeh bez izvršavanja
+            if not accepted:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Akcija je odbijena od strane korisnika.'
+                })
+            
+            # Importaj funkcije za izvršavanje akcija
+            from .ai_tools import execute_inventory_action, execute_invoice_action, execute_offer_action
+            
+            # Izvrši akciju ovisno o tipu
+            if action_type.startswith('inventory_'):
+                result = execute_inventory_action(action_type, action_data)
+            elif action_type.startswith('invoice_'):
+                result = execute_invoice_action(action_type, action_data)
+            elif action_type.startswith('offer_'):
+                result = execute_offer_action(action_type, action_data)
+            else:
+                result = {
+                    'status': 'error',
+                    'message': f'Nepoznata vrsta akcije: {action_type}'
+                }
+            
+            return JsonResponse(result)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Neispravan JSON format.'
+            }, status=400)
+        except Exception as e:
+            logger.error(f"AI Execute Action greška: {str(e)}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Greška pri izvršavanju akcije: {str(e)}'
+            }, status=500)
+    
+    return JsonResponse({'error': 'Samo POST zahtjevi su dozvoljeni'}, status=405)
 
 @login_required
 def retry_fiscalization(request, invoice_id):
