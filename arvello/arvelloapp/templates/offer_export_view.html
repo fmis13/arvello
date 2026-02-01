@@ -1,5 +1,6 @@
 {% load static %}
 {% load crispy_forms_tags %}
+{% load user_extras %}
 
 <!doctype html>
 <html lang="hr">
@@ -94,7 +95,7 @@
             <div>Poziv na broj: {{offer.poziv_na_broj}}<br>Hvala!</div>
             <p style="margin-top: 0.1cm;"><strong>Napomena:</strong> ponuda je pravovaljana bez pečata i/ili potpisa jer je elektronički izrađena.</p>
             <img style="width: 5.5cm; height: auto; margin-left: 3cm" src="data:image/png;base64,{{ barcode_image|safe }}">
-            <p style="margin-left: 3.5cm;"><strong>Referent</strong> - {{ request.user.get_full_name }}</p>
+            <p style="margin-left: 3.5cm;"><strong>Referent</strong> - {{ request.user|full_name_with_title }}</p>
         </div>
         <table class="table table-striped right-align-table" border="1" style="flex: 0 0 auto; width: 7cm;">
             <tr>

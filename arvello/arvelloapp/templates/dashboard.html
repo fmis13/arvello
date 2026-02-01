@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Početna - {{ block.super }}{% endblock %}
+
+{% block main %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Dobrodošli u Arvello</h1>
+  <span class="text-muted">{{ today|date:"d.m.Y." }}</span>
+</div>
+
+<!-- Quick Actions -->
+<div class="mb-4">
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'create_invoice' %}" class="btn btn-primary">
+      <i class="bi bi-plus-circle me-1"></i>Novi račun
+    </a>
+    <a href="{% url 'create_offer' %}" class="btn btn-outline-primary">
+      <i class="bi bi-plus-circle me-1"></i>Nova ponuda
+    </a>
+    <a href="{% url 'clients' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-person-plus me-1"></i>Novi klijent
+    </a>
+    <a href="{% url 'products' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-box-seam me-1"></i>Novi proizvod
+    </a>
+  </div>
+</div>
+
+<!-- Stats Cards Row -->
+<div class="row g-3 mb-4">
+  <!-- Invoices This Month -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card h-100 border-start border-primary border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <p class="text-muted small mb-1">Računi ovaj mjesec</p>
+            <h3 class="mb-0">{{ invoices_count_month }}</h3>
+            <p class="text-muted small mb-0">{{ current_month_name }} {{ current_year }}</p>
+          </div>
+          <span class="material-symbols-outlined text-primary fs-1">receipt_long</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Revenue This Month -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card h-100 border-start border-success border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <p class="text-muted small mb-1">Prihod ovaj mjesec</p>
+            <h3 class="mb-0">{{ revenue_month|floatformat:2 }} €</h3>
+            <p class="text-muted small mb-0">{{ current_month_name }} {{ current_year }}</p>
+          </div>
+          <span class="material-symbols-outlined text-success fs-1">trending_up</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Unpaid Invoices -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card h-100 border-start border-warning border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <p class="text-muted small mb-1">Neplaćeni računi</p>
+            <h3 class="mb-0">{{ unpaid_count }}</h3>
+            <p class="text-warning small mb-0">{{ unpaid_amount|floatformat:2 }} €</p>
+          </div>
+          <span class="material-symbols-outlined text-warning fs-1">pending</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Overdue Invoices -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card h-100 border-start border-danger border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <p class="text-muted small mb-1">Dospjeli računi</p>
+            <h3 class="mb-0">{{ overdue_count }}</h3>
+            <p class="text-danger small mb-0">{{ overdue_amount|floatformat:2 }} €</p>
+          </div>
+          <span class="material-symbols-outlined text-danger fs-1">warning</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Second Row - Totals -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <span class="material-symbols-outlined text-secondary mb-2">person_edit</span>
+        <h4 class="mb-0">{{ total_clients }}</h4>
+        <p class="text-muted small mb-0">Klijenata</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <span class="material-symbols-outlined text-secondary mb-2">category</span>
+        <h4 class="mb-0">{{ total_products }}</h4>
+        <p class="text-muted small mb-0">Proizvoda/usluga</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <span class="material-symbols-outlined text-secondary mb-2">receipt_long</span>
+        <h4 class="mb-0">{{ total_invoices }}</h4>
+        <p class="text-muted small mb-0">Ukupno računa</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <span class="material-symbols-outlined text-secondary mb-2">request_page</span>
+        <h4 class="mb-0">{{ total_offers }}</h4>
+        <p class="text-muted small mb-0">Ukupno ponuda</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row g-3">
+  <!-- Recent Invoices -->
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">Nedavni računi</h2>
+        <a href="{% url 'invoices' %}" class="btn btn-sm btn-outline-primary">Prikaži sve</a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Broj</th>
+                <th scope="col">Klijent</th>
+                <th scope="col">Datum</th>
+                <th scope="col" class="text-end">Iznos</th>
+                <th scope="col" class="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for invoice in recent_invoices %}
+              <tr>
+                <td>
+                  <a href="{% url 'invoice_pdf' invoice.id %}" target="_blank" class="text-decoration-none">
+                    {{ invoice.number }}
+                  </a>
+                </td>
+                <td>{{ invoice.client.clientName|truncatechars:20 }}</td>
+                <td>{{ invoice.date|date:"d.m.Y." }}</td>
+                <td class="text-end">{{ invoice.price_with_vat|floatformat:2 }} €</td>
+                <td class="text-center">
+                  {% if invoice.is_paid %}
+                    <span class="badge bg-success">Plaćeno</span>
+                  {% elif invoice.dueDate < today %}
+                    <span class="badge bg-danger">Dospjelo</span>
+                  {% else %}
+                    <span class="badge bg-warning">Čeka</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-3">Nema računa za prikaz</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Recent Offers -->
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">Nedavne ponude</h2>
+        <a href="{% url 'offers' %}" class="btn btn-sm btn-outline-primary">Prikaži sve</a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Broj</th>
+                <th scope="col">Klijent</th>
+                <th scope="col">Datum</th>
+                <th scope="col" class="text-end">Iznos</th>
+                <th scope="col" class="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for offer in recent_offers %}
+              <tr>
+                <td>
+                  <a href="{% url 'offer_pdf' offer.id %}" target="_blank" class="text-decoration-none">
+                    {{ offer.number }}
+                  </a>
+                </td>
+                <td>{{ offer.client.clientName|truncatechars:20 }}</td>
+                <td>{{ offer.date|date:"d.m.Y." }}</td>
+                <td class="text-end">{{ offer.price_with_vat|floatformat:2 }} €</td>
+                <td class="text-center">
+                  {% if offer.dueDate < today %}
+                    <span class="badge bg-secondary">Isteklo</span>
+                  {% else %}
+                    <span class="badge bg-info">Aktivno</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-3">Nema ponuda za prikaz</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

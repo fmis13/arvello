@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block main %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-building me-2"></i>Konfiguracija Sudskog registra</h1>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addConfigModal">
+        <i class="bi bi-plus-circle me-1"></i>Nova konfiguracija
+    </button>
+</div>
+
+<!-- Info Card -->
+<div class="alert alert-info mb-4">
+    <h5><i class="bi bi-info-circle me-2"></i>API Sudskog registra</h5>
+    <p class="mb-2">
+        Ovaj API omogućuje automatsko dohvaćanje podataka o tvrtkama iz Sudskog registra (sudreg-data.gov.hr) 
+        prilikom dodavanja novih klijenata ili dobavljača.
+    </p>
+    <ul class="mb-0">
+        <li><strong>API URL:</strong> <code>https://sudreg-data.gov.hr/api/javni</code></li>
+        <li><strong>Testno okruženje:</strong> <code>https://sudreg-data-test.gov.hr/api/javni</code></li>
+        <li><strong>Autentifikacija:</strong> OAuth2 Client Credentials (client_id i client_secret)</li>
+        <li><strong>Dokumentacija:</strong> <a href="https://sudreg-data.gov.hr/api/javni/dokumentacija/open_api" target="_blank">sudreg-data.gov.hr/api/javni/dokumentacija/open_api</a></li>
+    </ul>
+</div>
+
+{% if configs %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Postojeće konfiguracije</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>API URL</th>
+                        <th>Autentifikacija</th>
+                        <th>Sandbox</th>
+                        <th>Status</th>
+                        <th>Ažurirano</th>
+                        <th>Akcije</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for config in configs %}
+                    <tr>
+                        <td><code>{{ config.api_url }}</code></td>
+                        <td>
+                            {% if config.client_id and config.client_secret %}
+                            <span class="badge bg-success"><i class="bi bi-key me-1"></i>Konfigurirana</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Nije postavljena</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if config.use_sandbox %}
+                            <span class="badge bg-warning text-dark">Sandbox</span>
+                            {% else %}
+                            <span class="badge bg-primary">Produkcija</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if config.is_active %}
+                            <span class="badge bg-success">Aktivno</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Neaktivno</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ config.updated_at|date:"d.m.Y. H:i" }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-primary" 
+                                        data-bs-toggle="modal" data-bs-target="#editConfigModal{{ config.id }}"
+                                        title="Uredi">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-success" 
+                                        data-bs-toggle="modal" data-bs-target="#testConfigModal{{ config.id }}"
+                                        title="Testiraj vezu">
+                                    <i class="bi bi-broadcast"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        data-bs-toggle="modal" data-bs-target="#deleteConfigModal{{ config.id }}"
+                                        title="Obriši">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-gear display-4 text-muted mb-3"></i>
+        <h4 class="text-muted">Nema konfiguracije</h4>
+        <p class="text-secondary">
+            Kliknite "Nova konfiguracija" za postavljanje API-ja Sudskog registra.<br>
+            Osnovne pretrage po OIB-u funkcioniraju i bez konfiguracije tokena.
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Add Config Modal -->
+<div class="modal fade" id="addConfigModal" tabindex="-1" aria-labelledby="addConfigModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addConfigModalLabel">Nova konfiguracija Sudskog registra</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="api_url" class="form-label">API URL</label>
+                        <input type="url" class="form-control" id="api_url" name="api_url" 
+                               value="https://sudreg-data.gov.hr/api/javni" required>
+                        <div class="form-text">Bazni URL za API sudskog registra</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="client_id" class="form-label">Client ID</label>
+                        <input type="text" class="form-control" id="client_id" name="client_id">
+                        <div class="form-text">Client ID za OAuth2 autentifikaciju</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="client_secret" class="form-label">Client Secret</label>
+                        <input type="password" class="form-control" id="client_secret" name="client_secret">
+                        <div class="form-text">Client Secret za OAuth2 autentifikaciju</div>
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" class="form-check-input" id="use_sandbox" name="use_sandbox">
+                        <label class="form-check-label" for="use_sandbox">Koristi sandbox okruženje (sudreg-data-test.gov.hr)</label>
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                        <label class="form-check-label" for="is_active">Aktivna konfiguracija</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                    <button type="submit" class="btn btn-primary">Spremi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit/Test/Delete Modals for each config -->
+{% for config in configs %}
+<!-- Edit Modal -->
+<div class="modal fade" id="editConfigModal{{ config.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="config_id" value="{{ config.id }}">
+                
+                <div class="modal-header">
+                    <h5 class="modal-title">Uredi konfiguraciju</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_api_url_{{ config.id }}" class="form-label">API URL</label>
+                        <input type="url" class="form-control" id="edit_api_url_{{ config.id }}" name="api_url" 
+                               value="{{ config.api_url }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_client_id_{{ config.id }}" class="form-label">Client ID</label>
+                        <input type="text" class="form-control" id="edit_client_id_{{ config.id }}" name="client_id"
+                               value="{{ config.client_id|default:'' }}"
+                               placeholder="{% if config.client_id %}{{ config.client_id }}{% else %}Nije postavljeno{% endif %}">
+                        <div class="form-text">Client ID za OAuth2 autentifikaciju</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_client_secret_{{ config.id }}" class="form-label">Client Secret</label>
+                        <input type="password" class="form-control" id="edit_client_secret_{{ config.id }}" name="client_secret"
+                               placeholder="{% if config.client_secret %}••••••••{% else %}Nije postavljen{% endif %}">
+                        <div class="form-text">Ostavite prazno za zadržavanje trenutnog Client Secret-a.</div>
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" class="form-check-input" id="edit_use_sandbox_{{ config.id }}" name="use_sandbox"
+                               {% if config.use_sandbox %}checked{% endif %}>
+                        <label class="form-check-label" for="edit_use_sandbox_{{ config.id }}">Koristi sandbox okruženje (sudreg-data-test.gov.hr)</label>
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" class="form-check-input" id="edit_is_active_{{ config.id }}" name="is_active"
+                               {% if config.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="edit_is_active_{{ config.id }}">Aktivna konfiguracija</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                    <button type="submit" class="btn btn-primary">Spremi promjene</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Test Modal -->
+<div class="modal fade" id="testConfigModal{{ config.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="test">
+                <input type="hidden" name="config_id" value="{{ config.id }}">
+                
+                <div class="modal-header">
+                    <h5 class="modal-title">Testiraj vezu s API-jem</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Testirajte vezu s API-jem Sudskog registra pretragom po OIB-u.</p>
+                    <div class="mb-3">
+                        <label for="test_oib_{{ config.id }}" class="form-label">OIB za testiranje</label>
+                        <input type="text" class="form-control" id="test_oib_{{ config.id }}" name="test_oib"
+                               placeholder="44992900246" maxlength="11" pattern="\d{11}">
+                        <div class="form-text">Unesite OIB poznate tvrtke ili ostavite prazno za testiranje s HEP-om (44992900246).</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-broadcast me-1"></i>Testiraj
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteConfigModal{{ config.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="config_id" value="{{ config.id }}">
+                
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">Obriši konfiguraciju</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Jeste li sigurni da želite obrisati ovu konfiguraciju?</p>
+                    <p class="mb-0"><strong>API URL:</strong> <code>{{ config.api_url }}</code></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Obriši
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

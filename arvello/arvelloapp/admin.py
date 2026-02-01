@@ -49,3 +49,27 @@ class LocalIncomeTaxAdmin(SimpleHistoryAdmin):
 class TaxParameterAdmin(SimpleHistoryAdmin):
     list_display = ('parameter_type', 'value', 'year')
     list_filter = ('year', 'parameter_type')
+
+
+@admin.register(KPDCode)
+class KPDCodeAdmin(admin.ModelAdmin):
+    list_display = ('code', 'name', 'level', 'parent_code')
+    search_fields = ('code', 'name')
+    list_filter = ('level',)
+    ordering = ('code',)
+
+
+@admin.register(CourtRegistryConfig)
+class CourtRegistryConfigAdmin(SimpleHistoryAdmin):
+    list_display = ('api_url', 'is_active', 'use_sandbox', 'updated_at')
+    list_filter = ('is_active', 'use_sandbox')
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        ('API konfiguracija', {
+            'fields': ('api_url', 'client_id', 'client_secret', 'use_sandbox', 'is_active')
+        }),
+        ('Metapodaci', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )

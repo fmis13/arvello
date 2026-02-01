@@ -16,10 +16,10 @@
         <button type="button" class="btn btn-sm btn-outline-secondary">Print</button>
         <button type="button" class="btn btn-sm btn-outline-secondary">Export</button> {% endcomment %}
         <a href="{% get_history_url 'Company' %}" class="btn btn-primary">
-          <span class="material-symbols-outlined align-icon">history</span>
-          Povijest promjena</a>
+          <i class="bi bi-clock-history me-1"></i>Povijest promjena</a>
         <div class="vr mx-1"></div>
-        <button href="#addCompanyModal" type="button" class="btn btn-primary" data-bs-toggle="modal">Novi subjekt</button>
+        <button href="#addCompanyModal" type="button" class="btn btn-primary" data-bs-toggle="modal">
+          <i class="bi bi-plus-circle me-1"></i>Novi subjekt</button>
       </div>
     </div>
   </div>
@@ -68,29 +68,133 @@
     <div class="modal-dialog">
       <div class="modal-content rounded-6 shadow">
   
-        <form class="" action="#" method="post" enctype="multipart/form-data">
+        <form class="" action="#" method="post" enctype="multipart/form-data" id="companyForm">
           {% csrf_token %}
   
   
         <div class="modal-header border-bottom-0">
-          <h5 class="modal-title"></h5>
+          <h5 class="modal-title">Novi subjekt</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zatvori"></button>
         </div>
   
         <div class="modal-body py-0" layout="floating">
-        
+          <!-- Court Registry Lookup Section -->
+          <div class="card bg-light mb-3">
+            <div class="card-body py-3">
+              <h6 class="card-title mb-2">
+                <i class="bi bi-search me-1"></i>Dohvati podatke iz Sudskog registra
+              </h6>
+              <div class="row g-2">
+                <div class="col-8">
+                  <input type="text" id="lookupOib" class="form-control form-control-sm" 
+                         placeholder="Unesite OIB (11 znamenki)" maxlength="11" pattern="\d{11}">
+                </div>
+                <div class="col-4">
+                  <button type="button" class="btn btn-outline-primary btn-sm w-100" 
+                          id="fetchFromRegistryBtn" onclick="fetchCompanyFromRegistry()">
+                    <i class="bi bi-download me-1"></i>Dohvati
+                  </button>
+                </div>
+              </div>
+              <div id="registryStatus" class="mt-2 small"></div>
+            </div>
+          </div>
         
           {% crispy form %}
         
         </div>
         <div class="modal-footer flex-column border-top-0">
-          <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi izmjene</button>
-          <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Zatvori</button>
+          <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2"><i class="bi bi-check-lg me-1"></i>Spremi izmjene</button>
+          <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Zatvori</button>
         </div>
   
         </form>
       </div>
     </div>
   </div>
+
+<script>
+function fetchCompanyFromRegistry() {
+    const oibInput = document.getElementById('lookupOib');
+    const statusDiv = document.getElementById('registryStatus');
+    const fetchBtn = document.getElementById('fetchFromRegistryBtn');
+    const oib = oibInput.value.trim();
+    
+    // Validate OIB
+    if (!oib) {
+        statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Molimo unesite OIB.</span>';
+        return;
+    }
+    
+    if (!/^\d{11}$/.test(oib)) {
+        statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>OIB mora sadržavati točno 11 znamenki.</span>';
+        return;
+    }
+    
+    // Show loading state
+    fetchBtn.disabled = true;
+    fetchBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Dohvaćam...';
+    statusDiv.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Pretražujem sudski registar...</span>';
+    
+    // Make API request
+    fetch(`{% url 'fetch_client_from_registry' %}?oib=${encodeURIComponent(oib)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate form fields with the fetched data
+                const formData = data.data;
+                
+                // Map API response to form field IDs
+                const fieldMappings = {
+                    'clientName': 'id_clientName',
+                    'addressLine1': 'id_addressLine1',
+                    'postalCode': 'id_postalCode',
+                    'province': 'id_province',
+                    'OIB': 'id_OIB',
+                    'VATID': 'id_VATID'
+                };
+                
+                // Populate each field
+                for (const [apiField, formFieldId] of Object.entries(fieldMappings)) {
+                    const field = document.getElementById(formFieldId);
+                    if (field && formData[apiField]) {
+                        field.value = formData[apiField];
+                        // Trigger change event for select fields
+                        if (field.tagName === 'SELECT') {
+                            field.dispatchEvent(new Event('change'));
+                        }
+                    }
+                }
+                
+                statusDiv.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${data.message}</span>`;
+                
+            } else {
+                statusDiv.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>${data.error}</span>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching from registry:', error);
+            statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Greška pri komunikaciji s API-jem. Pokušajte ponovo.</span>';
+        })
+        .finally(() => {
+            // Reset button state
+            fetchBtn.disabled = false;
+            fetchBtn.innerHTML = '<i class="bi bi-download me-1"></i>Dohvati';
+        });
+}
+
+// Allow pressing Enter in the OIB input to trigger fetch
+document.getElementById('lookupOib').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        fetchCompanyFromRegistry();
+    }
+});
+
+// Auto-format OIB input (only digits)
+document.getElementById('lookupOib').addEventListener('input', function(e) {
+    this.value = this.value.replace(/\D/g, '').slice(0, 11);
+});
+</script>
 
 {% endblock %}

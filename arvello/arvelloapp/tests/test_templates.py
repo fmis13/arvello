@@ -134,7 +134,7 @@ class InvoiceTemplateTests(TestCase):
         self.assertContains(resp, 'class="table table-hover mb-0 wrap invoice-table"')
         # header cells should include wrap+break-word on title and actions on the actions column
         self.assertContains(resp, '<th scope="col" class="col-title wrap break-word">')
-        self.assertContains(resp, '<th scope="col" class="text-center actions-col actions">')
+        self.assertContains(resp, '<th scope="col" class="text-center text-nowrap actions-col actions" style="min-width: 180px;">Akcije</th>')
         # title and notes header cells should be marked to allow breaking (row td tested separately)
         # (Individual row td presence is verified in a separate test when an invoice exists)
 

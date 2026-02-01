@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load user_extras %}
 <html>
 <head>
     <meta charset="UTF-8">
@@ -275,7 +276,7 @@
         <div class="footer-info">
             <p>Ispis: {{ generated_at|date:"d.m.Y. H:i" }}<br>
             Datum predaje dokumenta: {{ generated_at|date:"d.m.Y." }}<br>
-            Odgovorna osoba poslodavca: {{ salary.created_by.get_full_name }}</p>
+            Odgovorna osoba poslodavca: {{ salary.created_by|full_name_with_title }}</p>
         </div>
 
         <div class="signature-section">
@@ -286,7 +287,7 @@
                         <div style="position: fixed; left: 0.2cm; bottom: 0.45cm; width: 7.9cm; height: 4cm; background-color: #e9ecef; border-radius: 15px;"></div>
                         <div style="position: fixed; left: 0.2cm; bottom: -0.05cm; width: 7.9cm; text-align: center; font-size: 0.7em;">
                             <br>
-                            {{ salary.created_by.get_full_name }} u ime {{ company.clientName }}
+                            {{ salary.created_by|full_name_with_title }} u ime {{ company.clientName }}
                         </div>
                     </td>
                     <!-- Desna kućica -->

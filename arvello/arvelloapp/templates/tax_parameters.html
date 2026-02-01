@@ -38,7 +38,7 @@
         <div class="tab-pane fade show active" id="parameters" role="tabpanel" aria-labelledby="parameters-tab">
             <div class="d-flex justify-content-end mb-2">
                 <button href="#addParameterModal" type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal">
-                    <span class="material-symbols-outlined">add</span> Novi parametar
+                    <i class="bi bi-plus-circle me-1"></i>Novi parametar
                 </button>
             </div>
             
@@ -69,7 +69,7 @@
                                        data-description="{{ param.description|default:'' }}"
                                        data-bs-toggle="modal" 
                                        data-bs-target="#editParameterModal">
-                                    <span class="material-symbols-outlined">edit</span>
+                                    <i class="bi bi-pencil"></i>
                                 </button>
                                 
                                 <form method="post" class="d-inline" onsubmit="return confirm('Jeste li sigurni da želite izbrisati ovaj parametar?');">
@@ -77,7 +77,7 @@
                                     <input type="hidden" name="action" value="delete_parameter">
                                     <input type="hidden" name="parameter_id" value="{{ param.id }}">
                                     <button type="submit" class="btn btn-sm btn-danger">
-                                        <span class="material-symbols-outlined">delete</span>
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
                             </td>
@@ -102,13 +102,13 @@
                         <input type="number" name="year" class="form-control form-control-sm" value="{{ current_year }}" min="2023" max="2050" placeholder="Godina">
                         <input type="file" name="tax_rates_file" id="tax_rates_file" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" style="width: 65%;">
                         <button type="submit" class="btn btn-primary">
-                            <span class="material-symbols-outlined align-icon">upload</span> Uvezi
+                            <i class="bi bi-upload me-1"></i>Uvezi
                         </button>
                     </div>
                 </form>
                 
                 <button href="#addLocalTaxModal" type="button" class="btn btn-primary" data-bs-toggle="modal">
-                    <span class="material-symbols-outlined align-icon">add</span> Novi unos
+                    <i class="bi bi-plus-circle me-1"></i>Novi unos
                 </button>
             </div>
             
@@ -198,7 +198,7 @@
                                        data-official-gazette="{{ tax.official_gazette|default:'' }}"
                                        data-bs-toggle="modal" 
                                        data-bs-target="#editLocalTaxModal">
-                                    <span class="material-symbols-outlined">edit</span>
+                                    <i class="bi bi-pencil"></i>
                                 </button>
                                 
                                 <form method="post" class="d-inline" onsubmit="return confirm('Jeste li sigurni da želite izbrisati ovu poreznu stopu?');">
@@ -206,7 +206,7 @@
                                     <input type="hidden" name="action" value="delete_local_tax">
                                     <input type="hidden" name="tax_id" value="{{ tax.id }}">
                                     <button type="submit" class="btn btn-sm btn-danger">
-                                        <span class="material-symbols-outlined">delete</span>
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
                             </td>
@@ -231,7 +231,7 @@
                         {% csrf_token %}
                         <input type="hidden" name="action" value="add_non_taxable_type">
                         {% crispy non_tax_form %} 
-                        <button type="submit" class="btn btn-primary mt-2">Spremi vrstu primitka</button>
+                        <button type="submit" class="btn btn-primary mt-2"><i class="bi bi-check-lg me-1"></i>Spremi vrstu primitka</button>
                     </form>
                 </div>
             </div>
@@ -257,10 +257,10 @@
                             <td>{{ ntpt.description|default:"-" }}</td>
                             <td>{{ ntpt.max_monthly_amount|floatformat:2|default:"-" }}</td>
                             <td>{{ ntpt.max_annual_amount|floatformat:2|default:"-" }}</td>
-                            <td>{% if ntpt.active %}<span class="material-symbols-outlined text-success align-middle">check_circle</span>{% else %}<span class="material-symbols-outlined text-danger align-middle">cancel</span>{% endif %}</td>
+                            <td>{% if ntpt.active %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-x-circle-fill text-danger"></i>{% endif %}</td>
                             <td>
-                                <button class="btn btn-sm btn-warning disabled" title="Uređivanje nije implementirano"><span class="material-symbols-outlined align-middle">edit</span></button>
-                                <button class="btn btn-sm btn-danger disabled" title="Brisanje nije implementirano"><span class="material-symbols-outlined align-middle">delete</span></button>
+                                <button class="btn btn-sm btn-warning disabled" title="Uređivanje nije implementirano"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-danger disabled" title="Brisanje nije implementirano"><i class="bi bi-trash"></i></button>
                             </td>
                         </tr>
                         {% empty %}
@@ -291,8 +291,8 @@
                     </div>
                     
                     <div class="modal-footer flex-column border-top-0">
-                        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi</button>
-                        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2"><i class="bi bi-check-lg me-1"></i>Spremi</button>
+                        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Odustani</button>
                     </div>
                 </form>
             </div>
@@ -323,8 +323,8 @@
                         </div>
                         
                         <div class="modal-footer flex-column border-top-0">
-                            <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi promjene</button>
-                            <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                            <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2"><i class="bi bi-check-lg me-1"></i>Spremi promjene</button>
+                            <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Odustani</button>
                         </div>
                     </form>
                 </div>
@@ -350,8 +350,8 @@
                     </div>
                     
                     <div class="modal-footer flex-column border-top-0">
-                        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi</button>
-                        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                        <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2"><i class="bi bi-check-lg me-1"></i>Spremi</button>
+                        <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Odustani</button>
                     </div>
                 </form>
             </div>
@@ -382,8 +382,8 @@
                         </div>
                         
                         <div class="modal-footer flex-column border-top-0">
-                            <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi promjene</button>
-                            <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Odustani</button>
+                            <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2"><i class="bi bi-check-lg me-1"></i>Spremi promjene</button>
+                            <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Odustani</button>
                         </div>
                     </form>
                 </div>

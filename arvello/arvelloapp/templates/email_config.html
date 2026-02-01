@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Email konfiguracija - {{ block.super }}{% endblock %}
+
+{% block main %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Email konfiguracija</h1>
+        <small class="text-muted">Upravljanje SMTP postavkama za slanje e-pošte po subjektima</small>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createConfigModal">
+            <i class="bi bi-plus-circle me-1"></i>Nova konfiguracija
+        </button>
+    </div>
+</div>
+
+<!-- Status Summary -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ email_configs|length }}</h5>
+                <p class="card-text mb-0">Ukupno konfiguracija</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">{% for c in email_configs %}{% if c.is_active %}1{% endif %}{% empty %}0{% endfor %}</h5>
+                <p class="card-text mb-0">Aktivnih</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Info Alert -->
+<div class="alert alert-info mb-4">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Napomena:</strong> Email konfiguracije omogućuju različite SMTP postavke za svaki subjekt. 
+    Za Gmail koristite <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App Password</a> umjesto obične lozinke.
+</div>
+
+<div class="row">
+    {% for config in email_configs %}
+    <div class="col-md-6 col-lg-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0">{{ config.company.clientName }}</h5>
+                    <small class="text-muted">{{ config.from_email }}</small>
+                </div>
+                <div>
+                    {% if config.is_active %}
+                    <span class="badge bg-success">Aktivno</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Neaktivno</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <strong><i class="bi bi-server me-1"></i>SMTP:</strong>
+                    <span class="text-muted">{{ config.smtp_host }}:{{ config.smtp_port }}</span>
+                </div>
+                <div class="mb-2">
+                    <strong><i class="bi bi-person me-1"></i>Korisnik:</strong>
+                    <span class="text-muted">{{ config.smtp_user }}</span>
+                </div>
+                {% if config.from_name %}
+                <div class="mb-2">
+                    <strong><i class="bi bi-tag me-1"></i>Ime pošiljatelja:</strong>
+                    <span class="text-muted">{{ config.from_name }}</span>
+                </div>
+                {% endif %}
+                <div class="mb-3">
+                    <strong><i class="bi bi-shield-check me-1"></i>Sigurnost:</strong>
+                    {% if config.use_tls %}
+                    <span class="badge bg-info">TLS</span>
+                    {% elif config.use_ssl %}
+                    <span class="badge bg-warning">SSL</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Bez enkripcije</span>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <!-- Test Email Button -->
+                    <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#testEmailModal{{ config.id }}">
+                        <i class="bi bi-send me-1"></i>Testiraj
+                    </button>
+                    
+                    <!-- Edit Button -->
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="editConfig({{ config.id }})">
+                        <i class="bi bi-pencil me-1"></i>Uredi
+                    </button>
+                    
+                    <!-- Delete Button -->
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteConfig({{ config.id }}, '{{ config.company.clientName }}')">
+                        <i class="bi bi-trash me-1"></i>Obriši
+                    </button>
+                </div>
+            </div>
+            <div class="card-footer text-muted small">
+                Zadnja izmjena: {{ config.last_updated|date:"d.m.Y. H:i" }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Email Modal for this config -->
+    <div class="modal fade" id="testEmailModal{{ config.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Testiraj email konfiguraciju</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="test">
+                    <input type="hidden" name="config_id" value="{{ config.id }}">
+                    <div class="modal-body">
+                        <p>Testni email će biti poslan na dolje navedenu adresu:</p>
+                        <div class="mb-3">
+                            <label for="test_email_{{ config.id }}" class="form-label">Email adresa primatelja</label>
+                            <input type="email" class="form-control" id="test_email_{{ config.id }}" name="test_email" 
+                                   value="{{ request.user.email }}" placeholder="test@example.com">
+                            <div class="form-text">Ostavite prazno za slanje na vaš email ili SMTP korisnika.</div>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            <strong>Konfiguracija:</strong><br>
+                            {{ config.smtp_host }}:{{ config.smtp_port }} ({{ config.smtp_user }})
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg me-1"></i>Odustani
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send me-1"></i>Pošalji testni email
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            <i class="bi bi-envelope" style="font-size: 2rem"></i>
+            <h5 class="mt-2">Nema email konfiguracija</h5>
+            <p>Kreirajte prvu konfiguraciju da biste omogućili slanje e-pošte za vaše subjekte.</p>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createConfigModal">
+                <i class="bi bi-plus-circle me-1"></i>Kreiraj prvu konfiguraciju
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Create Config Modal -->
+<div class="modal fade" id="createConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova email konfiguracija</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <div class="modal-body">
+                    {% crispy form %}
+                    
+                    <div class="alert alert-info mt-3">
+                        <h6><i class="bi bi-lightbulb me-1"></i>Preporučene postavke:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Gmail:</strong> smtp.gmail.com, Port: 587, TLS: Da</li>
+                            <li><strong>Outlook/Office 365:</strong> smtp.office365.com, Port: 587, TLS: Da</li>
+                            <li><strong>Yahoo:</strong> smtp.mail.yahoo.com, Port: 587, TLS: Da</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i>Odustani
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Spremi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Config Modal -->
+<div class="modal fade" id="editConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Uredi email konfiguraciju</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" id="editConfigForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="config_id" id="editConfigId">
+                <div class="modal-body">
+                    {% crispy edit_form %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i>Odustani
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Spremi promjene
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfigModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Potvrda brisanja</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Jeste li sigurni da želite obrisati email konfiguraciju za <strong id="deleteCompanyName"></strong>?</p>
+                <p class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Ova akcija se ne može poništiti. Subjekt će koristiti globalne email postavke.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Odustani
+                </button>
+                <form method="post" id="deleteConfigForm" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="config_id" id="deleteConfigId">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Obriši
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editConfig(configId) {
+    document.getElementById('editConfigId').value = configId;
+    const modal = new bootstrap.Modal(document.getElementById('editConfigModal'));
+    modal.show();
+}
+
+function deleteConfig(configId, companyName) {
+    document.getElementById('deleteConfigId').value = configId;
+    document.getElementById('deleteCompanyName').textContent = companyName;
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfigModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

@@ -3,23 +3,45 @@
 {% load crispy_forms_tags %}
 {% load history_extras %}
 
-
 {% block main %}
-  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Ponude</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-      <div class="btn-group me-2">
-        <a href="{% get_history_url 'Offer' %}" class="btn btn-primary">
-          <span class="material-symbols-outlined align-icon">history</span>
-          Povijest promjena</a>
-        <div class="vr mx-1"></div>
-        <a href="{% url 'create_offer' %}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Nova ponuda</a>
-      </div>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Ponude</h1>
+    <div class="d-flex gap-2">
+      <a href="{% get_history_url 'Offer' %}" class="btn btn-secondary">
+        <i class="bi bi-clock-history me-1"></i>Povijest promjena
+      </a>
+      <a href="{% url 'create_offer' %}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+        <i class="bi bi-plus-circle me-1"></i>Nova ponuda
+      </a>
     </div>
   </div>
 
-  <div class="table-responsive">
-    <table class="table table-striped table-sm">
+  <!-- Search form -->
+  <form method="get" class="mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-6">
+        <div class="input-group">
+          <input type="text" name="q" class="form-control" placeholder="Pretraži po broju, klijentu, naslovu..." value="{{ q }}">
+          <button type="submit" class="btn btn-outline-primary">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </div>
+      <div class="col-md-2">
+        {% if q %}
+        <a href="{% url 'offers' %}" class="btn btn-outline-secondary">Očisti</a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="card-header">
+      <h5 class="card-title mb-0">Popis ponuda</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" role="table" aria-label="Tablica ponuda">
       <thead>
         <tr>
           <th scope="col">Naslov</th>
@@ -41,15 +63,47 @@
         <td>{{offer.subject.clientName}}</td>
         <td>{{offer.dueDate}}</td>
         <td>{{offer.notes}}</td>
-        <td><a href="{% url 'offer_pdf' offer.id %}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn"><img src="{% static 'img/download.svg' %}" alt="Download icon" width="16" height="16"></button></a></td>
+        <td class="text-end">
+          <a href="{% url 'offer_pdf' offer.id %}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm" aria-label="Preuzmi PDF">
+            <i class="bi bi-download"></i>
+          </a>
+        </td>
 
       </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-secondary py-4">Nema ponuda za prikaz.</td>
+        </tr>
         {% endfor %}
 
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   </div>
-  <footer> <a href="{% url 'admin:arvelloapp_offer_changelist' %}" style="color: white;">Jedino administrator može brisati ponude, klikom ovdje.</a> </footer>
+</div>
+  <!-- Pagination controls -->
+  {% if offers.has_other_pages %}
+  <nav class="mt-3">
+    <ul class="pagination justify-content-center">
+      {% if offers.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ offers.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">Prethodna</a>
+      </li>
+      {% endif %}
+      <li class="page-item active">
+        <span class="page-link">{{ offers.number }} / {{ offers.paginator.num_pages }}</span>
+      </li>
+      {% if offers.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ offers.next_page_number }}{% if q %}&q={{ q }}{% endif %}">Sljedeća</a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+  <div class="mt-3 text-muted small">
+    <a href="{% url 'admin:arvelloapp_offer_changelist' %}" class="text-decoration-none">Jedino administrator može brisati ponude, klikom ovdje.</a>
+  </div>
   <div class="modal modal-sheet py-5" tabindex="-1" id="addInvoiceModal">
     <div class="modal-dialog">
       <div class="modal-content rounded-6 shadow">
@@ -71,8 +125,8 @@
   
         </div>
         <div class="modal-footer flex-column border-top-0">
-          <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2">Spremi izmjene</button>
-          <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal">Zatvori</button>
+          <button type="submit" class="btn btn-lg btn-primary w-100 mx-0 mb-2"><i class="bi bi-check-lg me-1"></i>Spremi izmjene</button>
+          <button type="button" class="btn btn-lg btn-light w-100 mx-0" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Zatvori</button>
         </div>
   
         </form>

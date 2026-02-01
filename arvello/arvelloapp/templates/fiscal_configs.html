@@ -1,0 +1,741 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Fiskalizacija - {{ block.super }}{% endblock %}
+
+{% block css %}
+<style>
+    .status-badge {
+        font-size: 0.85rem;
+        padding: 0.4em 0.8em;
+    }
+    .config-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .config-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .certificate-info {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    .location-item, .device-item {
+        border-left: 3px solid #0d6efd;
+        padding-left: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    .location-item.inactive, .device-item.inactive {
+        border-left-color: #6c757d;
+        opacity: 0.7;
+    }
+    .nav-pills .nav-link {
+        border-radius: 0.5rem;
+    }
+    .test-result {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+    }
+    .empty-state i {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Fiskalizacija</h1>
+        <small class="text-muted">Upravljanje fiskalnim postavkama, lokacijama i uređajima</small>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createConfigModal">
+            <i class="bi bi-plus-circle me-1"></i>Nova konfiguracija
+        </button>
+    </div>
+</div>
+
+<!-- Status Overview Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h4 class="card-title text-primary mb-1">{{ fiscal_configs|length }}</h4>
+                <p class="card-text text-muted mb-0 small">Ukupno konfiguracija</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h4 class="card-title text-success mb-1">{{ connected_count|default:0 }}</h4>
+                <p class="card-text text-muted mb-0 small">Povezano</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h4 class="card-title text-warning mb-1">{{ production_count|default:0 }}</h4>
+                <p class="card-text text-muted mb-0 small">U produkciji</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h4 class="card-title text-info mb-1">{{ total_locations|default:0 }}</h4>
+                <p class="card-text text-muted mb-0 small">Ukupno lokacija</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fiscal Configurations -->
+{% if fiscal_configs %}
+<div class="row">
+    {% for config in fiscal_configs %}
+    <div class="col-xl-6 mb-4">
+        <div class="card config-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    {% if config.status == 'connected' %}
+                    <span class="badge bg-success status-badge me-2"><i class="bi bi-check-circle me-1"></i>Povezano</span>
+                    {% elif config.status == 'configured' %}
+                    <span class="badge bg-info status-badge me-2"><i class="bi bi-gear me-1"></i>Konfigurirano</span>
+                    {% elif config.status == 'error' %}
+                    <span class="badge bg-danger status-badge me-2"><i class="bi bi-exclamation-triangle me-1"></i>Greška</span>
+                    {% else %}
+                    <span class="badge bg-secondary status-badge me-2"><i class="bi bi-question-circle me-1"></i>Nije konfigurirano</span>
+                    {% endif %}
+                    <h5 class="mb-0">{{ config.company_id }}</h5>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editConfigModal{{ config.id }}">
+                            <i class="bi bi-pencil me-2"></i>Uredi konfiguraciju</a></li>
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addLocationModal{{ config.id }}">
+                            <i class="bi bi-building me-2"></i>Dodaj lokaciju</a></li>
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#historyModal{{ config.id }}">
+                            <i class="bi bi-clock-history me-2"></i>Povijest fiskalizacije</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteConfig({{ config.id }}, '{{ config.company_id }}')">
+                            <i class="bi bi-trash me-2"></i>Obriši</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Configuration Info -->
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Adapter</small>
+                        <span class="badge bg-primary">{{ config.get_adapter_display }}</span>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Okruženje</small>
+                        {% if config.mode == 'sandbox' %}
+                        <span class="badge bg-info"><i class="bi bi-box me-1"></i>Sandbox</span>
+                        {% else %}
+                        <span class="badge bg-warning"><i class="bi bi-lightning me-1"></i>Produkcija</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Certificate Status -->
+                {% if config.adapter == 'fiskalizacija_v1' %}
+                <div class="certificate-info mb-3">
+                    <h6 class="mb-2"><i class="bi bi-shield-check me-2"></i>Certifikati</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            {% if config.certificate_file %}
+                            <small class="text-success d-block"><i class="bi bi-check-circle me-1"></i>Certifikat učitan</small>
+                            <small class="text-muted">{{ config.certificate_file.name|truncatechars:25 }}</small>
+                            {% else %}
+                            <small class="text-danger d-block"><i class="bi bi-x-circle me-1"></i>Nema certifikata</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-6">
+                            {% if config.private_key_file %}
+                            <small class="text-success d-block"><i class="bi bi-key me-1"></i>Ključ učitan</small>
+                            <small class="text-muted">{{ config.private_key_file.name|truncatechars:25 }}</small>
+                            {% else %}
+                            <small class="text-danger d-block"><i class="bi bi-key-fill me-1"></i>Nema ključa</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if config.certificate_valid_until %}
+                    <div class="mt-2">
+                        <small class="text-muted">Vrijedi do: </small>
+                        <small class="{% if config.certificate_valid_until < today %}text-danger{% else %}text-success{% endif %}">
+                            {{ config.certificate_valid_until|date:"d.m.Y." }}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% elif config.adapter == 'fiskalizacija_v2' %}
+                <div class="certificate-info mb-3">
+                    <h6 class="mb-2"><i class="bi bi-key me-2"></i>API postavke</h6>
+                    {% if config.secret %}
+                    <small class="text-success"><i class="bi bi-check-circle me-1"></i>API ključ konfiguriran</small>
+                    {% else %}
+                    <small class="text-danger"><i class="bi bi-x-circle me-1"></i>API ključ nije postavljen</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Locations and Devices -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0"><i class="bi bi-building me-2"></i>Poslovni prostori</h6>
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal{{ config.id }}">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    </div>
+                    
+                    {% if config.locations.all %}
+                    {% for location in config.locations.all %}
+                    <div class="location-item {% if not location.is_active %}inactive{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ location.location_id }}</strong> - {{ location.name }}
+                                <br><small class="text-muted">{{ location.get_location_type_display }}</small>
+                                {% if location.address %}
+                                <br><small class="text-muted">{{ location.address }}, {{ location.city }}</small>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-link p-0" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addDeviceModal{{ location.id }}">
+                                        <i class="bi bi-printer me-2"></i>Dodaj uređaj</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="editLocation({{ location.id }})">
+                                        <i class="bi bi-pencil me-2"></i>Uredi</a></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteLocation({{ location.id }})">
+                                        <i class="bi bi-trash me-2"></i>Obriši</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Devices under this location -->
+                        {% if location.devices.all %}
+                        <div class="ms-3 mt-2">
+                            {% for device in location.devices.all %}
+                            <div class="device-item small {% if not device.is_active %}inactive{% endif %}">
+                                <i class="bi bi-printer me-1"></i>
+                                <strong>{{ device.device_id }}</strong> - {{ device.name }}
+                                <span class="badge bg-light text-dark ms-2">Seq: {{ device.current_sequence }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted small mb-0">Nema definiranih poslovnih prostora</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Last Test Result -->
+                {% if config.last_test_at %}
+                <div class="mb-3">
+                    <small class="text-muted">Zadnji test: {{ config.last_test_at|date:"d.m.Y. H:i" }}</small>
+                    {% if config.last_test_result %}
+                    <div class="test-result bg-light rounded p-2 mt-1">
+                        <small><code>{{ config.last_test_result|truncatechars:150 }}</code></small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="card-footer bg-transparent">
+                <div class="d-flex gap-2 flex-wrap">
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="test_connection">
+                        <input type="hidden" name="config_id" value="{{ config.id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-plug me-1"></i>Testiraj vezu
+                        </button>
+                    </form>
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="test_fiscalization">
+                        <input type="hidden" name="config_id" value="{{ config.id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-receipt me-1"></i>Test fiskalizacije
+                        </button>
+                    </form>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#historyModal{{ config.id }}">
+                        <i class="bi bi-clock-history me-1"></i>Povijest
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Config Modal for each config -->
+    <div class="modal fade" id="editConfigModal{{ config.id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Uredi konfiguraciju: {{ config.company_id }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="config_id" value="{{ config.id }}">
+                    <div class="modal-body">
+                        <ul class="nav nav-pills mb-3" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#edit-basic-{{ config.id }}">Osnovno</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#edit-certs-{{ config.id }}">Certifikati</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#edit-advanced-{{ config.id }}">Napredno</button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="edit-basic-{{ config.id }}">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Okruženje</label>
+                                        <select name="mode" class="form-select">
+                                            <option value="sandbox" {% if config.mode == 'sandbox' %}selected{% endif %}>Sandbox (testno)</option>
+                                            <option value="production" {% if config.mode == 'production' %}selected{% endif %}>Produkcija</option>
+                                        </select>
+                                        <small class="text-muted">U sandbox modu neće se slati pravi zahtjevi</small>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Fiskalni adapter</label>
+                                        <select name="adapter" class="form-select">
+                                            <option value="sandbox" {% if config.adapter == 'sandbox' %}selected{% endif %}>Sandbox</option>
+                                            <option value="fiskalizacija_v1" {% if config.adapter == 'fiskalizacija_v1' %}selected{% endif %}>Fiskalizacija v1 (XML/SOAP)</option>
+                                            <option value="fiskalizacija_v2" {% if config.adapter == 'fiskalizacija_v2' %}selected{% endif %}>Fiskalizacija v2 (JSON/REST)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">API Endpoint</label>
+                                    <input type="url" name="endpoint" class="form-control" value="{{ config.endpoint|default:'' }}" placeholder="https://cis.porezna-uprava.hr/FiskalizacijaService">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">OIB operatera</label>
+                                    <input type="text" name="operator_oib" class="form-control" value="{{ config.operator_oib|default:'' }}" maxlength="11" placeholder="12345678901">
+                                    <small class="text-muted">OIB osobe koja izdaje račune</small>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="edit-certs-{{ config.id }}">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Za Fiskalizaciju v1 potrebni su certifikat i privatni ključ izdani od FINA-e.
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Certifikat (.pem, .crt, .cer)</label>
+                                    {% if config.certificate_file %}
+                                    <p class="small text-success mb-1"><i class="bi bi-check-circle me-1"></i>Trenutno: {{ config.certificate_file.name }}</p>
+                                    {% endif %}
+                                    <input type="file" name="certificate_file" class="form-control" accept=".pem,.crt,.cer">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Privatni ključ (.key, .pem)</label>
+                                    {% if config.private_key_file %}
+                                    <p class="small text-success mb-1"><i class="bi bi-key me-1"></i>Trenutno: {{ config.private_key_file.name }}</p>
+                                    {% endif %}
+                                    <input type="file" name="private_key_file" class="form-control" accept=".key,.pem">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Lozinka certifikata (ako je potrebna)</label>
+                                    <input type="password" name="certificate_password" class="form-control" autocomplete="new-password">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Datum isteka certifikata</label>
+                                    <input type="date" name="certificate_valid_until" class="form-control" value="{{ config.certificate_valid_until|date:'Y-m-d' }}">
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="edit-advanced-{{ config.id }}">
+                                <div class="mb-3">
+                                    <label class="form-label">API ključ / Secret (za v2)</label>
+                                    <input type="password" name="secret" class="form-control" value="{{ config.secret|default:'' }}" autocomplete="new-password">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Dodatni parametri (JSON)</label>
+                                    <textarea name="meta" class="form-control" rows="4" placeholder='{"key": "value"}'>{{ config.meta|default:'' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Spremi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Location Modal for each config -->
+    <div class="modal fade" id="addLocationModal{{ config.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Novi poslovni prostor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_location">
+                    <input type="hidden" name="config_id" value="{{ config.id }}">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Oznaka <span class="text-danger">*</span></label>
+                                <input type="text" name="location_id" class="form-control" required placeholder="POS1">
+                                <small class="text-muted">Jedinstvena oznaka (npr. POS1, TRGOVINA1)</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Naziv <span class="text-danger">*</span></label>
+                                <input type="text" name="location_name" class="form-control" required placeholder="Glavna trgovina">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Vrsta prostora</label>
+                            <select name="location_type" class="form-select">
+                                <option value="fixed">Stalni poslovni prostor</option>
+                                <option value="mobile">Mobilni poslovni prostor</option>
+                                <option value="internet">Internet trgovina</option>
+                                <option value="vending">Automat</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Adresa</label>
+                            <input type="text" name="location_address" class="form-control" placeholder="Ulica i kućni broj">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Grad</label>
+                                <input type="text" name="location_city" class="form-control">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Poštanski broj</label>
+                                <input type="text" name="location_postal_code" class="form-control">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Radno vrijeme</label>
+                            <input type="text" name="working_hours" class="form-control" placeholder="Pon-Pet 08-20, Sub 08-14">
+                        </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" name="registered_at_tax_authority" class="form-check-input" id="regTaxAuth{{ config.id }}">
+                            <label class="form-check-label" for="regTaxAuth{{ config.id }}">Prijavljeno Poreznoj upravi</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Dodaj</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- History Modal for each config -->
+    <div class="modal fade" id="historyModal{{ config.id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Povijest fiskalizacije: {{ config.company_id }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% if config.fiscal_history %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Datum</th>
+                                    <th>Tip dokumenta</th>
+                                    <th>ID dokumenta</th>
+                                    <th>Status</th>
+                                    <th>JIR</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in config.fiscal_history %}
+                                <tr>
+                                    <td>{{ doc.created_at|date:"d.m.Y. H:i" }}</td>
+                                    <td>{{ doc.document_type }}</td>
+                                    <td>{{ doc.document_id }}</td>
+                                    <td>
+                                        {% if doc.status == 'sent' %}
+                                        <span class="badge bg-success">Poslano</span>
+                                        {% elif doc.status == 'pending' %}
+                                        <span class="badge bg-warning">U obradi</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">{{ doc.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><code>{{ doc.jir|default:"-" }}</code></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-clock-history d-block"></i>
+                        <p class="text-muted">Nema zapisa o fiskalizaciji</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Device Modal for each location -->
+    {% for location in config.locations.all %}
+    <div class="modal fade" id="addDeviceModal{{ location.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Novi naplatni uređaj - {{ location.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_device">
+                    <input type="hidden" name="location_id" value="{{ location.id }}">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Oznaka uređaja <span class="text-danger">*</span></label>
+                                <input type="text" name="device_id" class="form-control" required placeholder="1">
+                                <small class="text-muted">Jedinstvena oznaka u lokaciji (npr. 1, KASA1)</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Naziv <span class="text-danger">*</span></label>
+                                <input type="text" name="device_name" class="form-control" required placeholder="Glavna blagajna">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Proizvođač</label>
+                                <input type="text" name="manufacturer" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Model</label>
+                                <input type="text" name="device_model" class="form-control">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Serijski broj</label>
+                            <input type="text" name="serial_number" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Početni redni broj</label>
+                            <input type="number" name="current_sequence" class="form-control" value="0" min="0">
+                            <small class="text-muted">Redni broj od kojeg kreće numeracija računa</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Dodaj</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    
+    {% endfor %}
+</div>
+{% else %}
+<!-- Empty State -->
+<div class="card">
+    <div class="card-body empty-state">
+        <i class="bi bi-receipt d-block"></i>
+        <h4>Nema fiskalnih konfiguracija</h4>
+        <p class="text-muted mb-4">Kreirajte prvu konfiguraciju da biste započeli s fiskalizacijom računa.</p>
+        <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#createConfigModal">
+            <i class="bi bi-plus-circle me-2"></i>Kreiraj prvu konfiguraciju
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- Create Config Modal -->
+<div class="modal fade" id="createConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova fiskalna konfiguracija</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <div class="modal-body">
+                    <ul class="nav nav-pills mb-3" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#create-basic">Osnovno</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#create-certs">Certifikati</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="create-basic">
+                            <div class="mb-3">
+                                <label class="form-label">Subjekt <span class="text-danger">*</span></label>
+                                <select name="company" class="form-select" required>
+                                    <option value="">-- Odaberi subjekt --</option>
+                                    {% for company in companies %}
+                                    <option value="{{ company.id }}">{{ company.clientName }} ({{ company.OIB }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Okruženje</label>
+                                    <select name="mode" class="form-select">
+                                        <option value="sandbox" selected>Sandbox (testno)</option>
+                                        <option value="production">Produkcija</option>
+                                    </select>
+                                    <small class="text-muted">Preporučamo početi u sandbox modu</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Fiskalni adapter</label>
+                                    <select name="adapter" class="form-select" id="adapterSelect">
+                                        <option value="sandbox">Sandbox (testiranje)</option>
+                                        <option value="fiskalizacija_v1">Fiskalizacija v1 (XML/SOAP)</option>
+                                        <option value="fiskalizacija_v2">Fiskalizacija v2 (JSON/REST)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">API Endpoint</label>
+                                <input type="url" name="endpoint" class="form-control" placeholder="https://cis.porezna-uprava.hr/FiskalizacijaService">
+                                <small class="text-muted">Ostavite prazno za korištenje zadanog endpointa</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">OIB operatera</label>
+                                <input type="text" name="operator_oib" class="form-control" maxlength="11" placeholder="12345678901">
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="create-certs">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Certifikate možete dodati i naknadno kroz uređivanje konfiguracije.
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Certifikat (.pem, .crt, .cer)</label>
+                                <input type="file" name="certificate_file" class="form-control" accept=".pem,.crt,.cer">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Privatni ključ (.key, .pem)</label>
+                                <input type="file" name="private_key_file" class="form-control" accept=".key,.pem">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">API ključ / Secret (za v2 adapter)</label>
+                                <input type="password" name="secret" class="form-control" autocomplete="new-password">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Odustani</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Spremi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfigModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Potvrda brisanja</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Jeste li sigurni da želite obrisati fiskalnu konfiguraciju za <strong id="deleteCompanyId"></strong>?</p>
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Ova akcija će obrisati i sve povezane lokacije i uređaje. Akcija se ne može poništiti.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
+                <form method="post" id="deleteConfigForm" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="config_id" id="deleteConfigId">
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Obriši</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteConfig(configId, companyId) {
+    document.getElementById('deleteConfigId').value = configId;
+    document.getElementById('deleteCompanyId').textContent = companyId;
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfigModal'));
+    modal.show();
+}
+
+function editLocation(locationId) {
+    // TODO: Implement location editing
+    alert('Uređivanje lokacije ID: ' + locationId);
+}
+
+function deleteLocation(locationId) {
+    if (confirm('Jeste li sigurni da želite obrisati ovu lokaciju i sve povezane uređaje?')) {
+        // Create form and submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+            <input type="hidden" name="action" value="delete_location">
+            <input type="hidden" name="location_id" value="${locationId}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Show/hide certificate fields based on adapter selection
+document.getElementById('adapterSelect')?.addEventListener('change', function() {
+    const certSection = document.getElementById('create-certs');
+    // Certificate tab is always accessible but we could add visual indicators
+});
+</script>
+{% endblock %}
