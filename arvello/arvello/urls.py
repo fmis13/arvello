@@ -15,8 +15,8 @@ from django.conf.urls.static import static
 
 # Auth URL-ovi
 auth_patterns = [
-    path('', auth_views.LoginView.as_view(template_name='login.html', next_page='invoices'), name='login'),
-    path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html', next_page='invoices'), name='login_alt'),
+    path('', views.dashboard, name='dashboard'),
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html', next_page='dashboard'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 ]
 
@@ -84,6 +84,7 @@ history_patterns = [
 info_patterns = [
     path('pension-info/', views.pension_info, name='pension_info'),
     path('tax-changes-2025/', views.tax_changes_2025, name='tax_changes_2025'),
+    path('tax-changes-2026/', views.tax_changes_2026, name='tax_changes_2026'),
 ]
 
 # API URL-ovi
@@ -92,6 +93,25 @@ api_patterns = [
     path('invoices/<int:invoice_id>/mark-paid/', views.mark_invoice_paid, name='mark_invoice_paid'),
     path('api/ai-chat/', views.ai_chat, name='ai_chat'),
     path('api/ai-execute-action/', views.ai_execute_action, name='ai_execute_action'),
+    path('api/court-registry/fetch/', views.fetch_client_from_registry, name='fetch_client_from_registry'),
+    path('api/kpd/search/', views.search_kpd_codes, name='search_kpd_codes'),
+]
+
+# Fiscal URL-ovi
+fiscal_patterns = [
+    path('fiscal/configs/', views.fiscal_configs, name='fiscal_configs'),
+    path('invoices/<int:invoice_id>/fiscal/retry/', views.retry_fiscalization, name='retry_fiscalization'),
+]
+
+# Admin/Superuser URL-ovi
+admin_patterns = [
+    path('email-config/', views.email_config, name='email_config'),
+    path('court-registry-config/', views.court_registry_config, name='court_registry_config'),
+]
+
+# User URL-ovi
+user_patterns = [
+    path('profile/', views.user_profile, name='user_profile'),
 ]
 
 # Kombinirani URL-ovi
@@ -107,6 +127,9 @@ urlpatterns = [
     *info_patterns,
     *api_patterns,
     *table_exports,
+    *fiscal_patterns,
+    *admin_patterns,
+    *user_patterns,
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Admin site customization

@@ -15,6 +15,25 @@ from django.contrib.auth import get_user_model
 from .middleware import get_current_request
 from dateutil.relativedelta import relativedelta
 from .utils.decimal_helpers import safe_decimal
+import logging
+
+logger = logging.getLogger(__name__)
+
+class KPDCode(models.Model):
+    """Klasifikacija proizvoda po djelatnostima (KPD 2025)."""
+    code = models.CharField(max_length=20, primary_key=True, verbose_name="Šifra")
+    name = models.CharField(max_length=500, verbose_name="Naziv")
+    level = models.IntegerField(verbose_name="Razina")  # Based on code depth
+    parent_code = models.CharField(max_length=20, blank=True, null=True, verbose_name="Šifra nadređene kategorije")
+
+    class Meta:
+        verbose_name = "KPD šifra"
+        verbose_name_plural = "KPD šifre"
+        ordering = ['code']
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
 
 class HistoryMixin:
     def get_history_user(self):
@@ -46,13 +65,6 @@ class HistoryMixin:
             return value.get_full_name() or value.username
         return str(value)
 
-    def save(self, *args, **kwargs):
-        # Postavlja korisnika povijesti prije spremanja
-        request = get_current_request()
-        if request and hasattr(request, 'user'):
-            self.history_user = request.user
-        super().save(*args, **kwargs)
-
     def get_history_changes(self):
         # Dohvaća stvarne promjene između verzija
         try:
@@ -70,7 +82,7 @@ class HistoryMixin:
                             }
             return changes
         except Exception as e:
-            print(f"Greška pri dohvaćanju promjena: {e}")
+            logger.error(f"Greška pri dohvaćanju promjena: {e}")
             return {}
 
     def get_field_changes(self):
@@ -128,7 +140,7 @@ class Company(models.Model):
     ("SPLITSKO-DALMATINSKA ŽUPANIJA", "SPLITSKO-DALMATINSKA ŽUPANIJA"),
     ("ISTARSKA ŽUPANIJA", "ISTARSKA ŽUPANIJA"),
     ("DUBROVAČKO-NERETVANSKA ŽUPANIJA", "DUBROVAČKO-NERETVANSKA ŽUPANIJA"),
-    ("MEĐIMURSKa ŽUPANIJA", "MEĐIMURSKA ŽUPANIJA"),
+    ("MEĐIMURSKA ŽUPANIJA", "MEĐIMURSKA ŽUPANIJA"),
     ("GRAD ZAGREB", "GRAD ZAGREB"),
     ("INOZEMSTVO / NIJE PRIMJENJIVO", "INOZEMSTVO / NIJE PRIMJENJIVO")
     ]
@@ -320,6 +332,14 @@ class Product(models.Model):
     currency = models.CharField(choices=CURRENCY, default='€', max_length=100)
     taxPercent = models.FloatField(null=False, blank=False, default=25)
     barid = models.CharField(null=False, blank=False, max_length=100)
+    kpd_code = models.ForeignKey(
+        KPDCode,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name="KPD šifra",
+        help_text="Klasifikacija proizvoda po djelatnostima (KPD 2025)"
+    )
 
     uniqueId = models.CharField(null=True, blank=True, max_length=100)
     slug = models.SlugField(max_length=500, unique=True, blank=True, null=True)
@@ -466,6 +486,36 @@ from datetime import timedelta
 
 class Invoice(models.Model):
     # Model za račun
+    
+    # Sales channel choices (F1 = retail/maloprodaja, F2 = wholesale/veleprodaja)
+    SALES_CHANNEL_CHOICES = [
+        ('retail', 'Maloprodaja (F1)'),
+        ('wholesale', 'Veleprodaja (F2)'),
+    ]
+    
+    # Invoice type choices - clear distinction for fiscalization
+    INVOICE_TYPE_CHOICES = [
+        ('maloprodajni', 'Maloprodajni račun (F1)'),
+        ('veleprodajni', 'Veleprodajni račun (F2)'),
+    ]
+    
+    # Payment method choices
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', 'Gotovina'),
+        ('card', 'Kartica'),
+        ('bank_transfer', 'Transakcijski račun'),
+        ('other', 'Ostalo'),
+    ]
+    
+    # Fiscal status choices
+    FISCAL_STATUS_CHOICES = [
+        ('pending', 'Na čekanju'),
+        ('enqueued', 'U redu čekanja'),
+        ('processed', 'Obrađen'),
+        ('failed', 'Neuspješan'),
+        ('exempt', 'Izuzeto'),
+    ]
+    
     title = models.CharField(null=True, blank=True, max_length=30)
     number = models.CharField(null=False, blank=False, max_length=20, validators=[MinLengthValidator(6, 'Broj računa mora sadržavati više od 5 karaktera.')])
     dueDate = models.DateField(null=True, blank=False)
@@ -480,6 +530,83 @@ class Invoice(models.Model):
     history = HistoricalRecords()
     is_paid = models.BooleanField(default=False, verbose_name="Plaćen")
     payment_date = models.DateField(null=True, blank=True, verbose_name="Datum plaćanja")
+    
+    # Fiscal fields
+    sales_channel = models.CharField(
+        max_length=20,
+        choices=SALES_CHANNEL_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Kanal prodaje"
+    )
+    invoice_type = models.CharField(
+        max_length=20,
+        choices=INVOICE_TYPE_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Tip računa",
+        help_text="Maloprodajni (F1) za fizičke osobe, Veleprodajni (F2) za pravne osobe"
+    )
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        default='bank_transfer',
+        verbose_name="Način plaćanja"
+    )
+    fiscal_status = models.CharField(
+        max_length=20,
+        choices=FISCAL_STATUS_CHOICES,
+        default='pending',
+        verbose_name="Fiskalni status"
+    )
+    fiscal_jir = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="JIR (Jedinstveni identifikator računa)"
+    )
+    fiscal_zki = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        verbose_name="ZKI (Zaštitni kod izdavatelja)"
+    )
+    fiscal_location = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Oznaka poslovnog prostora"
+    )
+    fiscal_operator_oib = models.CharField(
+        max_length=11,
+        blank=True,
+        null=True,
+        verbose_name="OIB operatera"
+    )
+    fiscal_device_id = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="Oznaka naplatnog uređaja"
+    )
+    fiscalized_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Datum fiskalizacije"
+    )
+    # eRačun fields for F2 (wholesale)
+    eracun_uuid = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        verbose_name="eRačun UUID"
+    )
+    ubl_xml_reference = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="UBL XML referenca"
+    )
 
     def poziv_na_broj(self):
         # Generira poziv na broj za račun
@@ -571,6 +698,215 @@ class Invoice(models.Model):
         elif self.dueDate < today:
             return "warning"  # Do 5 dana zakašnjenja
         return None
+
+    def get_fiscal_data(self):
+        """Priprema potpune podatke za fiskalizaciju u formatu za adaptere."""
+        from decimal import Decimal
+        
+        # Prikupi stavke računa po PDV stopama
+        vat_summary = {}
+        items = []
+        
+        invoice_products = InvoiceProduct.objects.filter(invoice=self)
+        for ip in invoice_products:
+            vat_rate = Decimal(str(ip.product.taxPercent))
+            base_amount = ip.pretotal()
+            vat_amount = ip.tax()
+            total_amount = ip.total()
+            
+            item = {
+                'name': ip.product.title,
+                'quantity': float(ip.quantity),
+                'unit_price': float(ip.product.price),
+                'discount': float(ip.discount or 0),
+                'rebate': float(ip.rabat or 0),
+                'vat_rate': float(vat_rate),
+                'base_amount': float(base_amount),
+                'vat_amount': float(vat_amount),
+                'total_amount': float(total_amount),
+            }
+            items.append(item)
+            
+            # Agregiraj po PDV stopi
+            vat_key = float(vat_rate)
+            if vat_key not in vat_summary:
+                vat_summary[vat_key] = {
+                    'base_amount': Decimal('0'),
+                    'vat_amount': Decimal('0'),
+                    'items': []
+                }
+            vat_summary[vat_key]['base_amount'] += base_amount
+            vat_summary[vat_key]['vat_amount'] += vat_amount
+            vat_summary[vat_key]['items'].append(item)
+        
+        return {
+            'issuer_data': {
+                'oib': self.subject.OIB,
+                'name': self.subject.clientName,
+                'address': self.subject.addressLine1,
+                'city': self.subject.town,
+                'postal_code': self.subject.postalCode,
+                'vat_id': f'HR{self.subject.OIB}' if self.subject.OIB else None,
+            },
+            'buyer_data': {
+                'oib': self.client.OIB,
+                'name': self.client.clientName,
+                'address': self.client.addressLine1,
+                'city': self.client.province,
+                'postal_code': self.client.postalCode,
+                'vat_id': self.client.VATID,
+                'client_type': self.client.clientType,
+            } if self.client else None,
+            'invoice_data': {
+                'id': self.id,
+                'number': self.number,
+                'date': self.date.isoformat() if self.date else None,
+                'due_date': self.dueDate.isoformat() if self.dueDate else None,
+                'sales_channel': self.sales_channel,
+                'payment_method': self.payment_method,
+                'fiscal_location': self.fiscal_location or '1',
+                'fiscal_device_id': self.fiscal_device_id or '1',
+                'fiscal_operator_oib': self.fiscal_operator_oib or self.subject.OIB,
+                'notes': self.notes,
+                'is_paid': self.is_paid,
+                'payment_date': self.payment_date.isoformat() if self.payment_date else None,
+            },
+            'items': items,
+            'vat_summary': vat_summary,
+            'totals': {
+                'pretax_amount': float(self.pretax()),
+                'vat_amount': float(self.tax()),
+                'total_amount': float(self.price_with_vat()),
+            }
+        }
+
+    def get_invoice_products(self):
+        """Vraća stavke računa s detaljima za fiskalizaciju."""
+        from .models import InvoiceProduct
+        items = []
+        for ip in InvoiceProduct.objects.filter(invoice=self):
+            items.append({
+                'name': ip.product.title,
+                'quantity': float(ip.quantity),
+                'unit_price': float(ip.product.price),
+                'tax_rate': float(ip.product.taxPercent),
+                'total': float(ip.total()),
+                'tax_amount': float(ip.tax()),
+            })
+        return items
+
+    def get_fiscal_adapter_type(self):
+        """Određuje tip fiskalnog adaptera (F1 ili F2)."""
+        ftype = self.get_fiscalization_type()
+        if ftype == 'F1':
+            return 'fiskalizacija_v1'
+        elif ftype == 'F2':
+            return 'fiskalizacija_v2'
+        return 'sandbox'
+
+    def is_fiscal_ready(self):
+        """Provjerava je li račun spreman za fiskalizaciju."""
+        errors = []
+        
+        if not self.sales_channel:
+            errors.append('Kanal prodaje nije postavljen')
+        
+        if not self.subject.OIB:
+            errors.append('Subjekt nema OIB')
+        
+        if not self.number:
+            errors.append('Račun nema broj')
+        
+        if not self.date:
+            errors.append('Račun nema datum')
+        
+        products = InvoiceProduct.objects.filter(invoice=self)
+        if not products.exists():
+            errors.append('Račun nema stavki')
+        
+        if errors:
+            return False, '; '.join(errors)
+        return True, 'Račun je spreman za fiskalizaciju'
+
+    def auto_detect_sales_channel(self):
+        """Automatski određuje kanal prodaje na temelju klijenta i iznosa."""
+        # Pravna osoba -> veleprodaja (F2)
+        if self.client and self.client.clientType == 'Pravna osoba':
+            return 'wholesale'
+        
+        # Only check total if invoice has been saved (has a PK)
+        if self.pk:
+            try:
+                # Fizička osoba s iznosom > 3000 EUR -> veleprodaja (F2)
+                total = self.price_with_vat()
+                if total > 3000:
+                    return 'wholesale'
+            except Exception:
+                pass
+        
+        # Inače -> maloprodaja (F1)
+        return 'retail'
+
+    def auto_detect_invoice_type(self):
+        """Automatski određuje tip računa na temelju kanala prodaje."""
+        channel = self.sales_channel or self.auto_detect_sales_channel()
+        if channel == 'retail':
+            return 'maloprodajni'
+        return 'veleprodajni'
+
+    def get_fiscalization_type(self):
+        """Određuje tip fiskalizacije (F1 ili F2)."""
+        # Koristi invoice_type ako je postavljen
+        if self.invoice_type == 'maloprodajni':
+            return 'F1'
+        elif self.invoice_type == 'veleprodajni':
+            return 'F2'
+        # Fallback na sales_channel
+        if self.sales_channel == 'retail':
+            return 'F1'
+        elif self.sales_channel == 'wholesale':
+            return 'F2'
+        # Auto-detect
+        detected = self.auto_detect_sales_channel()
+        return 'F1' if detected == 'retail' else 'F2'
+
+    @property
+    def requires_fiscalization(self):
+        """Provjerava treba li račun fiskalizirati."""
+        # Ako je već fiskaliziran ili izuzet, ne treba
+        if self.fiscal_status in ['processed', 'exempt']:
+            return False
+        # Ako nema subjekt s OIB-om, ne može se fiskalizirati
+        if not self.subject or not self.subject.OIB:
+            return False
+        # Ako subjekt nije u sustavu PDV-a, potrebno je provjeriti
+        # Za sada pretpostavljamo da svi računi trebaju fiskalizaciju
+        return True
+
+    def get_fiscalization_type_display(self):
+        """Vraća naziv tipa fiskalizacije za prikaz."""
+        ftype = self.get_fiscalization_type()
+        if ftype == 'F1':
+            return 'F1 - Maloprodaja'
+        return 'F2 - Veleprodaja'
+
+    def get_fiscalization_type_badge(self):
+        """Vraća HTML badge za prikaz tipa fiskalizacije."""
+        ftype = self.get_fiscalization_type()
+        if ftype == 'F1':
+            return '<span class="badge bg-primary" title="Fiskalizacija 1.0 - XML/SOAP">F1</span>'
+        return '<span class="badge bg-success" title="Fiskalizacija 2.0 - eRačun/UBL">F2</span>'
+
+    def get_fiscal_status_display_badge(self):
+        """Vraća HTML badge za prikaz fiskalnog statusa."""
+        badges = {
+            'pending': '<span class="badge bg-secondary">Na čekanju</span>',
+            'enqueued': '<span class="badge bg-info">U redu</span>',
+            'processed': '<span class="badge bg-success">Fiskalizirano</span>',
+            'failed': '<span class="badge bg-danger">Neuspješno</span>',
+            'exempt': '<span class="badge bg-warning">Izuzeto</span>',
+        }
+        return badges.get(self.fiscal_status, '')
 
 class Inventory(models.Model):
     # Model za inventar
@@ -967,32 +1303,6 @@ class Employee(HistoryMixin, models.Model):
         # 600 EUR je osnovni osobni odbitak od 2025.
         base_deduction = TaxParameter.objects.get(year=year, parameter_type='base_deduction').value
         return base_deduction * self.tax_deduction_coefficient
-    
-    def get_remaining_vacation_days(self, year):
-        # Izračunava preostale dane godišnjeg odmora za zaposlenika za danu godinu.
-        if not hasattr(self, 'annual_vacation_days'):
-            return 0
-            
-        # Dohvati sve plaće u traženoj godini
-        salaries = Salary.objects.filter(
-            employee=self,
-            period_year=year
-        )
-        
-        # Koristi polje vacation_days umjesto annual_leave_days_used koje ne postoji
-        # Ako je to field koji nedostaje, izračunaj iz vacation_hours
-        used_vacation_days = 0
-        
-        for salary in salaries:
-            # Ako postoji vacation_days, koristi njega
-            if hasattr(salary, 'vacation_days') and salary.vacation_days:
-                used_vacation_days += salary.vacation_days
-            # Inače, pretvori vacation_hours u dane (pretpostavka: 8 sati = 1 dan)
-            elif hasattr(salary, 'vacation_hours') and salary.vacation_hours:
-                used_vacation_days += salary.vacation_days / Decimal('8.0')
-        
-        # Vrati preostale dane (ukupno dodijeljeno - iskorišteno)
-        return max(0, self.annual_vacation_days - used_vacation_days)
     
     def calculate_personal_deduction(self):
         """Izračunava osobni odbitak zaposlenika na temelju poreznih parametara za odgovarajuću godinu."""
@@ -1421,6 +1731,70 @@ class TaxParameter(models.Model):
     history = HistoricalRecords()
 
 
+class EmailConfig(models.Model):
+    """Model za konfiguraciju odlazne e-pošte po subjektima."""
+    company = models.OneToOneField(
+        Company,
+        on_delete=models.CASCADE,
+        verbose_name="Subjekt",
+        related_name='email_config'
+    )
+    smtp_host = models.CharField(
+        max_length=255,
+        default='smtp.gmail.com',
+        verbose_name="SMTP poslužitelj"
+    )
+    smtp_port = models.IntegerField(
+        default=587,
+        verbose_name="SMTP port"
+    )
+    smtp_user = models.EmailField(
+        verbose_name="SMTP korisničko ime (email)"
+    )
+    smtp_password = models.CharField(
+        max_length=255,
+        verbose_name="SMTP lozinka",
+        help_text="Lozinka ili App Password za Gmail"
+    )
+    use_tls = models.BooleanField(
+        default=True,
+        verbose_name="Koristi TLS"
+    )
+    use_ssl = models.BooleanField(
+        default=False,
+        verbose_name="Koristi SSL"
+    )
+    from_email = models.EmailField(
+        verbose_name="Email adresa pošiljatelja"
+    )
+    from_name = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Ime pošiljatelja",
+        help_text="Npr. naziv tvrtke"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Aktivno"
+    )
+    date_created = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "Email konfiguracija"
+        verbose_name_plural = "Email konfiguracije"
+
+    def __str__(self):
+        return f"Email konfiguracija za {self.company.clientName}"
+
+    def get_from_email_formatted(self):
+        """Vraća formatirani email s imenom pošiljatelja."""
+        if self.from_name:
+            return f"{self.from_name} <{self.from_email}>"
+        return self.from_email
+
+
 class LocalIncomeTax(models.Model):
     # Model za lokalnu poreznu stopu
     CITY_TYPE_CHOICES = [
@@ -1468,4 +1842,257 @@ class LocalIncomeTax(models.Model):
         if self.city_code and isinstance(self.city_code, str):
             digits_only = ''.join(c for c in self.city_code if c.isdigit())
             self.city_code = digits_only.zfill(5)
+        super().save(*args, **kwargs)
+
+
+class UserProfile(models.Model):
+    """
+    Extended user profile with academic title and display name.
+    
+    Supports Croatian academic title conventions:
+    - Pre-Bologna (left/before name): dipl. ing., dipl. oec., mr. sc., dr. sc., etc.
+    - Bologna/Post-Bologna (right/after name): bacc., univ. bacc., mag., univ. mag., etc.
+    """
+    
+    # Title position choices
+    TITLE_POSITION_CHOICES = [
+        ('left', 'Ispred imena (pre-Bologna)'),
+        ('right', 'Iza imena (Bologna)'),
+    ]
+    
+    # Pre-Bologna titles (go BEFORE the name - LEFT)
+    PRE_BOLOGNA_TITLES = [
+        'dr. sc.', 'mr. sc.', 'dipl. oec.', 'dipl. ing.', 'dipl. iur.', 
+        'dipl. ing. arh.', 'dipl. ing. el.', 'dipl. ing. stroj.',
+        'prof.', 'doc. dr. sc.', 'izv. prof. dr. sc.', 'red. prof. dr. sc.',
+        'prof. dr. sc.', 'prim. dr.', 'mr. ph.', 'dipl. pol.',
+    ]
+    
+    # Bologna titles (go AFTER the name - RIGHT)  
+    BOLOGNA_TITLES = [
+        'bacc. oec.', 'mag. oec.', 'univ. bacc. oec.', 'univ. spec. oec.',
+        'mag. ing.', 'bacc. ing.', 'univ. mag.', 'univ. bacc.',
+        'struč. spec.', 'mag. iur.', 'univ. bacc. iur.', 'mag. educ.',
+        'mag. inf.', 'bacc. inf.', 'mag. art.', 'mag. mus.',
+    ]
+    
+    ACADEMIC_TITLE_CHOICES = [
+        ('', '— Bez akademske titule —'),
+        # Pre-Bologna titles (left)
+        ('dr. sc.', 'dr. sc. (doktor znanosti) - ispred imena'),
+        ('mr. sc.', 'mr. sc. (magistar znanosti - stari sustav) - ispred imena'),
+        ('dipl. oec.', 'dipl. oec. (diplomirani ekonomist - stari sustav) - ispred imena'),
+        ('dipl. ing.', 'dipl. ing. (diplomirani inženjer - stari sustav) - ispred imena'),
+        ('dipl. iur.', 'dipl. iur. (diplomirani pravnik - stari sustav) - ispred imena'),
+        ('dipl. ing. arh.', 'dipl. ing. arh. (diplomirani inženjer arhitekture) - ispred imena'),
+        ('prof.', 'prof. (profesor) - ispred imena'),
+        ('doc. dr. sc.', 'doc. dr. sc. (docent) - ispred imena'),
+        ('izv. prof. dr. sc.', 'izv. prof. dr. sc. (izvanredni profesor) - ispred imena'),
+        ('red. prof. dr. sc.', 'red. prof. dr. sc. (redoviti profesor) - ispred imena'),
+        ('prof. dr. sc.', 'prof. dr. sc. (profesor, doktor znanosti) - ispred imena'),
+        # Bologna titles (right)
+        ('bacc. oec.', 'bacc. oec. (prvostupnik ekonomije) - iza imena'),
+        ('mag. oec.', 'mag. oec. (magistar ekonomije) - iza imena'),
+        ('univ. bacc. oec.', 'univ. bacc. oec. (sveučilišni prvostupnik ekonomije) - iza imena'),
+        ('univ. spec. oec.', 'univ. spec. oec. (sveučilišni specijalist ekonomije) - iza imena'),
+        ('mag. ing.', 'mag. ing. (magistar inženjer) - iza imena'),
+        ('bacc. ing.', 'bacc. ing. (prvostupnik inženjerstva) - iza imena'),
+        ('univ. mag.', 'univ. mag. (sveučilišni magistar) - iza imena'),
+        ('univ. bacc.', 'univ. bacc. (sveučilišni prvostupnik) - iza imena'),
+        ('struč. spec.', 'struč. spec. (stručni specijalist) - iza imena'),
+        ('mag. iur.', 'mag. iur. (magistar prava) - iza imena'),
+        ('custom', 'Prilagođeno (unesite ispod)'),
+    ]
+
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='profile',
+        verbose_name="Korisnik"
+    )
+    academic_title = models.CharField(
+        max_length=50, 
+        blank=True, 
+        choices=ACADEMIC_TITLE_CHOICES,
+        verbose_name="Akademska titula"
+    )
+    custom_academic_title = models.CharField(
+        max_length=50, 
+        blank=True, 
+        verbose_name="Prilagođena akademska titula",
+        help_text="Unesite ako ste odabrali 'Prilagođeno' iznad"
+    )
+    title_position = models.CharField(
+        max_length=10,
+        choices=TITLE_POSITION_CHOICES,
+        blank=True,
+        default='',
+        verbose_name="Pozicija titule",
+        help_text="Ispred imena za pre-Bologna titule (dr. sc., dipl. ing.), iza imena za Bologna titule (bacc., mag.)"
+    )
+    display_name = models.CharField(
+        max_length=100, 
+        blank=True, 
+        verbose_name="Prikazno ime",
+        help_text="Opcionalno - prilagođeno ime za prikaz umjesto punog imena"
+    )
+    date_created = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Korisnički profil"
+        verbose_name_plural = "Korisnički profili"
+
+    def __str__(self):
+        return f"Profil korisnika {self.user.username}"
+
+    def get_academic_title_display_value(self):
+        """Returns the effective academic title for display."""
+        if self.academic_title == 'custom' and self.custom_academic_title:
+            return self.custom_academic_title
+        elif self.academic_title and self.academic_title != 'custom':
+            return self.academic_title
+        return ''
+
+    def get_title_position(self):
+        """
+        Determines title position based on title_position field or auto-detection.
+        
+        Returns:
+            str: 'left' for pre-Bologna titles (before name), 
+                 'right' for Bologna titles (after name),
+                 '' if no title
+        """
+        title = self.get_academic_title_display_value()
+        if not title:
+            return ''
+        
+        # If explicitly set, use that
+        if self.title_position:
+            return self.title_position
+        
+        # Auto-detect based on title
+        title_lower = title.lower()
+        
+        # Check if it's a pre-Bologna title (goes before name)
+        for pre_bologna in self.PRE_BOLOGNA_TITLES:
+            if title_lower.startswith(pre_bologna.lower()):
+                return 'left'
+        
+        # Check if it's a Bologna title (goes after name)
+        for bologna in self.BOLOGNA_TITLES:
+            if title_lower.startswith(bologna.lower()):
+                return 'right'
+        
+        # Default: pre-Bologna titles typically start with certain prefixes
+        pre_bologna_prefixes = ['dr.', 'mr.', 'dipl.', 'prof.', 'doc.', 'izv.', 'red.', 'prim.']
+        for prefix in pre_bologna_prefixes:
+            if title_lower.startswith(prefix):
+                return 'left'
+        
+        # Bologna titles typically start with these
+        bologna_prefixes = ['bacc.', 'mag.', 'univ.', 'struč.', 'str.']
+        for prefix in bologna_prefixes:
+            if title_lower.startswith(prefix):
+                return 'right'
+        
+        # Default to left (pre-Bologna style) if uncertain
+        return 'left'
+
+    def get_full_name_with_title(self):
+        """
+        Returns the user's name with academic title positioned correctly.
+        
+        Croatian academic title conventions:
+        - Pre-Bologna titles (left): "dr. sc. Ivan Horvat"
+        - Bologna titles (right): "Ivan Horvat, bacc. oec."
+        
+        Returns:
+            str: Formatted name with title
+        """
+        title = self.get_academic_title_display_value()
+        name = self.display_name or self.user.get_full_name() or self.user.username
+        
+        if not title:
+            return name
+        
+        position = self.get_title_position()
+        
+        if position == 'right':
+            # Bologna style: "Ivan Horvat, bacc. oec."
+            return f"{name}, {title}"
+        else:
+            # Pre-Bologna style: "dr. sc. Ivan Horvat"
+            return f"{title} {name}"
+    
+    def get_name_only(self):
+        """Returns just the name without the title."""
+        return self.display_name or self.user.get_full_name() or self.user.username
+
+
+class CourtRegistryConfig(models.Model):
+    """
+    Konfiguracija za pristup API-ju Sudskog registra (sudreg-data.gov.hr).
+    
+    Koristi se za automatsko dohvaćanje podataka o tvrtkama prilikom dodavanja klijenata.
+    API koristi OAuth2 Client Credentials flow (client_id i client_secret).
+    Token endpoint: https://sudreg-data.gov.hr/api/oauth/token
+    """
+    api_url = models.URLField(
+        default='https://sudreg-data.gov.hr/api/javni',
+        verbose_name="API URL",
+        help_text="Bazni URL za API sudskog registra"
+    )
+    client_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Client ID",
+        help_text="Client ID za OAuth2 autentifikaciju"
+    )
+    client_secret = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Client Secret",
+        help_text="Client Secret za OAuth2 autentifikaciju"
+    )
+    token_cache = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Cached Token",
+        help_text="Keširan OAuth2 access token"
+    )
+    token_expires_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Token Expiry",
+        help_text="Vrijeme isteka OAuth2 tokena"
+    )
+    use_sandbox = models.BooleanField(
+        default=False,
+        verbose_name="Koristi sandbox",
+        help_text="Koristi testno okruženje (sudreg-data-test.gov.hr)"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Aktivno",
+        help_text="Omogućuje/onemogućuje korištenje ovog API-ja"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Kreirano")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Ažurirano")
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "Konfiguracija sudskog registra"
+        verbose_name_plural = "Konfiguracije sudskog registra"
+
+    def __str__(self):
+        status = "Aktivno" if self.is_active else "Neaktivno"
+        return f"Court Registry API ({status})"
+
+    def save(self, *args, **kwargs):
+        # Osiguraj da postoji samo jedna aktivna konfiguracija
+        if self.is_active:
+            CourtRegistryConfig.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)

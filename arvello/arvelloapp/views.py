@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
 from django.db.models import Sum, Q, Count
+from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.models import User, auth
 from django.views.generic import FormView
@@ -17,6 +18,7 @@ import json
 import base64
 from barcode import Code128
 from barcode.writer import SVGWriter
+from .utils.barcode import generate_hub3_barcode_base64
 from datetime import datetime, date
 from calendar import monthrange
 import calendar
@@ -48,14 +50,13 @@ def anonymous_required(function=None):
     def _dec(view_function):
         def _view(request, *args, **kwargs):
             if request.user.is_authenticated:
-                # Ako je korisnik prijavljen, preusmjeri ga na stranicu s računima
-                return redirect('invoices')
+                # Ako je korisnik prijavljen, preusmjeri ga na početnu stranicu
+                return redirect('dashboard')
             # Inače, izvrši originalnu view funkciju
             return view_function(request, *args, **kwargs)
         return _view
 
     if function:
-        return _dec(function)
         return _dec(function)
     return _dec
 
@@ -73,7 +74,22 @@ def select_subject(request):
 def products(request):
     # Prikazuje stranicu s proizvodima/uslugama i omogućuje dodavanje novih
     context = {}
-    products = Product.objects.all()
+    queryset = Product.objects.all()
+    
+    # Search functionality
+    q = request.GET.get('q', '')
+    if q:
+        queryset = queryset.filter(
+            Q(title__icontains=q) |
+            Q(barid__icontains=q) |
+            Q(description__icontains=q)
+        )
+    context['q'] = q
+    
+    # Pagination
+    paginator = Paginator(queryset, 25)
+    page = request.GET.get('page', 1)
+    products = paginator.get_page(page)
     context['product'] = products
 
     if request.method == 'GET':
@@ -108,40 +124,34 @@ def products(request):
 def invoices(request):
     # Prikazuje stranicu s računima i omogućuje dodavanje novih (jednostavna forma)
     context = {}
+    queryset = Invoice.objects.all().order_by('-date', '-id')
     
-    # Sorting logic
-    sort = request.GET.get('sort', 'date')  # Default sort by date
-    order = request.GET.get('order', 'desc')  # Default descending
+    # Search functionality
+    q = request.GET.get('q', '')
+    if q:
+        queryset = queryset.filter(
+            Q(number__icontains=q) |
+            Q(client__clientName__icontains=q) |
+            Q(title__icontains=q)
+        )
+    context['q'] = q
     
-    # Map column names to model field lookups
-    sort_mapping = {
-        'title': 'title',
-        'client': 'client__clientName',
-        'number': 'number',
-        'subject': 'subject__clientName',
-        'dueDate': 'dueDate',
-        'date': 'date',  # This replaces "Bilješke"
-    }
+    # Date range filters
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    if date_from:
+        queryset = queryset.filter(date__gte=date_from)
+    if date_to:
+        queryset = queryset.filter(date__lte=date_to)
+    context['date_from'] = date_from
+    context['date_to'] = date_to
     
-    # Get the field to sort by
-    sort_field = sort_mapping.get(sort, 'date')
+    # Pagination
+    paginator = Paginator(queryset, 25)
+    page = request.GET.get('page', 1)
+    invoices = paginator.get_page(page)
     
-    # Determine order_by string
-    if order == 'desc':
-        order_by = f'-{sort_field}'
-    else:
-        order_by = sort_field
-    
-    # Fetch and sort invoices and offers
-    invoices = Invoice.objects.all().order_by(order_by)
-    offers = Offer.objects.all().order_by(order_by)
-    
-    # Add sorting context for template
     context['invoices'] = invoices
-    context['offers'] = offers
-    context['current_sort'] = sort
-    context['current_order'] = order
-    context['sort_mapping'] = sort_mapping
 
     if request.method == 'GET':
         # Ako je GET zahtjev, prikaži praznu formu
@@ -215,7 +225,7 @@ def create_invoice(request):
 
         # Ako formset nije ispravan, prikaži greške
         if not invoice_formset.is_valid():
-            print(invoice_formset.errors)
+            logger.error(f"Invoice formset errors: {invoice_formset.errors}")
             messages.error(request, 'Problem pri obradi zahtjeva')
             for field, errors in invoice_formset.errors.items():
                 for error in errors:
@@ -228,10 +238,15 @@ def create_invoice(request):
 
     # Prazan formset za dinamičko dodavanje stavki na frontendu
     empty_form = InvoiceProductFormSet(queryset=InvoiceProduct.objects.none())
+    
+    # Pass clients for auto-detection of invoice type and OIB-based search
+    clients = Client.objects.all().values('id', 'clientType', 'OIB')
+    
     context = {
         'invoice_form': invoice_form,
         'invoice_formset': invoice_formset,
         'empty_form': empty_form,
+        'clients': clients,
     }
 
     return render(request, 'makeinvoice.html', context)
@@ -400,7 +415,22 @@ def companies(request):
 def offers(request):
     # Prikazuje stranicu s ponudama i omogućuje dodavanje novih (jednostavna forma)
     context = {}
-    offers = Offer.objects.all()
+    queryset = Offer.objects.all().order_by('-date', '-id')
+    
+    # Search functionality
+    q = request.GET.get('q', '')
+    if q:
+        queryset = queryset.filter(
+            Q(number__icontains=q) |
+            Q(client__clientName__icontains=q) |
+            Q(title__icontains=q)
+        )
+    context['q'] = q
+    
+    # Pagination
+    paginator = Paginator(queryset, 25)
+    page = request.GET.get('page', 1)
+    offers = paginator.get_page(page)
     
     context['offers'] = offers
 
@@ -437,7 +467,22 @@ def offers(request):
 def clients(request):
     # Prikazuje stranicu s klijentima i omogućuje dodavanje novih
     context = {}
-    clients = Client.objects.all()
+    queryset = Client.objects.all().order_by('clientName')
+    
+    # Search functionality
+    q = request.GET.get('q', '')
+    if q:
+        queryset = queryset.filter(
+            Q(clientName__icontains=q) |
+            Q(clientUniqueId__icontains=q) |
+            Q(emailAddress__icontains=q)
+        )
+    context['q'] = q
+    
+    # Pagination
+    paginator = Paginator(queryset, 25)
+    page = request.GET.get('page', 1)
+    clients = paginator.get_page(page)
     
     context['clients'] = clients
 
@@ -473,7 +518,7 @@ def login(request):
     # Prikazuje stranicu za prijavu korisnika
     if request.user.is_authenticated:
         # Ako je korisnik već prijavljen, preusmjeri ga
-        return redirect('invoices')  # preusmjeri na račune ako je već prijavljen
+        return redirect('dashboard')  # preusmjeri na početnu stranicu ako je već prijavljen
     context = {}
     if request.method == 'GET':
         # Ako je GET zahtjev, prikaži formu za prijavu
@@ -493,7 +538,7 @@ def login(request):
         if user is not None:
             # Ako je autentifikacija uspješna, prijavi korisnika
             auth.login(request, user)
-            return redirect('/invoices')
+            return redirect('dashboard')
         else:
             # Ako autentifikacija nije uspješna, prikaži grešku
             context['form'] = form
@@ -511,47 +556,22 @@ def invoice_pdf(request, pk):
     product = InvoiceProduct.objects.filter(invoice=invoice)
     client = invoice.client
     
-    # URL za generiranje HUB3 barkoda
-    url = "https://hub3.bigfish.software/api/v2/barcode"
-    headers = {'Content-Type': 'application/json'}
-    
-    # Podaci za HUB3 barkod
-    data = {
-        "renderer": "image",
-        "options": {
-            "format": "png",
-            "color": "#000000",
-            "bgColor": "#ffffff",
-            "scale": 3,
-            "ratio": 3
-        },
-        "data": {
-            "amount": int(invoice.total100()), # Iznos u centima
-            "currency": invoice.currtext(), # Valuta (npr. EUR)
-            "sender": {
-                "name": client.clientName,
-                "street": client.addressLine1,
-                "place": client.postalCode + " " + client.province,
-            },
-            "receiver": {
-                "name": subject.clientName[:25], # Ograničenje duljine imena primatelja
-                "street": subject.addressLine1,
-                "place": subject.postalCode + " " + subject.province,
-                "iban": subject.IBAN,
-                "model": "00",
-                "reference": invoice.client.clientUniqueId + "-" + invoice.number.replace('/', '-'), # Poziv na broj
-            },
-            "purpose": "", # Svrha plaćanja (opcionalno)
-            "description": "Uplata po računu " + invoice.number, # Opis plaćanja
-        }
-    }
-    
-    # Pošalji zahtjev za generiranje barkoda
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-    # Kodiraj sliku barkoda u base64 za prikaz u HTML-u
-    barcode_image = base64.b64encode(response.content).decode()
-    print(response.status_code) # Ispis statusa odgovora za debugiranje
-    #print(response.content) # Ispis sadržaja odgovora za debugiranje
+    # Generiraj HUB3 barkod lokalno
+    barcode_image = generate_hub3_barcode_base64(
+        iban=subject.IBAN or "",
+        amount=Decimal(str(invoice.price_with_vat())),
+        payer_name=client.clientName,
+        payer_address=client.addressLine1,
+        payer_city=f"{client.postalCode} {client.province}",
+        receiver_name=subject.clientName[:25],
+        receiver_address=subject.addressLine1,
+        receiver_city=f"{subject.postalCode} {subject.town}",
+        reference_model="HR00",
+        reference_number=f"{client.clientUniqueId}-{invoice.number.replace('/', '-')}",
+        purpose_code="OTHR",
+        description=f"Uplata po računu {invoice.number}",
+        currency=invoice.currtext()
+    )
     
     # Renderiraj HTML predložak s podacima računa i barkodom
     return render(request, 'invoice_export_view.html', {'invoice': invoice, 'products': product, 'client': client, 'subject': subject, 'barcode_image': barcode_image})
@@ -564,47 +584,22 @@ def offer_pdf(request, pk):
     product = OfferProduct.objects.filter(offer=offer)
     client = offer.client
     
-    # URL za generiranje HUB3 barkoda
-    url = "https://hub3.bigfish.software/api/v2/barcode"
-    headers = {'Content-Type': 'application/json'}
-    
-    # Podaci za HUB3 barkod
-    data = {
-        "renderer": "image",
-        "options": {
-            "format": "png",
-            "color": "#000000",
-            "bgColor": "#ffffff",
-            "scale": 3,
-            "ratio": 3
-        },
-        "data": {
-            "amount": int(offer.total100()), # Iznos u centima
-            "currency": offer.currtext(), # Valuta (npr. EUR)
-            "sender": {
-                "name": client.clientName,
-                "street": client.addressLine1,
-                "place": client.postalCode + " " + client.province,
-            },
-            "receiver": {
-                "name": subject.clientName[:25], # Ograničenje duljine imena primatelja
-                "street": subject.addressLine1,
-                "place": subject.postalCode + " " + subject.province,
-                "iban": subject.IBAN,
-                "model": "00",
-                "reference": offer.client.clientUniqueId + "-" + offer.number.replace('/', '-'), # Poziv na broj
-            },
-            "purpose": "", # Svrha plaćanja (opcionalno)
-            "description": "Uplata po ponudi " + offer.number, # Opis plaćanja
-        }
-    }
-    
-    # Pošalji zahtjev za generiranje barkoda
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-    # Kodiraj sliku barkoda u base64 za prikaz u HTML-u
-    barcode_image = base64.b64encode(response.content).decode()
-    #print(response.status_code) # Ispis statusa odgovora za debugiranje
-    #print(response.content) # Ispis sadržaja odgovora za debugiranje
+    # Generiraj HUB3 barkod lokalno
+    barcode_image = generate_hub3_barcode_base64(
+        iban=subject.IBAN or "",
+        amount=Decimal(str(offer.price_with_vat())),
+        payer_name=client.clientName,
+        payer_address=client.addressLine1,
+        payer_city=f"{client.postalCode} {client.province}",
+        receiver_name=subject.clientName[:25],
+        receiver_address=subject.addressLine1,
+        receiver_city=f"{subject.postalCode} {subject.town}",
+        reference_model="HR00",
+        reference_number=f"{client.clientUniqueId}-{offer.number.replace('/', '-')}",
+        purpose_code="OTHR",
+        description=f"Uplata po ponudi {offer.number}",
+        currency=offer.currtext()
+    )
     
     # Renderiraj HTML predložak s podacima ponude i barkodom
     return render(request, 'offer_export_view.html', {'offer': offer, 'products': product, 'client': client, 'subject': subject, 'barcode_image': barcode_image})
@@ -764,12 +759,28 @@ def expenses(request):
     context = {}
     try:
         # Dohvati sve troškove sortirane po datumu silazno
-        expenses_list = Expense.objects.all().order_by('-date')
+        queryset = Expense.objects.all().order_by('-date')
+        
+        # Search functionality
+        q = request.GET.get('q', '')
+        if q:
+            queryset = queryset.filter(
+                Q(title__icontains=q) |
+                Q(supplier__supplierName__icontains=q) |
+                Q(description__icontains=q)
+            )
+        context['q'] = q
+        
+        # Pagination
+        paginator = Paginator(queryset, 25)
+        page = request.GET.get('page', 1)
+        expenses_list = paginator.get_page(page)
         context['expenses'] = expenses_list
     except Exception as e:
         # U slučaju greške pri dohvaćanju, prikaži poruku
         messages.error(request, f"Nije moguće prikazati troškove. Greška: {str(e)}")
         context['expenses'] = []
+        context['q'] = ''
     
     if request.method == 'POST':
         # Ako je POST zahtjev, provjeri radi li se o uređivanju ili dodavanju
@@ -826,7 +837,23 @@ def suppliers(request):
     # Prikazuje stranicu s dobavljačima, omogućuje dodavanje, uređivanje i brisanje
     context = {}
     # Dohvati sve dobavljače sortirane po imenu
-    suppliers_list = Supplier.objects.all().order_by('supplierName')
+    queryset = Supplier.objects.all().order_by('supplierName')
+    
+    # Search functionality
+    q = request.GET.get('q', '')
+    if q:
+        queryset = queryset.filter(
+            Q(supplierName__icontains=q) |
+            Q(OIB__icontains=q) |
+            Q(emailAddress__icontains=q) |
+            Q(town__icontains=q)
+        )
+    context['q'] = q
+    
+    # Pagination
+    paginator = Paginator(queryset, 25)
+    page = request.GET.get('page', 1)
+    suppliers_list = paginator.get_page(page)
     context['suppliers'] = suppliers_list
     
     if request.method == 'POST':
@@ -1326,7 +1353,7 @@ def tax_parameters(request):
                     if tmp_path and os.path.exists(tmp_path): os.unlink(tmp_path)
                     return redirect('tax_parameters')
 
-                # Pronađi nazive stupaca
+                # Pronađi nazive stupaca - fleksibilnija detekcija
                 city_code_col = None
                 city_name_col = None
                 lower_rate_col = None
@@ -1336,20 +1363,27 @@ def tax_parameters(request):
                 city_type_col = None
                 
                 for col in df.columns:
-                    col_lower = str(col).lower()
-                    if 'šifra' in col_lower and ('grad' in col_lower or 'općin' in col_lower):
+                    col_lower = str(col).lower().strip()
+                    # Šifra grada/općine
+                    if city_code_col is None and ('šifra' in col_lower or 'sifra' in col_lower or 'kod' in col_lower or 'code' in col_lower):
                         city_code_col = col
-                    elif ('ime' in col_lower or 'naziv' in col_lower) and ('grad' in col_lower or 'općin' in col_lower):
+                    # Naziv grada/općine - prihvaća više varijanti
+                    if city_name_col is None and ('naziv' in col_lower or 'ime' in col_lower or col_lower in ['grad', 'općina', 'opcina', 'grad/općina', 'grad/opcina', 'jls']):
                         city_name_col = col
-                    elif 'niža' in col_lower and 'stopa' in col_lower:
+                    # Niža stopa
+                    if lower_rate_col is None and ('niž' in col_lower or 'niz' in col_lower) and ('stopa' in col_lower or 'porez' in col_lower or '%' in col_lower):
                         lower_rate_col = col
-                    elif 'viša' in col_lower and 'stopa' in col_lower:
+                    # Viša stopa
+                    if higher_rate_col is None and ('viš' in col_lower or 'vis' in col_lower) and ('stopa' in col_lower or 'porez' in col_lower or '%' in col_lower):
                         higher_rate_col = col
-                    elif 'račun' in col_lower and 'uplat' in col_lower:
+                    # Račun za uplatu
+                    if account_col is None and ('račun' in col_lower or 'racun' in col_lower or 'iban' in col_lower):
                         account_col = col
-                    elif 'nn' in col_lower or 'narodn' in col_lower:
+                    # Narodne novine
+                    if nn_col is None and ('nn' == col_lower or 'narodn' in col_lower or 'gazett' in col_lower):
                         nn_col = col
-                    elif 'vrsta' in col_lower and ('jls' in col_lower or 'jedinic' in col_lower):
+                    # Vrsta JLS
+                    if city_type_col is None and ('vrsta' in col_lower or 'tip' in col_lower or 'type' in col_lower):
                         city_type_col = col
                 
                 # Provjeri jesu li pronađeni potrebni stupci
@@ -1606,55 +1640,70 @@ def pension_info(request):
     return render(request, 'pension_info.html')
 
 
-@login_required
-def employee_api(request, employee_id):
-    """API endpoint za dohvaćanje detalja o zaposleniku."""
-    employee = get_object_or_404(Employee, id=employee_id)
+def _set_instance_name(record):
+    """Pomoćna funkcija: Postavlja instance_name na zapisu povijesti za čitljiv prikaz."""
+    if hasattr(record, 'title') and record.title:
+        record.instance_name = record.title
+    elif hasattr(record, 'first_name') and record.first_name:
+        record.instance_name = f"{record.first_name} {getattr(record, 'last_name', '')}"
+    elif hasattr(record, 'clientName') and record.clientName:
+        record.instance_name = record.clientName
+    elif hasattr(record, 'supplierName') and record.supplierName:
+        record.instance_name = record.supplierName
+    elif hasattr(record, 'number') and record.number:
+        record.instance_name = record.number
+    elif hasattr(record, 'name') and record.name:
+        record.instance_name = record.name
+    elif hasattr(record, 'city_name') and record.city_name:
+        record.instance_name = record.city_name
+    elif hasattr(record, 'description') and record.description:
+        record.instance_name = record.description[:50]
+    else:
+        # Fallback - ukloni " as of ..." iz stringa
+        obj_str = str(record)
+        if " as of " in obj_str:
+            obj_str = obj_str.split(" as of ")[0]
+        record.instance_name = obj_str
+
+
+def _prepare_changes_display(current_record, previous_record, model):
+    """Pomoćna funkcija: Priprema changes_display i initial_values za zapis povijesti."""
+    excluded_fields = {'id', 'history_id', 'history_date', 'history_type', 'history_user_id', 
+                       'history_change_reason', 'last_updated', 'date_created'}
     
-    # Dohvati preostale dane godišnjeg odmora
-    current_year = timezone.now().year
-    vacation_days_taken = Salary.objects.filter(
-        employee=employee,
-        period_year=current_year
-    ).aggregate(total_vacation_days=Sum('vacation_days'))['total_vacation_days'] or 0
-    remaining_vacation_days = employee.annual_vacation_days - vacation_days_taken
+    # Ako je zapis tipa 'izmjena' (~), izračunaj promjene
+    if current_record.history_type == '~' and previous_record:
+        current_record.changes_display = []
+        
+        # Dohvati sva polja modela (osim internih polja povijesti)
+        fields = {f.name: f.verbose_name or f.name for f in model._meta.fields 
+                  if f.name not in excluded_fields}
+        
+        # Usporedi vrijednosti za svako polje
+        for field_name, field_label in fields.items():
+            old_value = getattr(previous_record, field_name, None)
+            new_value = getattr(current_record, field_name, None)
+            
+            # Dodaj u prikaz samo ako su vrijednosti različite
+            if old_value != new_value:
+                formatted_old = format_field_value(old_value)
+                formatted_new = format_field_value(new_value)
+                current_record.changes_display.append((field_label, formatted_old, formatted_new))
+    
+    # Ako je zapis tipa 'kreiranje' (+), pripremi prikaz inicijalnih vrijednosti
+    elif current_record.history_type == '+':
+        current_record.initial_values = []
+        
+        # Dohvati sva polja modela
+        fields = {f.name: f.verbose_name or f.name for f in model._meta.fields 
+                  if f.name not in excluded_fields}
+        
+        # Dodaj vrijednosti za svako polje koje nije prazno
+        for field_name, field_label in fields.items():
+            value = getattr(current_record, field_name, None)
+            if value is not None and value != '':
+                current_record.initial_values.append((field_label, format_field_value(value)))
 
-    # Dohvati porezne stope i prag za grad zaposlenika i trenutnu godinu
-    lower_tax_rate_percent = Decimal('20.00') # Default
-    higher_tax_rate_percent = Decimal('30.00') # Default
-    monthly_threshold = Decimal('4200.00') # Default
-    try:
-        from .models import LocalIncomeTax, TaxParameter
-        from .utils.salary_calculator import standardize_city_name
-        payment_date_obj = timezone.now().date()
-        year = payment_date_obj.year
-
-        threshold_param = TaxParameter.objects.get(parameter_type='monthly_tax_threshold', year=year)
-        monthly_threshold = Decimal(str(threshold_param.value))
-
-        local_tax = LocalIncomeTax.objects.filter(
-            city_name__iexact=standardize_city_name(employee.city),
-            valid_from__lte=payment_date_obj
-        ).latest('valid_from')
-        lower_tax_rate_percent = local_tax.tax_rate_lower
-        higher_tax_rate_percent = local_tax.tax_rate_higher
-    except (LocalIncomeTax.DoesNotExist, TaxParameter.DoesNotExist):
-        pass # Koristi defaultne vrijednosti
-    except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Greška pri dohvaćanju poreznih stopa za API za {employee.city} u {year}: {e}")
-
-    data = {
-        'vacation_days': remaining_vacation_days,
-        'total_vacation_days': employee.annual_vacation_days,
-        'tax_deduction_coefficient': str(employee.tax_deduction_coefficient),
-        'hourly_rate': str(employee.hourly_rate),
-        'lower_tax_rate': str(lower_tax_rate_percent), # Dodaj nižu stopu
-        'higher_tax_rate': str(higher_tax_rate_percent), # Dodaj višu stopu
-        'monthly_threshold': str(monthly_threshold) # Dodaj prag
-    }
-    return JsonResponse(data)
 
 @login_required
 def view_history(request, model_name='general', object_id=None, user_id=None):
@@ -1701,48 +1750,47 @@ def view_history(request, model_name='general', object_id=None, user_id=None):
             # Iteriraj kroz modele i dohvati zapise povijesti za ovog korisnika
             for model in model_list:
                 records = list(model.history.filter(history_user_id=user_id)
+                            .select_related('history_user')
                             .order_by('-history_date')[:30])
                 
-                # Dodaj naziv modela svakom zapisu
+                # Dodaj naziv modela i instance_name svakom zapisu
                 for record in records:
                     record.model_name = model._meta.verbose_name
+                    _set_instance_name(record)
                 
                 # Kreiraj parove (trenutni, prethodni) zapis za prikaz promjena
-                for i in range(len(records)-1, 0, -1):
-                    history_records.append((records[i], records[i-1]))
-                
-                # Dodaj prvi zapis (bez prethodnog)
-                if records:
-                    history_records.append((records[0], None))
+                for i, current_record in enumerate(records):
+                    previous_record = records[i+1] if i < len(records)-1 else None
+                    _prepare_changes_display(current_record, previous_record, model)
+                    history_records.append((current_record, previous_record))
             
             # Sortiraj sve zapise po datumu silazno
             if history_records:
                 history_records.sort(key=lambda x: x[0].history_date, reverse=True)
 
     elif model_name == 'general':
-        print("DEBUG: Entering 'general' branch")
         # Općeniti pregled zadnjih promjena za sve modele
         history_type = 'general'
         title = "Općeniti pregled"
         model_list = [m for m in apps.get_models() if hasattr(m, 'history')]
         
         for model in model_list:
-            history_model = model.history.model# Dohvati zadnjih 20 zapisa povijesti za ovaj model, uključujući korisnika
+            history_model = model.history.model
+            # Dohvati zadnjih 20 zapisa povijesti za ovaj model, uključujući korisnika
             records = list(history_model.objects.all()
                          .select_related('history_user')
                          .order_by('-history_date')[:20])
             
-            # Dodaj naziv modela svakom zapisu
+            # Dodaj naziv modela i instance_name svakom zapisu
             for record in records:
                 record.model_name = model._meta.verbose_name
+                _set_instance_name(record)
             
-            # Kreiraj parove (trenutni, prethodni)
-            for i in range(len(records)-1, 0, -1):
-                history_records.append((records[i], records[i-1]))
-            
-            # Dodaj prvi zapis
-            if records:
-                history_records.append((records[0], None))
+            # Kreiraj parove (trenutni, prethodni) i pripremi changes_display
+            for i, current_record in enumerate(records):
+                previous_record = records[i+1] if i < len(records)-1 else None
+                _prepare_changes_display(current_record, previous_record, model)
+                history_records.append((current_record, previous_record))
         
         # Sortiraj sve zapise po datumu silazno
         history_records.sort(key=lambda x: x[0].history_date, reverse=True)
@@ -1775,70 +1823,13 @@ def view_history(request, model_name='general', object_id=None, user_id=None):
         # Dodaj naziv modela i formatiranu reprezentaciju instance svakom zapisu
         for record in records:
             record.model_name = name
-            
-            # Poboljšani prikaz imena instance (ukloni " as of ...")
-            if hasattr(record, 'title') and record.title:
-                record.instance_name = record.title
-            elif hasattr(record, 'clientName') and record.clientName:
-                record.instance_name = f"{record.first_name} {record.last_name}"
-            elif hasattr(record, 'number'):
-                record.instance_name = record.number
-            elif hasattr(record, 'name'):
-                record.instance_name = record.name
-            elif hasattr(record, 'description'):
-                record.instance_name = record.description[:50] # Skrati opis ako je predugačak
-            else:
-                # Općeniti fallback - ukloni tehnički suffix iz prikaza
-                obj_str = str(record).replace(" as of", "")
-                if " as of " in obj_str:
-                    obj_str = obj_str.split(" as of ")[0]
-                record.instance_name = obj_str
+            _set_instance_name(record)
         
         # Pripremi parove zapisa (trenutni, prethodni) i izračunaj promjene
-        records_with_prev = []
-        for i in range(len(records)):
-            current_record = records[i]
+        for i, current_record in enumerate(records):
             previous_record = records[i+1] if i < len(records)-1 else None
-            
-            # Ako je zapis tipa 'izmjena' (~), izračunaj promjene za prikaz u modalnom prozoru
-            if current_record.history_type == '~' and previous_record:
-                current_record.changes_display = []
-                
-                # Dohvati sva polja modela (osim internih polja povijesti)
-                fields = {f.name: f.verbose_name or f.name for f in model._meta.fields 
-                if f.name not in ['id', 'history_id', 'history_date', 'history_type', 'history_user_id', 'last_updated']}
-                
-                # Usporedi vrijednosti za svako polje
-                for field_name, field_label in fields.items():
-                    old_value = getattr(previous_record, field_name, None)
-                    new_value = getattr(current_record, field_name, None)
-                    
-                    # Dodaj u prikaz samo ako su vrijednosti različite
-                    if old_value != new_value:
-                        # Formatiraj vrijednosti prije dodavanja u listu za prikaz
-                        formatted_old = format_field_value(old_value)
-                        formatted_new = format_field_value(new_value)
-                        current_record.changes_display.append((field_label, formatted_old, formatted_new))
-            
-            # Ako je zapis tipa 'kreiranje' (+), pripremi prikaz inicijalnih vrijednosti
-            elif current_record.history_type == '+':
-                current_record.initial_values = []
-                
-                # Dohvati sva polja modela
-                fields = {f.name: f.verbose_name or f.name for f in model._meta.fields 
-                         if f.name not in ['id', 'history_id', 'history_date', 'history_type', 'history_user_id', 'last_updated']}
-                
-                # Dodaj vrijednosti za svako polje koje nije prazno
-                for field_name, field_label in fields.items():
-                    value = getattr(current_record, field_name, None)
-                    if value is not None and value != '':
-                        # Formatiraj vrijednost prije dodavanja
-                        current_record.initial_values.append((field_label, format_field_value(value)))
-            
-            # Dodaj par (trenutni, prethodni) u listu
-            records_with_prev.append((current_record, previous_record))
-        
-        history_records = records_with_prev
+            _prepare_changes_display(current_record, previous_record, model)
+            history_records.append((current_record, previous_record))
     
     
     # Renderiraj predložak s pripremljenim podacima povijesti
@@ -1903,6 +1894,11 @@ def format_field_value(value):
 def tax_changes_2025(request):
     # Prikazuje informativnu stranicu o poreznim promjenama za 2025.
     return render(request, 'tax_changes_2025.html')
+
+@login_required
+def tax_changes_2026(request):
+    # Prikazuje informativnu stranicu o fiskalnim i poreznim promjenama za 2026.
+    return render(request, 'tax_changes_2026.html')
 
 @login_required
 def send_invoice_email(request, invoice_id):
@@ -1989,7 +1985,7 @@ def send_invoice_email(request, invoice_id):
             'sender_name': sender_name, # Dodaj ime pošiljatelja u kontekst e-maila
         })
 
-        # Pošalji e-mail
+        # Pošalji e-mail (koristi email konfiguraciju za subjekt ako postoji)
         success = send_email_with_attachment(
             subject=email_subject,
             body=email_body,
@@ -1997,7 +1993,8 @@ def send_invoice_email(request, invoice_id):
             attachment=pdf_file.getvalue(),
             attachment_name=f"Racun_{invoice.number}.pdf",
             sender_name=sender_name,
-            reply_to_email=reply_to_email
+            reply_to_email=reply_to_email,
+            company=subject
         )
 
         if success:
@@ -2552,3 +2549,667 @@ def ai_execute_action(request):
             }, status=500)
     
     return JsonResponse({'error': 'Samo POST zahtjevi su dozvoljeni'}, status=405)
+
+@login_required
+def retry_fiscalization(request, invoice_id):
+    """Ponovno pokreće fiskalizaciju za račun."""
+    if request.method == 'POST':
+        invoice = get_object_or_404(Invoice, pk=invoice_id)
+        try:
+            from arvello_fiscal.services.fiscal_service import FiscalService
+            FiscalService.fiscalize_invoice(invoice)
+            messages.success(request, 'Fiskalizacija ponovno pokrenuta.')
+        except Exception as e:
+            messages.error(request, f'Greška pri fiskalizaciji: {e}')
+        return redirect('invoices')
+    else:
+        return redirect('invoices')
+
+
+@login_required
+def fiscal_configs(request):
+    """Prikazuje i upravlja fiskalnim konfiguracijama po subjektima."""
+    try:
+        from arvello_fiscal.models import FiscalConfig, FiscalLocation, FiscalDevice, FiscalDocument
+    except ImportError:
+        messages.error(request, 'Fiskalni modul nije dostupan.')
+        return redirect('invoices')
+    
+    context = {}
+    fiscal_configs = FiscalConfig.objects.all().prefetch_related('locations__devices').order_by('company_id')
+    context['fiscal_configs'] = fiscal_configs
+    context['companies'] = Company.objects.all()
+    context['today'] = timezone.now().date()
+    
+    # Calculate statistics
+    context['connected_count'] = fiscal_configs.filter(status='connected').count()
+    context['production_count'] = fiscal_configs.filter(mode='production').count()
+    context['total_locations'] = FiscalLocation.objects.count()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'create':
+            company_id = request.POST.get('company')
+            if company_id:
+                company = get_object_or_404(Company, id=company_id)
+                
+                # Check if config already exists for this company
+                if FiscalConfig.objects.filter(company_id=company.OIB).exists():
+                    messages.error(request, f'Fiskalna konfiguracija za {company.clientName} već postoji.')
+                    return redirect('fiscal_configs')
+                
+                fiscal_config = FiscalConfig(
+                    company_id=company.OIB,
+                    mode=request.POST.get('mode', 'sandbox'),
+                    adapter=request.POST.get('adapter', 'sandbox'),
+                    endpoint=request.POST.get('endpoint') or None,
+                    operator_oib=request.POST.get('operator_oib') or None,
+                    secret=request.POST.get('secret') or None,
+                    status='configured' if request.POST.get('adapter') != 'sandbox' else 'unconfigured'
+                )
+                
+                if request.FILES.get('certificate_file'):
+                    fiscal_config.certificate_file = request.FILES['certificate_file']
+                if request.FILES.get('private_key_file'):
+                    fiscal_config.private_key_file = request.FILES['private_key_file']
+                
+                fiscal_config.save()
+                messages.success(request, f'Fiskalna konfiguracija za {company.clientName} uspješno kreirana.')
+            else:
+                messages.error(request, 'Odaberite subjekt.')
+            return redirect('fiscal_configs')
+        
+        elif action == 'edit':
+            config_id = request.POST.get('config_id')
+            fiscal_config = get_object_or_404(FiscalConfig, id=config_id)
+            
+            fiscal_config.mode = request.POST.get('mode', fiscal_config.mode)
+            fiscal_config.adapter = request.POST.get('adapter', fiscal_config.adapter)
+            fiscal_config.endpoint = request.POST.get('endpoint') or None
+            fiscal_config.operator_oib = request.POST.get('operator_oib') or None
+            fiscal_config.secret = request.POST.get('secret') or fiscal_config.secret
+            fiscal_config.certificate_password = request.POST.get('certificate_password') or fiscal_config.certificate_password
+            
+            cert_valid = request.POST.get('certificate_valid_until')
+            if cert_valid:
+                fiscal_config.certificate_valid_until = cert_valid
+            
+            if request.FILES.get('certificate_file'):
+                fiscal_config.certificate_file = request.FILES['certificate_file']
+            if request.FILES.get('private_key_file'):
+                fiscal_config.private_key_file = request.FILES['private_key_file']
+            
+            # Update status based on configuration
+            if fiscal_config.is_configured():
+                fiscal_config.status = 'configured'
+            
+            fiscal_config.save()
+            messages.success(request, f'Fiskalna konfiguracija za {fiscal_config.company_id} uspješno ažurirana.')
+            return redirect('fiscal_configs')
+        
+        elif action == 'delete':
+            config_id = request.POST.get('config_id')
+            fiscal_config = get_object_or_404(FiscalConfig, id=config_id)
+            company_id = fiscal_config.company_id
+            fiscal_config.delete()
+            messages.success(request, f'Fiskalna konfiguracija za {company_id} uspješno obrisana.')
+            return redirect('fiscal_configs')
+        
+        elif action == 'add_location':
+            config_id = request.POST.get('config_id')
+            fiscal_config = get_object_or_404(FiscalConfig, id=config_id)
+            
+            location_id = request.POST.get('location_id', '').strip()
+            location_name = request.POST.get('location_name', '').strip()
+            
+            if location_id and location_name:
+                # Check if location_id already exists for this config
+                if FiscalLocation.objects.filter(fiscal_config=fiscal_config, location_id=location_id).exists():
+                    messages.error(request, f'Lokacija s oznakom {location_id} već postoji.')
+                else:
+                    FiscalLocation.objects.create(
+                        fiscal_config=fiscal_config,
+                        location_id=location_id,
+                        name=location_name,
+                        location_type=request.POST.get('location_type', 'fixed'),
+                        address=request.POST.get('location_address') or None,
+                        city=request.POST.get('location_city') or None,
+                        postal_code=request.POST.get('location_postal_code') or None,
+                        working_hours=request.POST.get('working_hours') or None,
+                        registered_at_tax_authority=request.POST.get('registered_at_tax_authority') == 'on'
+                    )
+                    messages.success(request, f'Poslovni prostor {location_id} uspješno dodan.')
+            else:
+                messages.error(request, 'Oznaka i naziv lokacije su obavezni.')
+            return redirect('fiscal_configs')
+        
+        elif action == 'delete_location':
+            location_id = request.POST.get('location_id')
+            location = get_object_or_404(FiscalLocation, id=location_id)
+            location_name = location.name
+            location.delete()
+            messages.success(request, f'Poslovni prostor {location_name} uspješno obrisan.')
+            return redirect('fiscal_configs')
+        
+        elif action == 'add_device':
+            location_id = request.POST.get('location_id')
+            location = get_object_or_404(FiscalLocation, id=location_id)
+            
+            device_id = request.POST.get('device_id', '').strip()
+            device_name = request.POST.get('device_name', '').strip()
+            
+            if device_id and device_name:
+                # Check if device_id already exists for this location
+                if FiscalDevice.objects.filter(location=location, device_id=device_id).exists():
+                    messages.error(request, f'Uređaj s oznakom {device_id} već postoji na ovoj lokaciji.')
+                else:
+                    FiscalDevice.objects.create(
+                        location=location,
+                        device_id=device_id,
+                        name=device_name,
+                        manufacturer=request.POST.get('manufacturer') or None,
+                        model=request.POST.get('device_model') or None,
+                        serial_number=request.POST.get('serial_number') or None,
+                        current_sequence=int(request.POST.get('current_sequence', 0))
+                    )
+                    messages.success(request, f'Naplatni uređaj {device_id} uspješno dodan.')
+            else:
+                messages.error(request, 'Oznaka i naziv uređaja su obavezni.')
+            return redirect('fiscal_configs')
+        
+        elif action == 'test_connection':
+            config_id = request.POST.get('config_id')
+            fiscal_config = get_object_or_404(FiscalConfig, id=config_id)
+            
+            try:
+                adapter_name = fiscal_config.adapter
+                if adapter_name == 'sandbox':
+                    from arvello_fiscal.adapters.sandbox import SandboxAdapter
+                    adapter = SandboxAdapter(mode=fiscal_config.mode)
+                elif adapter_name == 'fiskalizacija_v1':
+                    from arvello_fiscal.adapters.fiskalizacija_v1 import FiskalizacijaV1Adapter
+                    adapter = FiskalizacijaV1Adapter(
+                        endpoint=fiscal_config.endpoint,
+                        cert_meta={
+                            'cert_path': fiscal_config.certificate_file.path if fiscal_config.certificate_file else None,
+                            'key_path': fiscal_config.private_key_file.path if fiscal_config.private_key_file else None,
+                        },
+                        mode=fiscal_config.mode
+                    )
+                elif adapter_name == 'fiskalizacija_v2':
+                    from arvello_fiscal.adapters.fiskalizacija_v2 import FiskalizacijaV2Adapter
+                    adapter = FiskalizacijaV2Adapter(
+                        endpoint=fiscal_config.endpoint,
+                        secret=fiscal_config.secret,
+                        mode=fiscal_config.mode
+                    )
+                else:
+                    from arvello_fiscal.adapters.sandbox import SandboxAdapter
+                    adapter = SandboxAdapter(mode=fiscal_config.mode)
+                
+                test_result = adapter.test_connection()
+                result_str = str(test_result)
+                
+                if test_result.get('success'):
+                    fiscal_config.update_status('connected', result_str)
+                    messages.success(request, f'Veza s fiskalnom službom za {fiscal_config.company_id} je uspješna.')
+                else:
+                    fiscal_config.update_status('error', result_str)
+                    messages.error(request, f'Greška pri testiranju veze: {test_result.get("error", "Nepoznata greška")}')
+            except Exception as e:
+                fiscal_config.update_status('error', str(e))
+                messages.error(request, f'Greška pri testiranju veze: {e}')
+            
+            return redirect('fiscal_configs')
+        
+        elif action == 'test_fiscalization':
+            config_id = request.POST.get('config_id')
+            fiscal_config = get_object_or_404(FiscalConfig, id=config_id)
+            
+            try:
+                # Create a test payload
+                adapter_name = fiscal_config.adapter
+                if adapter_name == 'sandbox':
+                    from arvello_fiscal.adapters.sandbox import SandboxAdapter
+                    adapter = SandboxAdapter(mode=fiscal_config.mode)
+                elif adapter_name == 'fiskalizacija_v1':
+                    from arvello_fiscal.adapters.fiskalizacija_v1 import FiskalizacijaV1Adapter
+                    adapter = FiskalizacijaV1Adapter(
+                        endpoint=fiscal_config.endpoint,
+                        cert_meta={
+                            'cert_path': fiscal_config.certificate_file.path if fiscal_config.certificate_file else None,
+                            'key_path': fiscal_config.private_key_file.path if fiscal_config.private_key_file else None,
+                        },
+                        mode=fiscal_config.mode
+                    )
+                elif adapter_name == 'fiskalizacija_v2':
+                    from arvello_fiscal.adapters.fiskalizacija_v2 import FiskalizacijaV2Adapter
+                    adapter = FiskalizacijaV2Adapter(
+                        endpoint=fiscal_config.endpoint,
+                        secret=fiscal_config.secret,
+                        mode=fiscal_config.mode
+                    )
+                else:
+                    from arvello_fiscal.adapters.sandbox import SandboxAdapter
+                    adapter = SandboxAdapter(mode=fiscal_config.mode)
+                
+                # Test fiscalization with mock data
+                test_payload = {
+                    'test': True,
+                    'company_id': fiscal_config.company_id,
+                    'invoice_number': 'TEST-001',
+                    'total': '100.00'
+                }
+                
+                signed = adapter.sign_payload(test_payload)
+                raw_response = adapter.send(signed)
+                parsed = adapter.parse_response(raw_response)
+                
+                if parsed.get('status') == 'OK' or parsed.get('ok'):
+                    fiscal_config.update_status('connected', f'Test fiskalizacije uspješan: {str(parsed)}')
+                    messages.success(request, f'Test fiskalizacije za {fiscal_config.company_id} je uspješan. JIR: {parsed.get("jir", "N/A")}')
+                else:
+                    fiscal_config.update_status('error', f'Test fiskalizacije neuspješan: {str(parsed)}')
+                    messages.warning(request, f'Test fiskalizacije vraća: {str(parsed)}')
+                    
+            except Exception as e:
+                fiscal_config.update_status('error', str(e))
+                messages.error(request, f'Greška pri testiranju fiskalizacije: {e}')
+            
+            return redirect('fiscal_configs')
+
+    # Add fiscal history to each config
+    for config in fiscal_configs:
+        config.fiscal_history = FiscalDocument.objects.filter(company_id=config.company_id).order_by('-created_at')[:20]
+    
+    return render(request, 'fiscal_configs.html', context)
+
+
+def is_superuser(user):
+    """Provjera je li korisnik superuser."""
+    return user.is_superuser
+
+
+@login_required
+def user_profile(request):
+    """View za prikaz i uređivanje korisničkog profila."""
+    from .models import UserProfile
+    from .forms import UserProfileForm
+    
+    # Get or create user profile
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=profile, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profil uspješno ažuriran.')
+            return redirect('user_profile')
+        else:
+            messages.error(request, 'Greška pri ažuriranju profila.')
+    else:
+        form = UserProfileForm(instance=profile, user=request.user)
+    
+    context = {
+        'form': form,
+        'profile': profile,
+    }
+    return render(request, 'profile.html', context)
+
+
+@login_required
+@user_passes_test(is_superuser, login_url='invoices')
+def email_config(request):
+    """Prikazuje i upravlja email konfiguracijama po subjektima. Dostupno samo superuserima."""
+    from .models import EmailConfig
+    from .forms import EmailConfigForm
+    from .utils.email_utils import send_test_email
+    
+    context = {}
+    email_configs = EmailConfig.objects.all().select_related('company').order_by('company__clientName')
+    context['email_configs'] = email_configs
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'create':
+            form = EmailConfigForm(request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Email konfiguracija uspješno kreirana.')
+                return redirect('email_config')
+            else:
+                messages.error(request, 'Greška pri kreiranju email konfiguracije.')
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"{field}: {error}")
+                context['form'] = form
+        
+        elif action == 'edit':
+            config_id = request.POST.get('config_id')
+            email_config_obj = get_object_or_404(EmailConfig, id=config_id)
+            form = EmailConfigForm(request.POST, instance=email_config_obj)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f'Email konfiguracija za {email_config_obj.company.clientName} uspješno ažurirana.')
+                return redirect('email_config')
+            else:
+                messages.error(request, 'Greška pri ažuriranju email konfiguracije.')
+                context['edit_form'] = form
+        
+        elif action == 'delete':
+            config_id = request.POST.get('config_id')
+            email_config_obj = get_object_or_404(EmailConfig, id=config_id)
+            company_name = email_config_obj.company.clientName
+            email_config_obj.delete()
+            messages.success(request, f'Email konfiguracija za {company_name} uspješno obrisana.')
+            return redirect('email_config')
+        
+        elif action == 'test':
+            config_id = request.POST.get('config_id')
+            test_email = request.POST.get('test_email', '')
+            email_config_obj = get_object_or_404(EmailConfig, id=config_id)
+            
+            if not test_email:
+                test_email = request.user.email if request.user.email else email_config_obj.smtp_user
+            
+            success, message = send_test_email(email_config_obj, test_email)
+            if success:
+                messages.success(request, message)
+            else:
+                messages.error(request, message)
+            
+            return redirect('email_config')
+
+    # Initialize forms
+    if 'form' not in context:
+        context['form'] = EmailConfigForm()
+    if 'edit_form' not in context:
+        context['edit_form'] = EmailConfigForm()
+    
+    return render(request, 'email_config.html', context)
+
+
+@login_required
+def search_kpd_codes(request):
+    """
+    API endpoint za pretraživanje KPD šifri.
+    
+    Query params:
+        q: Tekst za pretraživanje (šifra ili naziv)
+        limit: Maksimalni broj rezultata (default: 20)
+    """
+    from .models import KPDCode
+    
+    q = request.GET.get('q', '').strip()
+    limit = int(request.GET.get('limit', 20))
+    
+    if len(q) < 2:
+        return JsonResponse({'results': [], 'message': 'Unesite najmanje 2 znaka.'})
+    
+    # Search by code or name
+    codes = KPDCode.objects.filter(
+        Q(code__icontains=q) | Q(name__icontains=q)
+    ).order_by('code')[:limit]
+    
+    results = []
+    for code in codes:
+        # Build hierarchy path
+        hierarchy = []
+        current_code = code.parent_code
+        while current_code:
+            parent = KPDCode.objects.filter(code=current_code).first()
+            if parent:
+                hierarchy.insert(0, {'code': parent.code, 'name': parent.name})
+                current_code = parent.parent_code
+            else:
+                break
+        
+        # Build display path string (e.g., "A > 01 > 01.1")
+        path_parts = [h['code'] for h in hierarchy]
+        path_str = ' > '.join(path_parts) if path_parts else ''
+        
+        results.append({
+            'code': code.code,
+            'name': code.name,
+            'level': code.level,
+            'parent_code': code.parent_code,
+            'hierarchy': hierarchy,
+            'path': path_str,
+            'display': f"{code.code} - {code.name}",
+        })
+    
+    return JsonResponse({
+        'results': results,
+        'count': len(results),
+        'query': q
+    })
+
+
+@login_required
+def fetch_client_from_registry(request):
+    """
+    API endpoint za dohvaćanje podataka o subjektu iz Sudskog registra.
+    
+    Podržava pretraživanje po OIB-u ili nazivu tvrtke.
+    Vraća JSON odgovor s podacima za popunjavanje forme klijenta ili dobavljača.
+    
+    Query params:
+        oib: OIB broj (11 znamenki)
+        name: Naziv tvrtke za pretraživanje
+        entity_type: Tip entiteta ('client' ili 'supplier') - utječe na imena polja u odgovoru
+    """
+    from .utils.court_registry import (
+        fetch_company_data_by_oib, 
+        search_companies_by_name,
+        CourtRegistryError
+    )
+    
+    if request.method != 'GET':
+        return JsonResponse({
+            'success': False,
+            'error': 'Samo GET zahtjevi su dozvoljeni.'
+        }, status=405)
+    
+    oib = request.GET.get('oib', '').strip()
+    name = request.GET.get('name', '').strip()
+    entity_type = request.GET.get('entity_type', 'client').strip()
+    
+    # Validate entity_type
+    if entity_type not in ('client', 'supplier'):
+        entity_type = 'client'
+    
+    if not oib and not name:
+        return JsonResponse({
+            'success': False,
+            'error': 'Molimo unesite OIB ili naziv tvrtke.'
+        }, status=400)
+    
+    try:
+        if oib:
+            # Search by OIB
+            if len(oib) != 11 or not oib.isdigit():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'OIB mora sadržavati točno 11 znamenki.'
+                }, status=400)
+            
+            data = fetch_company_data_by_oib(oib, entity_type=entity_type)
+            # Get the name field based on entity type
+            name_field = 'supplierName' if entity_type == 'supplier' else 'clientName'
+            return JsonResponse({
+                'success': True,
+                'data': data,
+                'message': f"Pronađen subjekt: {data.get(name_field, 'N/A')}"
+            })
+        
+        else:
+            # Search by name
+            if len(name) < 3:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Naziv mora sadržavati najmanje 3 znaka.'
+                }, status=400)
+            
+            results = search_companies_by_name(name, limit=10)
+            return JsonResponse({
+                'success': True,
+                'results': results,
+                'count': len(results),
+                'message': f"Pronađeno {len(results)} rezultata."
+            })
+    
+    except CourtRegistryError as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+    
+    except Exception as e:
+        logger.exception(f"Greška pri dohvaćanju podataka iz sudskog registra: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Došlo je do neočekivane greške. Pokušajte ponovo.'
+        }, status=500)
+
+
+@login_required
+@user_passes_test(is_superuser, login_url='invoices')
+def court_registry_config(request):
+    """
+    Upravljanje konfiguracijom API-ja Sudskog registra.
+    Dostupno samo superuserima.
+    """
+    from .models import CourtRegistryConfig
+    
+    context = {}
+    configs = CourtRegistryConfig.objects.all().order_by('-is_active', '-updated_at')
+    context['configs'] = configs
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'create':
+            api_url = request.POST.get('api_url', 'https://sudreg-data.gov.hr/api/javni')
+            client_id = request.POST.get('client_id', '').strip() or None
+            client_secret = request.POST.get('client_secret', '').strip() or None
+            use_sandbox = request.POST.get('use_sandbox') == 'on'
+            is_active = request.POST.get('is_active') == 'on'
+            
+            CourtRegistryConfig.objects.create(
+                api_url=api_url,
+                client_id=client_id,
+                client_secret=client_secret,
+                use_sandbox=use_sandbox,
+                is_active=is_active
+            )
+            messages.success(request, 'Konfiguracija sudskog registra uspješno kreirana.')
+            return redirect('court_registry_config')
+        
+        elif action == 'edit':
+            config_id = request.POST.get('config_id')
+            config = get_object_or_404(CourtRegistryConfig, id=config_id)
+            
+            config.api_url = request.POST.get('api_url', config.api_url)
+            client_id = request.POST.get('client_id', '').strip()
+            client_secret = request.POST.get('client_secret', '').strip()
+            if client_id:
+                config.client_id = client_id
+            if client_secret:
+                config.client_secret = client_secret
+            config.use_sandbox = request.POST.get('use_sandbox') == 'on'
+            config.is_active = request.POST.get('is_active') == 'on'
+            config.save()
+            
+            messages.success(request, 'Konfiguracija sudskog registra uspješno ažurirana.')
+            return redirect('court_registry_config')
+        
+        elif action == 'delete':
+            config_id = request.POST.get('config_id')
+            config = get_object_or_404(CourtRegistryConfig, id=config_id)
+            config.delete()
+            messages.success(request, 'Konfiguracija sudskog registra uspješno obrisana.')
+            return redirect('court_registry_config')
+        
+        elif action == 'test':
+            config_id = request.POST.get('config_id')
+            test_oib = request.POST.get('test_oib', '').strip()
+            
+            config = get_object_or_404(CourtRegistryConfig, id=config_id)
+            
+            if not test_oib:
+                test_oib = '44992900246'  # OIB HEP-a za testiranje
+            
+            try:
+                from .utils.court_registry import CourtRegistryClient
+                client = CourtRegistryClient(
+                    client_id=config.client_id,
+                    client_secret=config.client_secret,
+                    use_sandbox=config.use_sandbox,
+                    config=config  # For token caching
+                )
+                result = client.search_by_oib(test_oib)
+                if result:
+                    messages.success(request, 
+                        f'Veza s API-jem uspješna! Pronađen subjekt: {result.name}'
+                    )
+                else:
+                    messages.warning(request, 
+                        f'Veza s API-jem uspješna, ali subjekt s OIB-om {test_oib} nije pronađen.'
+                    )
+            except Exception as e:
+                messages.error(request, f'Greška pri testiranju veze: {str(e)}')
+            
+            return redirect('court_registry_config')
+    
+    return render(request, 'court_registry_config.html', context)
+
+
+@login_required
+def dashboard(request):
+    """Prikazuje početnu stranicu s pregledom i statistikama."""
+    context = {}
+    
+    # Get current date info
+    today = timezone.now().date()
+    current_month_start = today.replace(day=1)
+    
+    # Invoice statistics for current month
+    invoices_this_month = Invoice.objects.filter(date__gte=current_month_start, date__lte=today)
+    context['invoices_count_month'] = invoices_this_month.count()
+    context['revenue_month'] = sum(inv.price_with_vat() for inv in invoices_this_month)
+    
+    # Unpaid invoices
+    unpaid_invoices = Invoice.objects.filter(is_paid=False)
+    context['unpaid_count'] = unpaid_invoices.count()
+    context['unpaid_amount'] = sum(inv.price_with_vat() for inv in unpaid_invoices)
+    
+    # Overdue invoices (unpaid and past due date)
+    overdue_invoices = Invoice.objects.filter(is_paid=False, dueDate__lt=today)
+    context['overdue_count'] = overdue_invoices.count()
+    context['overdue_amount'] = sum(inv.price_with_vat() for inv in overdue_invoices)
+    
+    # Total counts
+    context['total_clients'] = Client.objects.count()
+    context['total_products'] = Product.objects.count()
+    context['total_invoices'] = Invoice.objects.count()
+    context['total_offers'] = Offer.objects.count()
+    
+    # Recent invoices (last 5)
+    context['recent_invoices'] = Invoice.objects.all().order_by('-date', '-id')[:5]
+    
+    # Recent offers (last 5)
+    context['recent_offers'] = Offer.objects.all().order_by('-date', '-id')[:5]
+    
+    # Month name for display
+    croatian_months = {
+        1: 'Siječanj', 2: 'Veljača', 3: 'Ožujak', 4: 'Travanj',
+        5: 'Svibanj', 6: 'Lipanj', 7: 'Srpanj', 8: 'Kolovoz',
+        9: 'Rujan', 10: 'Listopad', 11: 'Studeni', 12: 'Prosinac'
+    }
+    context['current_month_name'] = croatian_months.get(today.month, '')
+    context['current_year'] = today.year
+    context['today'] = today
+    
+    return render(request, 'dashboard.html', context)

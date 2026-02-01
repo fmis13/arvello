@@ -3,24 +3,25 @@
 {% load history_extras %}
 
 {% block main %}
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Zaposlenici</h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <div class="btn-group me-2">
-                <a href="{% get_history_url 'Employee' %}" class="btn btn-primary">
-                    <span class="material-symbols-outlined align-icon">history</span>
-                    Povijest promjena</a>
-                  <div class="vr mx-1"></div>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
-                    <span class="material-symbols-outlined align-middle">person_add</span> Novi zaposlenik
-                </button>
-            </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Zaposlenici</h1>
+        <div class="d-flex gap-2">
+            <a href="{% get_history_url 'Employee' %}" class="btn btn-secondary">
+                <i class="bi bi-clock-history me-1"></i>Povijest promjena
+            </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                <i class="bi bi-person-plus me-1"></i>Novi zaposlenik
+            </button>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-striped">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Popis zaposlenika</h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" role="table" aria-label="Tablica zaposlenika">
             <thead>
                 <tr>
                     <th>Ime i prezime</th>
@@ -43,8 +44,8 @@
                             {{ employee.is_active|yesno:"Aktivan,Neaktivan" }}
                         </span>
                     </td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-info view-employee" 
+                    <td class="text-end">
+                        <button type="button" class="btn btn-outline-primary btn-sm me-1 view-employee" 
                                 data-id="{{ employee.id }}"
                                 data-first-name="{{ employee.first_name }}"
                                 data-last-name="{{ employee.last_name }}"
@@ -67,10 +68,11 @@
                                 data-pension3="{{ employee.pension_pillar_3|yesno:'true,false' }}"
                                 data-tax="{{ employee.tax_deduction_coefficient }}"
                                 data-bs-toggle="modal" 
-                                data-bs-target="#viewEmployeeModal">
-                            <span class="material-symbols-outlined">visibility</span>
+                                data-bs-target="#viewEmployeeModal"
+                                aria-label="Pregledaj">
+                            <i class="bi bi-eye"></i>
                         </button>
-                        <button type="button" class="btn btn-sm btn-warning edit-employee"
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-1 edit-employee"
                                 data-id="{{ employee.id }}"
                                 data-first-name="{{ employee.first_name }}"
                                 data-last-name="{{ employee.last_name }}"
@@ -93,33 +95,35 @@
                                 data-pension3="{{ employee.pension_pillar_3|yesno:'true,false' }}"
                                 data-tax="{{ employee.tax_deduction_coefficient }}"
                                 data-bs-toggle="modal" 
-                                data-bs-target="#editEmployeeModal">
-                            <span class="material-symbols-outlined">edit</span>
+                                data-bs-target="#editEmployeeModal"
+                                aria-label="Uredi">
+                            <i class="bi bi-pencil"></i>
                         </button>
                         <form method="post" class="d-inline">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="toggle_active">
                             <input type="hidden" name="employee_id" value="{{ employee.id }}">
-                            <button type="submit" class="btn btn-sm {% if employee.is_active %}btn-danger{% else %}btn-success{% endif %}">
-                                <span class="material-symbols-outlined">
-                                    {% if employee.is_active %}person_off{% else %}person{% endif %}
-                                </span>
+                            <button type="submit" class="btn btn-sm me-1 {% if employee.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" aria-label="{% if employee.is_active %}Deaktiviraj{% else %}Aktiviraj{% endif %}">
+                                <i class="bi {% if employee.is_active %}bi-person-dash{% else %}bi-person-check{% endif %}"></i>
                             </button>
                         </form>
                         <a href="{% get_history_url 'Employee' employee.id %}" 
-                           class="btn btn-sm btn-outline-secondary" 
-                           title="Povijest promjena">
-                            <span class="material-symbols-outlined">history</span>
+                           class="btn btn-outline-secondary btn-sm" 
+                           title="Povijest promjena"
+                           aria-label="Povijest promjena">
+                            <i class="bi bi-clock-history"></i>
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center">Nema zaposlenika</td>
+                    <td colspan="6" class="text-center text-secondary py-4">Nema zaposlenika</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+      </div>
+    </div>
     </div>
 
     <!-- Modal za dodavanje -->
@@ -260,7 +264,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zatvori</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Zatvori</button>
                 </div>
             </div>
         </div>
@@ -312,14 +316,13 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Odustani</button>
-                        <button type="submit" class="btn btn-primary">Spremi</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Odustani</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Spremi</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-</main>
 {% endblock %}
 
 {% block scripts %}

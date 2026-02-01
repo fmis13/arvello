@@ -1,6 +1,11 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import *
+from .models import (
+    Client, Product, Invoice, InvoiceProduct, Offer, OfferProduct,
+    Company, Inventory, Supplier, Expense, Employee, Salary,
+    TaxParameter, LocalIncomeTax, NonTaxablePaymentType, KPDCode,
+    EmailConfig, UserProfile
+)
 from django.core.exceptions import ValidationError
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Div, HTML, Layout, Row
@@ -45,19 +50,108 @@ class UserLoginForm(forms.Form):
         })
     )
 
+
+class UserProfileForm(forms.ModelForm):
+    """Forma za uređivanje korisničkog profila."""
+    first_name = forms.CharField(
+        label="Ime",
+        max_length=30,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        label="Prezime",
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    email = forms.EmailField(
+        label="Email",
+        required=False,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = UserProfile
+        fields = ['academic_title', 'custom_academic_title', 'display_name']
+        widgets = {
+            'academic_title': forms.Select(attrs={'class': 'form-control', 'id': 'id_academic_title'}),
+            'custom_academic_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'npr. MBA, CFA, LL.M.',
+                'id': 'id_custom_academic_title'
+            }),
+            'display_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'npr. Ivan I.'
+            }),
+        }
+        labels = {
+            'academic_title': 'Akademska titula',
+            'custom_academic_title': 'Prilagođena titula',
+            'display_name': 'Prikazno ime (opcionalno)',
+        }
+        help_texts = {
+            'display_name': 'Ako je prazno, koristit će se vaše puno ime.',
+            'custom_academic_title': 'Popunite samo ako ste odabrali "Prilagođeno" iznad.',
+        }
+
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        # Pop 'user' from kwargs BEFORE calling super().__init__
+        self.user = kwargs.pop('user', None)
+        super(UserProfileForm, self).__init__(*args, **kwargs)
+        
+        # Pre-fill user fields
+        if self.user:
+            self.fields['first_name'].initial = self.user.first_name
+            self.fields['last_name'].initial = self.user.last_name
+            self.fields['email'].initial = self.user.email
+        
         self.helper = FormHelper()
-        self.helper.form_class = 'form-signin' # CSS klasa za stilizaciju forme
-        self.helper.form_tag = False  # Ne renderiraj <form> tag automatski
-        self.helper.form_show_labels = True # Pokaži labele polja
-        self.helper.form_show_errors = True # Pokaži greške validacije
-        self.helper.help_text_inline = False # Pomoćni tekst ispod polja
-        self.helper.form_show_asterisk = False # Ne prikazuj zvjezdicu za obavezna polja
+        self.helper.form_tag = False
         self.helper.layout = Layout(
-            'username',
-            'password'
+            Div(
+                HTML('<div class="form-section-header"><i class="bi bi-person me-2"></i>Osobni podaci</div>'),
+                Row(
+                    Column('first_name', css_class='col-md-6'),
+                    Column('last_name', css_class='col-md-6'),
+                ),
+                Row(
+                    Column('email', css_class='col-md-12'),
+                ),
+                css_class='form-section mb-4'
+            ),
+            Div(
+                HTML('<div class="form-section-header"><i class="bi bi-mortarboard me-2"></i>Akademska titula</div>'),
+                Row(
+                    Column('academic_title', css_class='col-md-6'),
+                    Column('custom_academic_title', css_class='col-md-6'),
+                ),
+                css_class='form-section mb-4'
+            ),
+            Div(
+                HTML('<div class="form-section-header"><i class="bi bi-card-text me-2"></i>Prikaz</div>'),
+                Row(
+                    Column('display_name', css_class='col-md-12'),
+                ),
+                css_class='form-section'
+            ),
         )
+
+    def save(self, commit=True):
+        profile = super().save(commit=False)
+        
+        # Update user fields
+        if self.user:
+            self.user.first_name = self.cleaned_data.get('first_name', '')
+            self.user.last_name = self.cleaned_data.get('last_name', '')
+            self.user.email = self.cleaned_data.get('email', '')
+            if commit:
+                self.user.save()
+        
+        if commit:
+            profile.save()
+        return profile
 
 
 class ClientForm(forms.ModelForm):
@@ -87,14 +181,18 @@ class ProductForm(forms.ModelForm):
         # Dodaj 'form-control' klasu svim poljima
         for field in self.fields.values():
             field.widget.attrs.update({'class': 'form-control'})
+        # Configure KPD code field - use hidden input, will be populated by JS picker
+        if 'kpd_code' in self.fields:
+            self.fields['kpd_code'].widget = forms.HiddenInput()
+            self.fields['kpd_code'].required = False
             
     class Meta:
         model = Product
-        fields = ['title', 'description', 'price', 'taxPercent', 'currency', 'barid']
+        fields = ['title', 'description', 'price', 'taxPercent', 'currency', 'barid', 'kpd_code']
         labels = {
             'title': 'Naziv proizvoda', 'description': 'Opis proizvoda',
             'price': 'Cijena', 'currency': 'Valuta', 'taxPercent': 'Porez (%)',
-            'barid': 'ID (za barkod)', 'Product': 'Proizvod'
+            'barid': 'ID (za barkod)', 'Product': 'Proizvod', 'kpd_code': 'KPD šifra'
         }
 
 
@@ -113,25 +211,38 @@ class InvoiceForm(forms.ModelForm):
                 Column('number', css_class='form-group col-lg-3 col-md-3 col-sm-6 mb-0'),
                 Column('date', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0'),
                 Column('dueDate', css_class='form-group col-lg-3 col-md-3 col-sm-3 mb-0'),
+                css_class='form-row'
+            ),
+            Row(
                 Column('client', css_class='form-group col-lg-3 col-md-3 col-sm-6 mb-0'),
                 Column('subject', css_class='form-group col-lg-3 col-md-3 col-sm-6 mb-0'),
-                Column('notes', css_class='form-group col-lg-3 col-md-3 col-sm-6 mb-0'),
+                Column('invoice_type', css_class='form-group col-lg-3 col-md-3 col-sm-6 mb-0'),
+                Column('payment_method', css_class='form-group col-lg-3 col-md-3 col-sm-6 mb-0'),
+                css_class='form-row'
+            ),
+            Row(
+                Column('notes', css_class='form-group col-lg-12 col-md-12 col-sm-12 mb-0'),
                 css_class='form-row'
             )
         )
     class Meta:
         model = Invoice
-        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'date', 'subject']
+        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'date', 'subject', 'invoice_type', 'payment_method']
         labels = {
             'title': 'Naslov', 'number': 'Broj računa',
             'dueDate': 'Datum dospijeća', 'date': 'Datum računa', 'notes': 'Napomene',
-            'client': 'Klijent', 'product': 'Proizvod', 'subject': 'Subjekt'
+            'client': 'Klijent', 'product': 'Proizvod', 'subject': 'Subjekt',
+            'invoice_type': 'Tip računa', 'payment_method': 'Način plaćanja'
+        }
+        widgets = {
+            'invoice_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_invoice_type'}),
+            'payment_method': forms.Select(attrs={'class': 'form-control'}),
         }
 
 class InvoiceProductForm(ModelForm):
     # Forma za stavku računa (proizvod/usluga)
     product = forms.ModelChoiceField(queryset=Product.objects.order_by('title'), label='Proizvod')
-    quantity = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=1)
+    quantity = forms.DecimalField(max_digits=6, decimal_places=3, required=False, initial=1)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -440,22 +551,103 @@ class InvoiceFilterForm(forms.Form):
 
 class ExpenseForm(forms.ModelForm):
     # Forma za kreiranje i uređivanje troškova (jednostavnija verzija)
+    
+    # Polja za izračun PDV-a
+    net_amount = forms.DecimalField(
+        label='Neto iznos',
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        help_text='Iznos bez PDV-a',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'})
+    )
+    vat_amount = forms.DecimalField(
+        label='PDV iznos',
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        help_text='Izračunava se automatski ili unesite ručno',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'})
+    )
+    
     class Meta:
         model = Expense
-        fields = ['title', 'amount', 'currency', 'date', 'category', 'description', 'subject', 'receipt']
+        fields = ['title', 'date', 'category', 'amount', 'currency', 'supplier', 'invoice_number', 'description', 'subject', 'receipt']
         labels = {
             'title': 'Naziv troška',
-            'amount': 'Iznos',
+            'amount': 'Ukupan iznos (bruto)',
             'currency': 'Valuta',
             'date': 'Datum',
             'category': 'Kategorija',
             'description': 'Opis',
             'subject': 'Subjekt',
-            'receipt': 'Račun (slika/PDF)'
+            'supplier': 'Dobavljač',
+            'invoice_number': 'Broj računa',
+            'receipt': 'Privitak (slika/PDF)'
+        }
+        help_texts = {
+            'title': 'Kratak naziv troška',
+            'amount': 'Ukupan iznos s PDV-om',
+            'invoice_number': 'Broj fakture dobavljača',
+            'receipt': 'Skenirani račun ili PDF faktura',
+            'description': 'Dodatne napomene ili detalji'
         }
         widgets = {
-            'date': DateInput() # Koristi prilagođeni DateInput widget
+            'date': DateInput(),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'npr. Najam ureda'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00', 'id': 'id_amount_total'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Opcionalne napomene...'}),
+            'invoice_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'npr. R-123/2026'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Div(
+                HTML('<div class="form-section-header"><i class="bi bi-info-circle me-2"></i>Osnovne informacije</div>'),
+                Row(
+                    Column('title', css_class='col-md-6'),
+                    Column('date', css_class='col-md-3'),
+                    Column('category', css_class='col-md-3'),
+                ),
+                css_class='form-section mb-4'
+            ),
+            Div(
+                HTML('<div class="form-section-header"><i class="bi bi-currency-euro me-2"></i>Financijski podaci</div>'),
+                Row(
+                    Column('net_amount', css_class='col-md-4'),
+                    Column('vat_amount', css_class='col-md-4'),
+                    Column('amount', css_class='col-md-4'),
+                ),
+                Row(
+                    Column('currency', css_class='col-md-4'),
+                ),
+                css_class='form-section mb-4'
+            ),
+            Div(
+                HTML('<div class="form-section-header"><i class="bi bi-building me-2"></i>Dobavljač i račun</div>'),
+                Row(
+                    Column('supplier', css_class='col-md-6'),
+                    Column('invoice_number', css_class='col-md-6'),
+                ),
+                Row(
+                    Column('subject', css_class='col-md-12'),
+                ),
+                css_class='form-section mb-4'
+            ),
+            Div(
+                HTML('<div class="form-section-header"><i class="bi bi-file-text me-2"></i>Detalji</div>'),
+                Row(
+                    Column('description', css_class='col-md-12'),
+                ),
+                Row(
+                    Column('receipt', css_class='col-md-12'),
+                ),
+                css_class='form-section'
+            ),
+        )
 
 class SupplierForm(forms.ModelForm):
     # Forma za kreiranje i uređivanje dobavljača
@@ -513,41 +705,6 @@ class SupplierForm(forms.ModelForm):
                 Submit('submit', 'Save', css_class='btn btn-primary') # Gumb za spremanje
             )
         )
-
-class ExpenseForm(forms.ModelForm):
-    # Forma za kreiranje i uređivanje troškova (detaljnija verzija s poreznim osnovicama)
-    class Meta:
-        model = Expense
-        # Uključuje polja za porezne osnovice i odbitni/neodbitni PDV
-        fields = ['title', 'amount', 'currency', 'date', 'category', 'description', 'subject',
-                 'supplier', 'invoice_number', 'invoice_date', 'receipt',
-                 'tax_base_0', 'tax_base_5', 'tax_base_13', 'tax_base_25',
-                 'tax_5_deductible', 'tax_5_nondeductible',
-                 'tax_13_deductible', 'tax_13_nondeductible',
-                 'tax_25_deductible', 'tax_25_nondeductible']
-        widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control'}),
-            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'currency': forms.Select(attrs={'class': 'form-control'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'category': forms.Select(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'subject': forms.Select(attrs={'class': 'form-control'}),
-            'supplier': forms.Select(attrs={'class': 'form-control'}),
-            'invoice_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'invoice_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'receipt': forms.FileInput(attrs={'class': 'form-control-file'}),
-            'tax_base_0': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'tax_base_5': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'tax_base_13': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'tax_base_25': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'tax_5_deductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'tax_5_nondeductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'tax_13_deductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'tax_13_nondeductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'tax_25_deductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'tax_25_nondeductible': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-        }
 
 
 class IncomingInvoiceBookFilterForm(forms.Form):
@@ -1081,3 +1238,168 @@ class NonTaxablePaymentTypeForm(forms.ModelForm):
             if query.exists():
                 raise forms.ValidationError("Šifra već postoji. Molimo unesite jedinstvenu šifru.")
         return code
+
+
+class EmailConfigForm(forms.ModelForm):
+    """Forma za konfiguraciju odlazne e-pošte."""
+    smtp_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'new-password'}),
+        label='SMTP lozinka',
+        help_text='Za Gmail koristite App Password'
+    )
+
+    class Meta:
+        model = EmailConfig
+        fields = ['company', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_password',
+                  'use_tls', 'use_ssl', 'from_email', 'from_name', 'is_active']
+        widgets = {
+            'company': forms.Select(attrs={'class': 'form-control'}),
+            'smtp_host': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'smtp.gmail.com'}),
+            'smtp_port': forms.NumberInput(attrs={'class': 'form-control'}),
+            'smtp_user': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'user@example.com'}),
+            'from_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'noreply@company.com'}),
+            'from_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Naziv tvrtke'}),
+            'use_tls': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'use_ssl': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        labels = {
+            'company': 'Subjekt',
+            'smtp_host': 'SMTP poslužitelj',
+            'smtp_port': 'SMTP port',
+            'smtp_user': 'SMTP korisnik (email)',
+            'from_email': 'Email adresa pošiljatelja',
+            'from_name': 'Ime pošiljatelja',
+            'use_tls': 'Koristi TLS (preporučeno za port 587)',
+            'use_ssl': 'Koristi SSL (za port 465)',
+            'is_active': 'Aktivna konfiguracija',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Column('company', css_class='form-group col-md-6 mb-3'),
+                Column('is_active', css_class='form-check form-switch col-md-6 mb-3 pt-4'),
+            ),
+            Row(
+                Column('smtp_host', css_class='form-group col-md-8 mb-3'),
+                Column('smtp_port', css_class='form-group col-md-4 mb-3'),
+            ),
+            Row(
+                Column('smtp_user', css_class='form-group col-md-6 mb-3'),
+                Column('smtp_password', css_class='form-group col-md-6 mb-3'),
+            ),
+            Row(
+                Column('from_email', css_class='form-group col-md-6 mb-3'),
+                Column('from_name', css_class='form-group col-md-6 mb-3'),
+            ),
+            Row(
+                Column('use_tls', css_class='form-check form-switch col-md-6 mb-3'),
+                Column('use_ssl', css_class='form-check form-switch col-md-6 mb-3'),
+            ),
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        use_tls = cleaned_data.get('use_tls')
+        use_ssl = cleaned_data.get('use_ssl')
+        
+        if use_tls and use_ssl:
+            raise forms.ValidationError('Ne možete koristiti TLS i SSL istovremeno. Odaberite samo jedno.')
+        
+        return cleaned_data
+
+
+class FiscalConfigForm(forms.ModelForm):
+    """Forma za upravljanje fiskalnim konfiguracijama po subjektima."""
+    
+    company = forms.ModelChoiceField(queryset=Company.objects.all(), label="Subjekt")
+    
+    class Meta:
+        try:
+            from arvello_fiscal.models import FiscalConfig
+            model = FiscalConfig
+            fields = ['company', 'mode', 'adapter', 'endpoint', 'secret', 'certificate_file', 'private_key_file', 'meta']
+        except ImportError:
+            model = None
+            fields = []
+        
+        widgets = {
+            'mode': forms.Select(attrs={'class': 'form-control'}),
+            'adapter': forms.Select(attrs={'class': 'form-control'}),
+            'endpoint': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://api.fiscal-service.com'}),
+            'secret': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'JWT token ili API ključ'}),
+            'certificate_file': forms.FileInput(attrs={'class': 'form-control'}),
+            'private_key_file': forms.FileInput(attrs={'class': 'form-control'}),
+            'meta': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Dodatni parametri u JSON formatu'}),
+        }
+        labels = {
+            'company': 'Subjekt',
+            'mode': 'Okruženje',
+            'adapter': 'Fiskalni adapter',
+            'endpoint': 'API endpoint',
+            'secret': 'Tajni ključ',
+            'certificate_file': 'Certifikat (.pem/.crt)',
+            'private_key_file': 'Privatni ključ (.key/.pem)',
+            'meta': 'Dodatni parametri',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Column('company', css_class='form-group col-md-6 mb-3'),
+                Column('mode', css_class='form-group col-md-3 mb-3'),
+                Column('adapter', css_class='form-group col-md-3 mb-3'),
+            ),
+            Row(
+                Column('endpoint', css_class='form-group col-md-6 mb-3'),
+                Column('secret', css_class='form-group col-md-6 mb-3'),
+            ),
+            Row(
+                Column('certificate_file', css_class='form-group col-md-6 mb-3'),
+                Column('private_key_file', css_class='form-group col-md-6 mb-3'),
+            ),
+            'meta',
+        )
+
+    def clean_certificate_file(self):
+        """Validacija certifikat datoteke."""
+        file = self.cleaned_data.get('certificate_file')
+        if file:
+            # Provjeri ekstenziju
+            if not file.name.lower().endswith(('.pem', '.crt', '.cer')):
+                raise forms.ValidationError('Certifikat mora biti u formatu .pem, .crt ili .cer')
+            # Provjeri veličinu (max 5MB)
+            if file.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('Certifikat ne smije biti veći od 5MB')
+        return file
+
+    def clean_private_key_file(self):
+        """Validacija privatnog ključa."""
+        file = self.cleaned_data.get('private_key_file')
+        if file:
+            # Provjeri ekstenziju
+            if not file.name.lower().endswith(('.key', '.pem')):
+                raise forms.ValidationError('Privatni ključ mora biti u formatu .key ili .pem')
+            # Provjeri veličinu (max 5MB)
+            if file.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('Privatni ključ ne smije biti veći od 5MB')
+        return file
+
+    def clean_meta(self):
+        """Validacija JSON formata za meta polje."""
+        meta = self.cleaned_data.get('meta')
+        if meta:
+            try:
+                import json
+                json.loads(meta)
+            except json.JSONDecodeError:
+                raise forms.ValidationError('Meta parametri moraju biti u ispravnom JSON formatu')
+        return meta

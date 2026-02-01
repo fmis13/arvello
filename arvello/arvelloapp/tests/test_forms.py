@@ -99,7 +99,8 @@ class InvoiceFormTest(TestCase):
             'dueDate': timezone.now().date(),
             'client': self.client.id,
             'subject': self.company.id,
-            'notes': 'Test Notes'
+            'notes': 'Test Notes',
+            'payment_method': 'bank_transfer'
         }
         form = InvoiceForm(data=form_data)
         if not form.is_valid():

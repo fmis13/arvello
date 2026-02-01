@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load history_extras %}
+{% load user_extras %}
 
 {% block title %}Povijest promjena{% endblock %}
 
 {% block main %}
-<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">{{ title }}</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
             <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary">
-                <span class="material-symbols-outlined align-icon">arrow_back</span> Povratak
+                <i class="bi bi-arrow-left me-1"></i>Povratak
             </a>
         </div>
     </div>
@@ -35,7 +35,7 @@
                     <td>{{ current.history_date|date:"d.m.Y H:i:s" }}</td>
                     <td>
                         {% if current.history_user %}
-                            {{ current.history_user.get_full_name|default:current.history_user.username }}
+                            {{ current.history_user|full_name_with_title|default:current.history_user.username }}
                         {% else %}
                             <em>Sustav</em>
                         {% endif %}
@@ -63,7 +63,7 @@
                     </td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detailsModal{{ current.history_id }}">
-                            <span class="material-symbols-outlined" style="font-size: 18px;">visibility</span>
+                            <i class="bi bi-eye"></i>
                         </button>
                     </td>
                 </tr>
@@ -105,7 +105,7 @@
                             <p><strong>Vrijeme:</strong> {{ current.history_date|date:"d.m.Y H:i:s" }}</p>
                             <p><strong>Korisnik:</strong> 
                                 {% if current.history_user %}
-                                    {{ current.history_user.get_full_name|default:current.history_user.username }}
+                                    {{ current.history_user|full_name_with_title|default:current.history_user.username }}
                                 {% else %}
                                     <em>Sustav</em>
                                 {% endif %}
@@ -175,11 +175,10 @@
                     {% endif %}
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zatvori</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Zatvori</button>
                 </div>
             </div>
         </div>
     </div>
     {% endfor %}
-</main>
 {% endblock %}

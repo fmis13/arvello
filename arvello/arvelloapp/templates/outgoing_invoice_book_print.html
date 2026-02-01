@@ -1,84 +1,176 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load user_extras %}
 {% block main %}
 
 <title>Knjiga izlaznih računa</title>
+<link rel="stylesheet" href="{% static 'css/invoice_book_print.css' %}">
 <style>
+    /* ==== PAGE SETUP ==== */
+    @page {
+        size: A4 landscape;
+        margin: 0.8cm;
+    }
+
+    /* ==== PRINT STYLES ==== */
     @media print {
-        .no-print {
-            display: none !important;
-        }
-        .page-break {
-            page-break-after: always;
-        }
-        body {
-            font-size: 12px;
-        }
-        .table td, .table th {
-            padding: 0.3rem;
-        }
+        /* Hide screen-only elements */
+        .no-print,
         .navbar,
         header.navbar,
         .sticky-top,
         .sidebar,
-        .alert {
+        .alert,
+        form {
             display: none !important;
         }
+        
+        /* Show print footer */
+        .print-footer {
+            display: flex !important;
+        }
+        
+        /* Layout reset */
+        body {
+            font-size: 9pt !important;
+            margin: 0;
+            padding: 0;
+            padding-bottom: 2cm; /* Space for fixed footer */
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
         .main-content,
         .content-area {
             margin-left: 0 !important;
             padding-left: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
         }
+        
         .main-container,
         main {
             margin-top: 0 !important;
             padding-top: 0 !important;
         }
+        
+        .container-fluid {
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+        }
+        
+        .table-container {
+            overflow: visible !important;
+            width: 100% !important;
+            margin-bottom: 1.5cm !important; /* Space for footer */
+        }
+        
+        /* Table base styles */
+        .table {
+            width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+            font-size: 9pt !important;
+        }
+        
+        .table td, .table th {
+            padding: 2px 4px !important;
+            vertical-align: middle !important;
+            border: 1px solid #000 !important;
+        }
+        
+        .table th {
+            background-color: #f8f9fa !important;
+            font-weight: bold !important;
+        }
+        
+        /* Table pagination - headers repeat on each page */
+        thead {
+            display: table-header-group !important;
+        }
+        
+        thead tr {
+            page-break-after: avoid;
+        }
+        
+        tfoot {
+            display: table-footer-group !important;
+        }
+        
+        /* Prevent row breaking */
+        tr {
+            page-break-inside: avoid;
+        }
+        
+        /* Table allows natural page breaks */
+        table {
+            page-break-inside: auto;
+        }
+        
+        .table td.text-end,
+        .table th.text-end {
+            text-align: right !important;
+        }
+        
+        /* Column widths for outgoing invoices */
+        .table th:nth-child(1), .table td:nth-child(1) { width: 4%; } /* Rbr */
+        .table th:nth-child(2), .table td:nth-child(2) { width: 8%; } /* Datum */
+        .table th:nth-child(3), .table td:nth-child(3) { width: 10%; } /* Broj računa */
+        .table th:nth-child(4), .table td:nth-child(4) { width: 25%; } /* Kupac */
+        .table th:nth-child(5), .table td:nth-child(5) { width: 10%; } /* OIB */
+        .table th:nth-child(6), .table td:nth-child(6) { width: 13%; } /* Poziv na broj */
+        .table th:nth-child(7), .table td:nth-child(7) { width: 10%; } /* Bez PDV */
+        .table th:nth-child(8), .table td:nth-child(8) { width: 10%; } /* PDV */
+        .table th:nth-child(9), .table td:nth-child(9) { width: 10%; } /* Ukupno */
+        
+        /* Print footer - fixed at bottom of each page */
+        .print-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1.5cm;
+            padding: 0.3cm 1cm;
+            font-size: 7pt;
+            border-top: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
     }
 
-    @page {
-        size: A4 landscape;
-        margin: 1cm;
+    /* ==== SCREEN STYLES ==== */
+    @media screen {
+        .table-container {
+            overflow-x: auto;
+            width: 100%;
+        }
+        
+        .print-footer {
+            display: none;
+        }
     }
-
-    .table-container {
-        overflow-x: auto;
-        width: 100%;
-    }
+    
     .small-text {
         font-size: 0.9em;
     }
+    
     .footer-info {
-        position: fixed;
-        bottom: 1cm;
-        left: 1cm;
-        right: 1cm;
-        width: calc(100% - 2cm);
+        margin-top: 20px;
+        padding-top: 10px;
+        border-top: 1px solid #dee2e6;
     }
 
-    .content-area {
-        padding-left: 280px;
-        width: 100%;
-        position: relative;
-    }
     .content-wrapper {
-        margin-left: 0;
         width: 100%;
         padding: 20px;
     }
-
-    @media screen {
-        .content-wrapper {
-            margin-left: 250px;
-        }
-        .main-content {
-            padding-left: 250px !important;
-            padding: 20px;
-        }
-    }
 </style>
 
-<main class="col-md-10 col-lg-11 px-md-2 ms-sm-0 main-content">
+<div class="invoice-book-content">
     <div class="container-fluid mb-4 no-print">
         <div class="row">
             <div class="col-12">
@@ -95,7 +187,7 @@
                                 {{ form.filter_type.label_tag }}
                                 {% for radio in form.filter_type %}
                                     <div class="form-check">
-                                        {{ radio }}
+                                        {{ radio.tag }}
                                         <label class="form-check-label" for="{{ radio.id_for_label }}">
                                             {{ radio.choice_label }}
                                         </label>
@@ -189,22 +281,35 @@
             </table>
         </div>
 
-        <div class="footer-info">
+        <!-- Screen-only footer with print button hint -->
+        <div class="footer-info no-print">
             <div class="row">
                 <div class="col-6">
                     <span class="small-text">
-                        Korisnik: {{request.user.get_full_name}}<br>
+                        Korisnik: {{ request.user|full_name_with_title }}<br>
                         Generirano: {{ generated_at|date:"d.m.Y. H:i:s" }}
                     </span>
                 </div>
                 <div class="col-6 text-end">
-                    <span class="small-text page-number-container">Stranica <span class="page-number"></span></span>
+                    <span class="small-text">Pritisnite "Ispiši" za ispis</span>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Print footer - visible on every printed page -->
+        <div class="print-footer">
+            <div class="footer-left">
+                <span class="small-text">
+                    Korisnik: {{ request.user|full_name_with_title }} | Generirano: {{ generated_at|date:"d.m.Y. H:i:s" }}
+                </span>
+            </div>
+            <div class="footer-right">
+                <span class="small-text">{{ company.clientName }}</span>
             </div>
         </div>
     </div>
     {% endif %}
-</main>
+</div>
 
 <script src="{% static 'js/bootstrap.min.js' %}"></script>
 <script>
@@ -230,33 +335,5 @@
 
         updateFilters();
     });
-
-    (function() {
-        let pageNum = 1;
-
-        function updatePageNumbers() {
-            const pageNumbers = document.getElementsByClassName('page-number');
-            const pageBreaks = document.getElementsByClassName('page-break');
-            const totalPages = pageBreaks.length + 1;
-            
-            Array.from(pageNumbers).forEach((element, index) => {
-                element.textContent = `${pageNum}/${totalPages}`;
-                pageNum++;
-            });
-        }
-
-        window.onbeforeprint = function() {
-            pageNum = 1;
-            updatePageNumbers();
-        };
-
-        window.onafterprint = function() {
-            pageNum = 1;
-            const pageNumbers = document.getElementsByClassName('page-number');
-            Array.from(pageNumbers).forEach(element => {
-                element.textContent = '';
-            });
-        };
-    })();
 </script>
 {% endblock %}

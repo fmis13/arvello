@@ -1,93 +1,357 @@
 <!DOCTYPE html>
 {% load static %}
 {% load crispy_forms_tags %}
+{% load user_extras %}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <html lang="hr">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Arvello Invoicing System">
-    <meta name="author" content="Frano Mišković, Jakov Jakelić">
-    <link rel="shortcut icon" href="{%  static '/img/favicon.ico' %}">
-    <title>Arvello AUTO</title>
+    <meta name="author" content="Frano Mišković">
+    <link rel="shortcut icon" href="{% static '/img/favicon.ico' %}">
+    <title>{% block title %}Arvello{% endblock %}</title>
 
     <link rel="canonical" href="">
-    <link href="{% static '/css/bootstrap.css' %}" rel="stylesheet">
     <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/ui.css' %}" rel="stylesheet">
 
     {% block css %}
     {% endblock %}
+  </head>
 
+  <body>
+    <!-- Skip Links for Accessibility -->
+    <a href="#main-content" class="skip-link">Preskoči na glavni sadržaj</a>
+    <a href="#sidebarMenu" class="skip-link">Preskoči na navigaciju</a>
+
+    <!-- Header -->
+    <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow" role="banner">
+      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="{% url 'dashboard' %}" aria-label="Arvello početna stranica">
+        Arvello
+      </a>
+
+      <div class="d-flex align-items-center">
+        <span class="version-badge ms-2" aria-label="Verzija aplikacije">
+          v2.3.99-beta
+        </span>
+
+        <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Uključi/isključi navigaciju">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="navbar-nav">
+          <div class="nav-item text-nowrap p-3 m-0 border-0">
+            <div class="dropdown user-menu">
+              <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Korisnički izbornik">
+                {{ request.user|full_name_with_title }}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <a class="dropdown-item" href="{% url 'user_profile' %}">
+                    <span class="material-symbols-outlined align-icon">account_circle</span>
+                    Moj profil
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'history_user' user_id=request.user.id %}">
+                    <span class="material-symbols-outlined align-icon">history</span>
+                    Moje promjene
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'view_history' %}">
+                    <span class="material-symbols-outlined align-icon">history</span>
+                    Povijest svih promjena
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="dropdown-item" type="submit" aria-label="Odjava">
+                      Odjava
+                    </button>
+                  </form>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Messages -->
+    {% if messages %}
+      <div class="container-fluid mt-3">
+        {% for message in messages %}
+          {% if message.tags == 'error' %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              {{ message }}
+              {% if message != "\nProblem pri obradi zahtjeva\n" %}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zatvori"></button>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zatvori"></button>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="layout-wrapper">
+      <!-- Sidebar -->
+      <nav id="sidebarMenu" class="d-md-block bg-light sidebar collapse text-primary" role="navigation" aria-label="Glavna navigacija">
+          <div class="sidebar-inner pt-3 text-black">
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'dashboard' %}" aria-label="Početna stranica">
+                  <span class="material-symbols-outlined">home</span>
+                  <span>Početna stranica</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'invoices' %}" aria-label="Računi">
+                  <span class="material-symbols-outlined">receipt_long</span>
+                  <span>Računi</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'products' %}" aria-label="Usluge i proizvodi">
+                  <span class="material-symbols-outlined">category</span>
+                  <span>Usluge i proizvodi</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'clients' %}" aria-label="Klijenti">
+                  <span class="material-symbols-outlined">person_edit</span>
+                  <span>Klijenti</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'offers' %}" aria-label="Ponude">
+                  <span class="material-symbols-outlined">request_page</span>
+                  <span>Ponude</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'companies' %}" aria-label="Subjekti">
+                  <span class="material-symbols-outlined">attribution</span>
+                  <span>Subjekti</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'inventory' %}" aria-label="Inventar">
+                  <span class="material-symbols-outlined">edit_note</span>
+                  <span>Inventar</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'expenses' %}" aria-label="Troškovi">
+                  <span class="material-symbols-outlined">payments</span>
+                  <span>Troškovi</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'suppliers' %}" aria-label="Dobavljači">
+                  <span class="material-symbols-outlined">local_shipping</span>
+                  <span>Dobavljači</span>
+                </a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownIzvjestaji" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <span class="material-symbols-outlined">lab_profile</span>
+                  <span>Izvještaji</span>
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="navbarDropdownIzvjestaji">
+                  <li>
+                    <a class="dropdown-item" href="{% url 'outgoing_invoices_book_view' %}">
+                      Knjiga izlaznih računa
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'incoming_invoice_book' %}">
+                      Knjiga ulaznih računa
+                    </a>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'view_history' %}" aria-label="Povijest promjena">
+                  <span class="material-symbols-outlined">history</span>
+                  <span>Povijest promjena</span>
+                </a>
+              </li>
+
+              <div class="sidebar-heading">
+                <span>HR i Plaće</span>
+              </div>
+              <hr class="sidebar-divider">
+
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'employees' %}" aria-label="Zaposlenici">
+                  <span class="material-symbols-outlined">people</span>
+                  <span>Zaposlenici</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'salaries' %}" aria-label="Plaće">
+                  <span class="material-symbols-outlined">payments</span>
+                  <span>Plaće</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'tax_parameters' %}" aria-label="Porezni parametri">
+                  <span class="material-symbols-outlined">settings</span>
+                  <span>Porezni parametri</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'tax_changes_2025' %}" aria-label="Porezne izmjene 2025">
+                  <span class="material-symbols-outlined">new_releases</span>
+                  <span>Porezne izmjene 2025.</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'tax_changes_2026' %}" aria-label="Fiskalne izmjene 2026">
+                  <span class="material-symbols-outlined">new_releases</span>
+                  <span>Fiskalne izmjene 2026.</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'joppd_report' %}" aria-label="JOPPD izvještaj">
+                  <span class="material-symbols-outlined">description</span>
+                  <span>JOPPD izvještaj</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'pension_info' %}" aria-label="Mirovinski sustav">
+                  <span class="material-symbols-outlined">info</span>
+                  <span>Mirovinski sustav</span>
+                </a>
+              </li>
+            </ul>
+
+            {% if user.is_superuser %}
+            <div class="sidebar-heading">
+              <span>Administracija</span>
+            </div>
+            <hr class="sidebar-divider">
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'email_config' %}" aria-label="Email konfiguracija">
+                  <span class="material-symbols-outlined">mail</span>
+                  <span>Email konfiguracija</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'court_registry_config' %}" aria-label="Sudski registar">
+                  <span class="material-symbols-outlined">business</span>
+                  <span>Sudski registar</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'fiscal_configs' %}" aria-label="Fiskalizacija">
+                  <span class="material-symbols-outlined">receipt</span>
+                  <span>Fiskalizacija</span>
+                </a>
+              </li>
+            </ul>
+            {% endif %}
+          </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content" role="main">
+          <div class="container-xl content-area">
+            {% block main %}
+            {% endblock %}
+          </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'js/form-utils.js' %}"></script>
+    <script src="{% static 'js/date-picker.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <!-- Accessibility and UI Enhancements -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize modals with accessibility
+        const modalElements = document.querySelectorAll('.modal');
+        modalElements.forEach(function(modalElement) {
+          if (!modalElement.hasAttribute('data-bs-modal-initialized')) {
+            const modal = new bootstrap.Modal(modalElement, {
+              backdrop: 'static',
+              keyboard: true,
+              focus: true
+            });
+
+            // Focus management
+            modalElement.addEventListener('shown.bs.modal', function() {
+              const focusableElements = modalElement.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+              );
+              if (focusableElements.length > 0) {
+                focusableElements[0].focus();
+              }
+            });
+
+            modalElement.setAttribute('data-bs-modal-initialized', 'true');
+          }
+        });
+
+        // Keyboard navigation for sidebar
+        document.addEventListener('keydown', function(e) {
+          // Alt + N for navigation focus
+          if (e.altKey && e.key === 'n') {
+            e.preventDefault();
+            const sidebar = document.getElementById('sidebarMenu');
+            const firstLink = sidebar.querySelector('.nav-link');
+            if (firstLink) firstLink.focus();
+          }
+
+          // Alt + M for main content focus
+          if (e.altKey && e.key === 'm') {
+            e.preventDefault();
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) mainContent.focus();
+          }
+        });
+
+        // Enhanced focus management
+        const focusableElements = document.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+
+        focusableElements.forEach(element => {
+          element.addEventListener('focus', function() {
+            this.style.outline = '2px solid #2563eb';
+            this.style.outlineOffset = '2px';
+          });
+
+          element.addEventListener('blur', function() {
+            this.style.outline = '';
+            this.style.outlineOffset = '';
+          });
+        });
+      });
+    </script>
+
+    {% block scripts %}
+    {% endblock %}
+
+    <!-- AI Chat Widget -->
+    {% if user.is_authenticated %}
+    <!-- AI Chat Widget Styles -->
     <style>
-      @media (min-width: 768px) {
-        .bd-placeholder-img-lg {
-          font-size: 3.5rem;
-        }
-        #sidebarMenu.collapse:not(.show) {
-          display: none;
-      }
-      }
-
-      footer {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: #333;
-        color: white;
-        text-align: center;
-        padding: 10px 0;
-        margin-top: 20px;
-    }
-    .table-responsive {
-      overflow-y: auto;
-      padding-bottom: 20px;
-    }
-    .black-text {
-      color: black;
-    }
-    .align-items {
-      display: flex;
-      align-items: center;
-      display: inline-block;
-      vertical-align: middle;
-  }
-    .align-icon {
-      margin-right: 8px;
-      align-items: center;
-      display: inline-block;
-      vertical-align: middle;
-      top: 2px;
-    }
-
-    #sidebarMenu {
-      position: sticky;
-      top: 0;
-      min-width: 2.5em !important;
-      max-width: 2.5em !important;
-      z-index: 100;
-  }
-  
-    #sidebarMenu.collapse {
-        display: block;
-    }
-
-    .dropdown-fix {
-      display: block;
-      --bs-btn-padding-x: 0 !important;
-      --bs-btn-padding-y: 0 !important;
-      font-weight: var(--bs-nav-link-font-weight) !important;
-    }
-
-    .align-navitem {
-      display: flex;
-      align-items: center;
-      display: inline-block;
-      vertical-align: middle;
-    }
-
     /* AI Chat Widget Styles */
     .ai-chat-widget {
       position: fixed;
@@ -655,258 +919,6 @@
     }
     </style>
 
-
-
-  </head>
-
-
-  <body>
-    <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow position:sticky" aria-expanded="false">
-      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">Arvello AUTO</a>
-      <div class="d-flex align-items-center">
-        <span class="badge bg-primary text-white ms-2" style="font-size: 0.8rem;">
-            v2.3.99-beta
-        </span>
-      <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      {% comment %}
-      <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">
-      {% endcomment %}
-
-        <div class="navbar-nav">
-          <div class="nav-item text-nowrap p-3 m-0 border-0 bd-example m-0 border-0">
-            <div class="dropdown">
-              <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" href="#" role="button">
-                {{request.user.get_full_name}}
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end" style="position: absolute;">
-                <li>
-                  <a class="dropdown-item" href="{% url 'history_user' user_id=request.user.id %}">
-                    <span class="material-symbols-outlined align-icon">history</span>
-                    Moje promjene
-                  </a>
-                </li>
-                <li>
-                  <a class="dropdown-item" href="{% url 'view_history' %}">
-                    <span class="material-symbols-outlined align-icon">history</span>
-                    Povijest svih promjena
-                  </a>
-                </li>
-                <li><form method="post" action="{% url 'logout' %}"> {% csrf_token %} <button class="dropdown-item" type="submit">Odjava</button></form></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-
-    </header>
-
-        {% if messages %}
-            {% for message in messages %}
-                {% if message.tags == 'error' %}
-                    <div class="alert alert-danger">
-                        {{message}}
-                        {% if message != "\nProblem pri obradi zahtjeva\n" %}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        {% endif %}
-                    </div>
-                {% else %}
-                    <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
-                        {{message}}
-                    </div>
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-
-        <div class="container-fluid">
-          <div class="row">
-            <nav id="sidebarMenu" class="col-auto d-md-block bg-light sidebar collapse text-primary" style="min-width: 2.5em; max-width: 2.5em;">
-              <div class="position-fixed pt-3 text-black">
-              <ul class="nav flex-column">
-              {% comment %}
-              <li class="nav-item align-navitem">
-                  <a class="nav-link" href="{% url 'dashboard' %}">
-                    <span data-feather="home"></span>
-                    Dashboard
-                  </a>
-                </li> {% endcomment %}
-                <li class="nav-item align-navitem">
-                  <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
-                    <span class="material-symbols-outlined align-icon">home</span>
-                    Početna stranica
-                  </a>
-                </li>	
-                <li class="nav-item align-navitem">
-                  <a class="nav-link black-text align-items" href="{% url 'invoices' %}">
-                    <span class="material-symbols-outlined align-icon"> receipt_long </span>
-                    Računi i ponude
-                  </a>
-                </li>
-                <li class="nav-item align-navitem">
-                  <a class="nav-link black-text" href="{% url 'products' %}">
-                    <span class="material-symbols-outlined align-icon"> category </span>
-                    Usluge i proizvodi
-                  </a>
-                </li>
-                <li class="nav-item align-navitem">
-                  <a class="nav-link black-text" href="{% url 'clients' %}">
-                    <span class="material-symbols-outlined align-icon"> person_edit </span>
-                    Klijenti
-                  </a>
-                </li>
-                {% comment %}
-                <li class="nav-item align-navitem">
-                  <a class="nav-link black-text" href="{% url 'offers' %}">
-                    <span class="material-symbols-outlined align-icon"> request_page </span>
-                    Ponude
-                  </a>
-                </li>
-                {% endcomment %}
-                <li class="nav-item align-navitem">
-                  <a class="nav-link black-text" href="{% url 'companies' %}">
-                    <span class="material-symbols-outlined align-icon"> attribution </span>
-                    Subjekti
-                  </a>
-                </li>
-                <li class="nav-item align-navitem">
-                  <a class="nav-link black-text" href="{% url 'inventory' %}">
-                    <span class="material-symbols-outlined align-icon"> edit_note </span>
-                    Inventar
-                  </a>
-                </li>
-                <li class="nav-item align-navitem">
-                  <a class="nav-link black-text" href="{% url 'expenses' %}">
-                    <span class="material-symbols-outlined align-icon"> payments </span>
-                    Troškovi
-                  </a>
-                </li>
-                <li class="nav-item align-navitem">
-                  <a class="nav-link black-text" href="{% url 'suppliers' %}">
-                    <span class="material-symbols-outlined align-icon">local_shipping</span>
-                    Dobavljači
-                  </a>
-                </li>
-                <li class="nav-item align-navitem">
-                  <div class="nav-link btn-group dropend nav-item black-text">
-                    <button type="button" class="btn dropdown-toggle dropdown-fix" data-bs-toggle="dropdown" aria-expanded="false">
-                      <span class="material-symbols-outlined align-icon"> lab_profile </span>
-                      Izvještaji
-                    </button>            
-                    <ul class="dropdown-menu">
-                      <li>
-                        <a class="dropdown-item black-text" href="{% url 'outgoing_invoices_book_view' %}" style="text-decoration: none;">
-                          Knjiga izlaznih računa
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item black-text" href="{% url 'incoming_invoice_book' %}" style="text-decoration: none;">
-                          Knjiga ulaznih računa
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                </li>
-                <li class="nav-item align-navitem">
-                  <a class="nav-link black-text" href="{% url 'view_history' %}">
-                    <span class="material-symbols-outlined align-icon">history</span>
-                  Povijest promjena
-                  </a>
-                </li>
-                <div class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-                  <span>HR i Plaće</span>
-                </div>
-                <ul class="nav flex-column">
-                  <li class="nav-item align-navitem">
-                    <a class="nav-link black-text" href="{% url 'employees' %}">
-                      <span class="material-symbols-outlined align-icon">people</span>
-                      Zaposlenici
-                    </a>
-                  </li>
-                  <li class="nav-item align-navitem">
-                    <a class="nav-link black-text" href="{% url 'salaries' %}">
-                      <span class="material-symbols-outlined align-icon">payments</span>
-                      Plaće
-                    </a>
-                  </li>
-                  <li class="nav-item align-navitem">
-                    <a class="nav-link black-text" href="{% url 'tax_parameters' %}">
-                      <span class="material-symbols-outlined align-icon">settings</span>
-                      Porezni parametri
-                    </a>
-                  </li>
-                  <li class="nav-item align-navitem">
-                    <a class="nav-link black-text" href="{% url 'tax_changes_2025' %}">
-                      <span class="material-symbols-outlined align-icon">new_releases</span>
-                      Porezne izmjene 2025.
-                    </a>
-                  </li>
-                  <li class="nav-item align-navitem">
-                    <a class="nav-link black-text" href="{% url 'joppd_report' %}">
-                      <span class="material-symbols-outlined align-icon">description</span>
-                      JOPPD izvještaj
-                    </a>
-                  </li>
-                  <li class="nav-item align-navitem">
-                    <a class="nav-link black-text" href="{% url 'pension_info' %}">
-                      <span class="material-symbols-outlined align-icon">info</span>
-                      Mirovinski sustav
-                    </a>
-                  </li>
-                </ul>
-              </ul>
-          </div>
-        </nav>
-
-
-
-
-      {% block main %}
-      {% endblock %}
-
-
-
-
-      </div>
-    </div>
-
-
-          <script src="{% static 'js/form-utils.js' %}"></script>
-          <script src="{% static 'js/date-picker.js' %}"></script>
-
-          <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
-          <script>
-          document.addEventListener('DOMContentLoaded', function() {
-              try {
-                  // Inicijaliziraj sve modale
-                  const modalElements = document.querySelectorAll('.modal');
-                  modalElements.forEach(function(modalElement) {
-                      try {
-                          // Provjeri je li modalElement već inicijaliziran
-                          if (!modalElement.hasAttribute('data-bs-modal-initialized')) {
-                              new bootstrap.Modal(modalElement, {
-                                  backdrop: true,
-                                  keyboard: true,
-                                  focus: true
-                              });
-                              modalElement.setAttribute('data-bs-modal-initializiran', 'true');
-                          }
-                      } catch (modalError) {
-                          console.warn('Greška u inicijalizaciji modala:', modalError);
-                      }
-                  });
-              } catch (error) {
-                  console.error('Greška u inicijalizaciji modala:', error);
-              }
-          });
-          </script>
-
-          {% block scripts %}
-          {% endblock %}
-
-    <!-- AI Chat Widget -->
-    {% if user.is_authenticated %}
     <!-- Marked.js for Markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
@@ -996,7 +1008,7 @@
       let chatHistory = [];
       let isExpanded = false;
       let isRequestInFlight = false;
-      let selectedFile = null; // Trenutno odabrana datoteka
+      let selectedFile = null;
 
       // Configure marked for safe rendering
       marked.setOptions({
@@ -1131,7 +1143,6 @@
         
         let html = '';
         
-        // Ako ima priloženu datoteku, prikaži je
         if (fileInfo && role === 'user') {
           html += `<div class="ai-chat-attached-file">
             <span class="material-symbols-outlined ai-chat-attached-icon">${fileInfo.icon}</span>
@@ -1208,7 +1219,6 @@
         
         messagesContainer.appendChild(actionDiv);
         
-        // Also add to history for persistence
         chatHistory.push({
           role: 'action_proposal',
           actionId: actionId,
@@ -1228,7 +1238,6 @@
         const action = JSON.parse(actionDiv.dataset.action);
         const buttons = actionDiv.querySelector('.ai-chat-action-buttons');
         
-        // Disable buttons and show loading
         buttons.innerHTML = '<div style="color: #666; font-size: 12px;">⏳ Obrađujem...</div>';
         
         try {
@@ -1247,7 +1256,6 @@
           
           const data = await response.json();
           
-          // Update UI to show result
           actionDiv.classList.add('resolved');
           
           let statusHtml = '';
@@ -1263,7 +1271,6 @@
           
           buttons.innerHTML = statusHtml;
           
-          // Update chat history
           const historyIndex = chatHistory.findIndex(h => h.actionId === actionId);
           if (historyIndex !== -1) {
             chatHistory[historyIndex].resolved = true;
@@ -1271,7 +1278,6 @@
             chatHistory[historyIndex].result = data;
           }
           
-          // Add the result as a tool message for AI context
           chatHistory.push({
             role: 'tool',
             content: accepted 
@@ -1300,11 +1306,9 @@
           if (msg.role === 'user' || msg.role === 'assistant') {
             addMessageBubble(msg.role, msg.content, msg.role === 'assistant', msg.file || null);
           }
-          // Show tools info after assistant message if available
           if (msg.role === 'assistant' && msg.toolsCalled && msg.toolsCalled.length > 0) {
             addToolsInfo(msg.toolsCalled);
           }
-          // Render saved action proposals
           if (msg.role === 'action_proposal') {
             renderSavedActionProposal(msg);
           }
@@ -1313,7 +1317,7 @@
         scrollToBottom();
       }
 
-      // Render a saved action proposal from history (already resolved or pending)
+      // Render a saved action proposal from history
       function renderSavedActionProposal(msg) {
         const actionDiv = document.createElement('div');
         actionDiv.className = 'ai-chat-action' + (msg.resolved ? ' resolved' : '');
@@ -1360,7 +1364,7 @@
         messagesContainer.appendChild(actionDiv);
       }
 
-      // Učitaj stanje iz sessionStorage
+      // Load state from sessionStorage
       function loadState() {
         const saved = sessionStorage.getItem(STORAGE_KEY);
         if (saved) {
@@ -1385,7 +1389,7 @@
         }
       }
 
-      // Spremi stanje u sessionStorage
+      // Save state to sessionStorage
       function saveState() {
         const state = {
           isOpen: panel.classList.contains('open'),
@@ -1395,7 +1399,7 @@
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       }
 
-      // Spremi pending zahtjev (za slučaj navigacije tijekom generiranja)
+      // Save pending request
       function savePendingRequest(message, history) {
         sessionStorage.setItem(PENDING_KEY, JSON.stringify({
           message: message,
@@ -1404,18 +1408,17 @@
         }));
       }
 
-      // Očisti pending zahtjev
+      // Clear pending request
       function clearPendingRequest() {
         sessionStorage.removeItem(PENDING_KEY);
       }
 
-      // Dohvati pending zahtjev ako postoji
+      // Get pending request if exists
       function getPendingRequest() {
         const pending = sessionStorage.getItem(PENDING_KEY);
         if (pending) {
           try {
             const data = JSON.parse(pending);
-            // Ignoriraj zahtjeve starije od 5 minuta
             if (Date.now() - data.timestamp < 5 * 60 * 1000) {
               return data;
             } else {
@@ -1431,7 +1434,7 @@
       // Reset chat
       function resetChat() {
         chatHistory = [];
-        clearPendingRequest(); // Očisti i pending zahtjev
+        clearPendingRequest();
         renderMessages();
         saveState();
       }
@@ -1469,7 +1472,7 @@
       // Reset button handler
       resetBtn.addEventListener('click', resetChat);
 
-      // Pošalji poruku (može se pozvati s opcionalnim parametrima za resume)
+      // Send message
       async function sendMessage(resumeMessage = null, resumeHistory = null) {
         const message = resumeMessage || input.value.trim();
         if (!message && !selectedFile) return;
@@ -1478,7 +1481,6 @@
         sendBtn.disabled = true;
         isRequestInFlight = true;
         
-        // Pripremi prikaz poruke s datotekom
         let displayMessage = message;
         let fileInfo = null;
         if (selectedFile && !resumeMessage) {
@@ -1489,20 +1491,16 @@
           };
         }
         
-        // Ako nije resume, dodaj poruku u povijest i prikaži je
         if (!resumeMessage) {
           chatHistory.push({ role: 'user', content: message, file: fileInfo });
           addMessageBubble('user', message, false, fileInfo);
         }
         
-        // Pripremi history za slanje
         const historyToSend = resumeHistory || chatHistory.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({role: m.role, content: m.content}));
         
-        // Spremi pending zahtjev prije slanja (za slučaj navigacije)
         savePendingRequest(message, historyToSend);
         saveState();
         
-        // Add loading indicator
         const loadingBubble = document.createElement('div');
         loadingBubble.className = 'ai-chat-bubble assistant loading';
         loadingBubble.textContent = resumeMessage ? 'Nastavljam generiranje...' : 'Razmišljam...';
@@ -1512,7 +1510,6 @@
         try {
           let response;
           
-          // Ako imamo datoteku, koristi FormData
           if (selectedFile && !resumeMessage) {
             const formData = new FormData();
             formData.append('message', message);
@@ -1527,10 +1524,8 @@
               body: formData
             });
             
-            // Očisti datoteku nakon slanja
             clearSelectedFile();
           } else {
-            // Bez datoteke - koristi JSON
             response = await fetch('{% url "ai_chat" %}', {
               method: 'POST',
               headers: {
@@ -1543,30 +1538,24 @@
 
           const data = await response.json();
           
-          // Očisti pending zahtjev - uspješno završeno
           clearPendingRequest();
           isRequestInFlight = false;
           
-          // Remove loading bubble
           loadingBubble.remove();
           
           if (data.status === 'success') {
-            // Add assistant response to history with tools info
             chatHistory.push({ 
               role: 'assistant', 
               content: data.response,
               toolsCalled: data.tools_called || []
             });
             
-            // Render the assistant message
             addMessageBubble('assistant', data.response, true);
             
-            // Show tools info if available
             if (data.tools_called && data.tools_called.length > 0) {
               addToolsInfo(data.tools_called);
             }
             
-            // Handle pending actions (proposals that need user confirmation)
             if (data.pending_actions && data.pending_actions.length > 0) {
               data.pending_actions.forEach(action => {
                 addActionProposal(action);
@@ -1580,7 +1569,6 @@
           }
         } catch (error) {
           loadingBubble.remove();
-          // Ne brišemo pending zahtjev kod greške - možda će korisnik reload napraviti
           isRequestInFlight = false;
           addMessageBubble('assistant', 'Greška u komunikaciji s poslužiteljem. Osvježite stranicu za ponovni pokušaj.');
           console.error('AI Chat error:', error);
@@ -1599,7 +1587,7 @@
         }
       });
 
-      // Upozorenje prije napuštanja stranice ako je zahtjev u tijeku
+      // Warning before leaving page if request is in flight
       window.addEventListener('beforeunload', function(e) {
         if (isRequestInFlight) {
           e.preventDefault();
@@ -1608,20 +1596,17 @@
         }
       });
 
-      // Učitaj stanje pri pokretanju
+      // Load state on startup
       loadState();
       
-      // Provjeri ima li pending zahtjeva koji treba nastaviti
+      // Check for pending request to resume
       const pendingRequest = getPendingRequest();
       if (pendingRequest) {
-        // Otvori panel i nastavi zahtjev
         panel.classList.add('open');
         saveState();
         
-        // Prikaži poruku o nastavku
         console.log('Nastavljam prekinuti AI chat zahtjev...');
         
-        // Mali delay da se stranica učita
         setTimeout(function() {
           sendMessage(pendingRequest.message, pendingRequest.history);
         }, 500);
@@ -1629,5 +1614,5 @@
     })();
     </script>
     {% endif %}
-  </body>    
+  </body>
 </html>
