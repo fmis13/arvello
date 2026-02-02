@@ -20,6 +20,8 @@ def filter_invoices_to_string(**criteria):
     - number: Filter by invoice number (partial match)
     - product_id: Filter by product ID (invoices containing this product)
     - product_title: Filter by product title (partial match, invoices containing products with this title)
+    - invoice_type: Filter by invoice type ('maloprodajni' for F1 retail, 'veleprodajni' for F2 wholesale)
+    - payment_method: Filter by payment method ('cash', 'card', 'bank_transfer', 'other')
     """
     queryset = Invoice.objects.all()
     
@@ -65,6 +67,8 @@ def filter_invoices_to_string(**criteria):
         data += f"Subject: {invoice.subject.clientName}\n"
         data += f"Paid: {'Yes' if invoice.is_paid else 'No'}\n"
         data += f"Payment Date: {invoice.payment_date or 'N/A'}\n"
+        data += f"Invoice Type: {invoice.get_invoice_type_display() if invoice.invoice_type else 'N/A'}\n"
+        data += f"Payment Method: {invoice.get_payment_method_display() if invoice.payment_method else 'N/A'}\n"
         data += f"Notes: {invoice.notes or 'N/A'}\n"
         
         # Add products on this invoice
@@ -570,18 +574,37 @@ def filter_change_history_to_string(**criteria):
 # that require user confirmation before being executed.
 # =============================================================================
 
-def propose_inventory_add(title, quantity, subject_name=None, subject_id=None):
+def propose_inventory_add(title=None, quantity=None, subject_name=None, subject_id=None):
     """
     Proposes adding a new inventory item. Does NOT execute the change.
     Returns an action proposal that requires user confirmation.
     
-    Parameters:
-    - title: Name/title of the inventory item to add
-    - quantity: Quantity to add
-    - subject_name: Name of the subject/company (partial match)
-    - subject_id: ID of the subject/company (alternative to name)
+    Parameters (all required except one of subject_name/subject_id):
+    - title: Name/title of the inventory item to add (REQUIRED)
+    - quantity: Quantity to add (REQUIRED)
+    - subject_name: Name of the subject/company (partial match) - provide this OR subject_id
+    - subject_id: ID of the subject/company - provide this OR subject_name
     """
     import json
+    
+    # Validate required fields
+    if not title:
+        return json.dumps({
+            "status": "error",
+            "message": "Naziv stavke (title) je obavezan parametar."
+        })
+    
+    if quantity is None:
+        return json.dumps({
+            "status": "error",
+            "message": "Količina (quantity) je obavezan parametar."
+        })
+    
+    if not subject_name and not subject_id:
+        return json.dumps({
+            "status": "error",
+            "message": "Potrebno je navesti subjekt - subject_name ili subject_id."
+        })
     
     # Find the subject
     if subject_id:
@@ -606,17 +629,6 @@ def propose_inventory_add(title, quantity, subject_name=None, subject_id=None):
                 "message": f"Pronađeno više subjekata s imenom '{subject_name}': {', '.join(names)}. Molimo budite precizniji."
             })
         subject = subjects.first()
-    else:
-        # Try to get the first (and possibly only) company
-        subjects = Company.objects.all()
-        if subjects.count() == 1:
-            subject = subjects.first()
-        else:
-            return json.dumps({
-                "status": "error",
-                "message": "Molimo navedite subjekt za koji želite dodati stavku inventara."
-            })
-    
     return json.dumps({
         "status": "action_required",
         "action_type": "inventory_add",
@@ -635,11 +647,18 @@ def propose_inventory_remove(item_title=None, item_id=None):
     Proposes removing an inventory item. Does NOT execute the change.
     Returns an action proposal that requires user confirmation.
     
-    Parameters:
-    - item_title: Title of the item to remove (partial match)
-    - item_id: ID of the item to remove (alternative to title)
+    Parameters (at least one is REQUIRED):
+    - item_title: Title of the item to remove (partial match) - provide this OR item_id
+    - item_id: ID of the item to remove - provide this OR item_title
     """
     import json
+    
+    # Validate at least one identifier is provided
+    if not item_title and not item_id:
+        return json.dumps({
+            "status": "error",
+            "message": "Potrebno je navesti item_title ili item_id stavke koju želite ukloniti."
+        })
     
     if item_id:
         try:
@@ -663,11 +682,6 @@ def propose_inventory_remove(item_title=None, item_id=None):
                 "message": f"Pronađeno više stavki s nazivom '{item_title}': {', '.join(titles)}. Molimo budite precizniji."
             })
         item = items.first()
-    else:
-        return json.dumps({
-            "status": "error",
-            "message": "Molimo navedite naziv ili ID stavke koju želite ukloniti."
-        })
     
     return json.dumps({
         "status": "action_required",
@@ -688,12 +702,26 @@ def propose_inventory_update(item_title=None, item_id=None, new_title=None, new_
     Returns an action proposal that requires user confirmation.
     
     Parameters:
-    - item_title: Title of the item to update (partial match)
-    - item_id: ID of the item to update (alternative to title)
-    - new_title: New title for the item (optional)
-    - new_quantity: New quantity for the item (optional)
+    - item_title: Title of the item to update (partial match) - provide this OR item_id (one is REQUIRED)
+    - item_id: ID of the item to update - provide this OR item_title (one is REQUIRED)
+    - new_title: New title for the item - at least one of new_title or new_quantity is REQUIRED
+    - new_quantity: New quantity for the item - at least one of new_title or new_quantity is REQUIRED
     """
     import json
+    
+    # Validate item identifier is provided
+    if not item_title and not item_id:
+        return json.dumps({
+            "status": "error",
+            "message": "Potrebno je navesti item_title ili item_id stavke koju želite promijeniti."
+        })
+    
+    # Validate at least one change is requested
+    if new_title is None and new_quantity is None:
+        return json.dumps({
+            "status": "error",
+            "message": "Potrebno je navesti barem jednu promjenu - new_title ili new_quantity."
+        })
     
     # Find the item
     if item_id:
@@ -718,11 +746,6 @@ def propose_inventory_update(item_title=None, item_id=None, new_title=None, new_
                 "message": f"Pronađeno više stavki s nazivom '{item_title}': {', '.join(titles)}. Molimo budite precizniji."
             })
         item = items.first()
-    else:
-        return json.dumps({
-            "status": "error",
-            "message": "Molimo navedite naziv ili ID stavke koju želite promijeniti."
-        })
     
     # Build changes description
     changes = []
@@ -746,10 +769,11 @@ def propose_inventory_update(item_title=None, item_id=None, new_title=None, new_
                 "message": f"Neispravna količina: {new_quantity}"
             })
     
+    # Check if any actual changes were detected (values might be same as current)
     if not changes:
         return json.dumps({
             "status": "error",
-            "message": "Niste naveli nikakve promjene. Navedite novi naziv ili novu količinu."
+            "message": "Navedene vrijednosti su iste kao trenutne. Nema promjena za napraviti."
         })
     
     return json.dumps({
@@ -760,27 +784,33 @@ def propose_inventory_update(item_title=None, item_id=None, new_title=None, new_
     })
 
 
-def propose_invoice_add(number, client_name=None, client_id=None, subject_name=None, subject_id=None,
-                        date=None, due_date=None, title=None, notes=None, products=None):
+def propose_invoice_add(number=None, client_name=None, client_id=None, subject_name=None, subject_id=None,
+                        date=None, due_date=None, title=None, notes=None, products=None,
+                        invoice_type=None, payment_method=None):
     """
     Proposes creating a new invoice. Does NOT execute the change.
     Returns an action proposal that requires user confirmation.
     
     Parameters:
-    - number: Broj računa - unique identifier for the invoice. Common Croatian practice is to use 
+    - number: (REQUIRED) Broj računa - unique identifier for the invoice. Common Croatian practice is to use 
               format like "1/1/1" (broj/poslovni prostor/naplatni uređaj) or date-based like 
               "2026-001" (year-sequential). Check existing invoices with filter_invoices_to_string 
               to follow the established numbering convention used by this business.
-    - client_name: Ime klijenta (djelomično podudaranje) - name of the client being invoiced
-    - client_id: ID klijenta (alternativa imenu) - use if you know the exact client ID
-    - subject_name: Naziv subjekta/tvrtke izdavatelja (djelomično podudaranje) - the company issuing the invoice
-    - subject_id: ID subjekta/tvrtke izdavatelja - use if you know the exact subject ID
+    - client_name: Ime klijenta (djelomično podudaranje) - provide this OR client_id (one is REQUIRED)
+    - client_id: ID klijenta - provide this OR client_name (one is REQUIRED)
+    - subject_name: Naziv subjekta/tvrtke izdavatelja (djelomično podudaranje) - provide this OR subject_id (one is REQUIRED)
+    - subject_id: ID subjekta/tvrtke izdavatelja - provide this OR subject_name (one is REQUIRED)
     - date: Datum računa u formatu YYYY-MM-DD - the invoice date (defaults to today if not provided)
-    - due_date: Datum dospijeća u formatu YYYY-MM-DD - when payment is due (typically 15-30 days after date)
-    - title: Naslov računa (opcionalno) - brief description/title for the invoice
+    - due_date: (REQUIRED) Datum dospijeća u formatu YYYY-MM-DD - when payment is due (typically 15-30 days after date)
+    - title: (REQUIRED) Naslov računa - brief description/title for the invoice
     - notes: Napomene (opcionalno) - additional notes to appear on the invoice
-    - products: Lista proizvoda s količinama u formatu [{"product_name": "Naziv", "quantity": 1, "discount": 0, "rabat": 0}, ...]
+    - products: (REQUIRED) Lista proizvoda s količinama u formatu [{"product_name": "Naziv", "quantity": 1, "discount": 0, "rabat": 0}, ...]
+                Svaki proizvod mora imati product_name i quantity. Polja discount i rabat su opcionalna.
                 Koristi filter_products_to_string da pronađeš dostupne proizvode prije kreiranja računa.
+    - invoice_type: (REQUIRED) Tip računa - 'maloprodajni' za F1 maloprodaju (fizičke osobe) ili 
+                    'veleprodajni' za F2 veleprodaju (pravne osobe).
+    - payment_method: (REQUIRED) Način plaćanja - 'cash' (gotovina), 'card' (kartica), 
+                      'bank_transfer' (transakcijski račun), 'other' (ostalo).
     """
     import json
     from datetime import datetime, timedelta
@@ -789,7 +819,37 @@ def propose_invoice_add(number, client_name=None, client_id=None, subject_name=N
     if not number:
         return json.dumps({
             "status": "error",
-            "message": "Broj računa je obavezan."
+            "message": "Broj računa (number) je obavezan parametar."
+        })
+    
+    if not title:
+        return json.dumps({
+            "status": "error",
+            "message": "Naslov računa (title) je obavezan parametar."
+        })
+    
+    if not due_date:
+        return json.dumps({
+            "status": "error",
+            "message": "Datum dospijeća (due_date) je obavezan parametar u formatu YYYY-MM-DD."
+        })
+    
+    if not client_name and not client_id:
+        return json.dumps({
+            "status": "error",
+            "message": "Potrebno je navesti klijenta - client_name ili client_id."
+        })
+    
+    if not subject_name and not subject_id:
+        return json.dumps({
+            "status": "error",
+            "message": "Potrebno je navesti subjekt - subject_name ili subject_id."
+        })
+    
+    if not products:
+        return json.dumps({
+            "status": "error",
+            "message": "Lista proizvoda (products) je obavezna. Koristi filter_products_to_string za pregled dostupnih proizvoda."
         })
     
     # Find client
@@ -816,11 +876,6 @@ def propose_invoice_add(number, client_name=None, client_id=None, subject_name=N
                 "message": f"Pronađeno više klijenata s imenom '{client_name}': {names}. Molimo budite precizniji."
             })
         client = clients.first()
-    else:
-        return json.dumps({
-            "status": "error",
-            "message": "Potrebno je navesti klijenta (client_name ili client_id)."
-        })
     
     # Find subject (company)
     subject = None
@@ -846,14 +901,6 @@ def propose_invoice_add(number, client_name=None, client_id=None, subject_name=N
                 "message": f"Pronađeno više subjekata s nazivom '{subject_name}': {names}. Molimo budite precizniji."
             })
         subject = subjects.first()
-    else:
-        # Try to get the first/default company
-        subject = Company.objects.first()
-        if not subject:
-            return json.dumps({
-                "status": "error",
-                "message": "Potrebno je navesti subjekt (subject_name ili subject_id)."
-            })
     
     # Parse and validate products
     product_list = []
@@ -877,12 +924,20 @@ def propose_invoice_add(number, client_name=None, client_id=None, subject_name=N
                 })
             
             product = found_products.first()
+            # Validate quantity is provided for each product
+            qty = prod.get('quantity')
+            if qty is None:
+                return json.dumps({
+                    "status": "error",
+                    "message": f"Količina (quantity) je obavezna za proizvod '{product_name}'."
+                })
+            
             product_list.append({
                 "product_id": product.id,
                 "product_title": product.title,
                 "product_price": float(product.price),
                 "product_currency": product.currency,
-                "quantity": prod.get('quantity', 1),
+                "quantity": qty,
                 "discount": prod.get('discount', 0),
                 "rabat": prod.get('rabat', 0)
             })
@@ -890,15 +945,19 @@ def propose_invoice_add(number, client_name=None, client_id=None, subject_name=N
     if not product_list:
         return json.dumps({
             "status": "error",
-            "message": "Račun mora imati barem jedan proizvod. Koristi filter_products_to_string za pregled dostupnih proizvoda."
+            "message": "Račun mora imati barem jedan proizvod s ispravnim product_name. Koristi filter_products_to_string za pregled dostupnih proizvoda."
         })
     
-    # Set default dates
+    # Set default date (today) - due_date is already validated as required
     invoice_date = date or timezone.now().date().strftime('%Y-%m-%d')
-    invoice_due_date = due_date or (timezone.now().date() + timedelta(days=15)).strftime('%Y-%m-%d')
+    invoice_due_date = due_date
     
     # Build display message
     products_summary = ", ".join([f"{p['product_title']} x{p['quantity']}" for p in product_list])
+    
+    # Set invoice type and payment method with defaults
+    final_invoice_type = invoice_type if invoice_type in ['maloprodajni', 'veleprodajni'] else None
+    final_payment_method = payment_method if payment_method in ['cash', 'card', 'bank_transfer', 'other'] else 'bank_transfer'
     
     return json.dumps({
         "status": "action_required",
@@ -913,13 +972,15 @@ def propose_invoice_add(number, client_name=None, client_id=None, subject_name=N
             "due_date": invoice_due_date,
             "title": title,
             "notes": notes,
-            "products": product_list
+            "products": product_list,
+            "invoice_type": final_invoice_type,
+            "payment_method": final_payment_method
         },
         "display_message": f"Kreiraj račun br. {number} za klijenta {client.clientName} (subjekt: {subject.clientName}). Proizvodi: {products_summary}"
     })
 
 
-def propose_offer_add(number, client_name=None, client_id=None, subject_name=None, subject_id=None,
+def propose_offer_add(number=None, client_name=None, client_id=None, subject_name=None, subject_id=None,
                       date=None, due_date=None, title=None, notes=None, products=None):
     """
     Proposes creating a new offer/quote. Does NOT execute the change.
@@ -929,19 +990,20 @@ def propose_offer_add(number, client_name=None, client_id=None, subject_name=Non
     The due_date on offers is an expiration date with no legal consequences if it passes.
     
     Parameters:
-    - number: Broj ponude - unique identifier for the offer. Common Croatian practice is similar 
+    - number: (REQUIRED) Broj ponude - unique identifier for the offer. Common Croatian practice is similar 
               to invoices: "P-2026-001" (P for ponuda + year + sequential) or following the same 
               format as invoices. Check existing offers with filter_offers_to_string to follow 
               the established numbering convention used by this business.
-    - client_name: Ime klijenta (djelomično podudaranje) - name of the client receiving the offer
-    - client_id: ID klijenta (alternativa imenu) - use if you know the exact client ID
-    - subject_name: Naziv subjekta/tvrtke izdavatelja (djelomično podudaranje) - the company issuing the offer
-    - subject_id: ID subjekta/tvrtke izdavatelja - use if you know the exact subject ID
+    - client_name: Ime klijenta (djelomično podudaranje) - provide this OR client_id (one is REQUIRED)
+    - client_id: ID klijenta - provide this OR client_name (one is REQUIRED)
+    - subject_name: Naziv subjekta/tvrtke izdavatelja (djelomično podudaranje) - provide this OR subject_id (one is REQUIRED)
+    - subject_id: ID subjekta/tvrtke izdavatelja - provide this OR subject_name (one is REQUIRED)
     - date: Datum ponude u formatu YYYY-MM-DD - the offer date (defaults to today if not provided)
-    - due_date: Datum isteka ponude u formatu YYYY-MM-DD - when the offer expires (typically 30 days after date)
-    - title: Naslov ponude (opcionalno) - brief description/title for the offer
+    - due_date: (REQUIRED) Datum isteka ponude u formatu YYYY-MM-DD - when the offer expires (typically 30 days after date)
+    - title: (REQUIRED) Naslov ponude - brief description/title for the offer
     - notes: Napomene (opcionalno) - additional notes to appear on the offer
-    - products: Lista proizvoda s količinama u formatu [{"product_name": "Naziv", "quantity": 1, "discount": 0, "rabat": 0}, ...]
+    - products: (REQUIRED) Lista proizvoda s količinama u formatu [{"product_name": "Naziv", "quantity": 1, "discount": 0, "rabat": 0}, ...]
+                Svaki proizvod mora imati product_name i quantity. Polja discount i rabat su opcionalna.
                 Koristi filter_products_to_string da pronađeš dostupne proizvode prije kreiranja ponude.
     """
     import json
@@ -951,7 +1013,37 @@ def propose_offer_add(number, client_name=None, client_id=None, subject_name=Non
     if not number:
         return json.dumps({
             "status": "error",
-            "message": "Broj ponude je obavezan."
+            "message": "Broj ponude (number) je obavezan parametar."
+        })
+    
+    if not title:
+        return json.dumps({
+            "status": "error",
+            "message": "Naslov ponude (title) je obavezan parametar."
+        })
+    
+    if not due_date:
+        return json.dumps({
+            "status": "error",
+            "message": "Datum isteka (due_date) je obavezan parametar u formatu YYYY-MM-DD."
+        })
+    
+    if not client_name and not client_id:
+        return json.dumps({
+            "status": "error",
+            "message": "Potrebno je navesti klijenta - client_name ili client_id."
+        })
+    
+    if not subject_name and not subject_id:
+        return json.dumps({
+            "status": "error",
+            "message": "Potrebno je navesti subjekt - subject_name ili subject_id."
+        })
+    
+    if not products:
+        return json.dumps({
+            "status": "error",
+            "message": "Lista proizvoda (products) je obavezna. Koristi filter_products_to_string za pregled dostupnih proizvoda."
         })
     
     # Find client
@@ -978,11 +1070,6 @@ def propose_offer_add(number, client_name=None, client_id=None, subject_name=Non
                 "message": f"Pronađeno više klijenata s imenom '{client_name}': {names}. Molimo budite precizniji."
             })
         client = clients.first()
-    else:
-        return json.dumps({
-            "status": "error",
-            "message": "Potrebno je navesti klijenta (client_name ili client_id)."
-        })
     
     # Find subject (company)
     subject = None
@@ -1008,14 +1095,6 @@ def propose_offer_add(number, client_name=None, client_id=None, subject_name=Non
                 "message": f"Pronađeno više subjekata s nazivom '{subject_name}': {names}. Molimo budite precizniji."
             })
         subject = subjects.first()
-    else:
-        # Try to get the first/default company
-        subject = Company.objects.first()
-        if not subject:
-            return json.dumps({
-                "status": "error",
-                "message": "Potrebno je navesti subjekt (subject_name ili subject_id)."
-            })
     
     # Parse and validate products
     product_list = []
@@ -1039,12 +1118,21 @@ def propose_offer_add(number, client_name=None, client_id=None, subject_name=Non
                 })
             
             product = found_products.first()
+            
+            # Validate quantity is provided for each product
+            qty = prod.get('quantity')
+            if qty is None:
+                return json.dumps({
+                    "status": "error",
+                    "message": f"Količina (quantity) je obavezna za proizvod '{product_name}'."
+                })
+            
             product_list.append({
                 "product_id": product.id,
                 "product_title": product.title,
                 "product_price": float(product.price),
                 "product_currency": product.currency,
-                "quantity": prod.get('quantity', 1),
+                "quantity": qty,
                 "discount": prod.get('discount', 0),
                 "rabat": prod.get('rabat', 0)
             })
@@ -1052,12 +1140,12 @@ def propose_offer_add(number, client_name=None, client_id=None, subject_name=Non
     if not product_list:
         return json.dumps({
             "status": "error",
-            "message": "Ponuda mora imati barem jedan proizvod. Koristi filter_products_to_string za pregled dostupnih proizvoda."
+            "message": "Ponuda mora imati barem jedan proizvod s ispravnim product_name. Koristi filter_products_to_string za pregled dostupnih proizvoda."
         })
     
-    # Set default dates (offers typically have longer validity)
+    # Set default date (today) - due_date is already validated as required
     offer_date = date or timezone.now().date().strftime('%Y-%m-%d')
-    offer_due_date = due_date or (timezone.now().date() + timedelta(days=30)).strftime('%Y-%m-%d')
+    offer_due_date = due_date
     
     # Build display message
     products_summary = ", ".join([f"{p['product_title']} x{p['quantity']}" for p in product_list])
@@ -1174,7 +1262,9 @@ def execute_invoice_action(action_type, action_data):
                 dueDate=due_date,
                 title=action_data.get("title"),
                 notes=action_data.get("notes"),
-                is_paid=False
+                is_paid=False,
+                invoice_type=action_data.get("invoice_type"),
+                payment_method=action_data.get("payment_method", "bank_transfer")
             )
             
             # Create invoice products

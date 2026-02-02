@@ -238,9 +238,11 @@ AI_CHAT_SYSTEM_PROMPT = '''
     - Klijent: osoba ili tvrtka koja prima račun ili ponudu.
     - Subjekt: osoba ili tvrtka koja izdaje račun ili ponudu. Obično po jedna tvrtka po Arvello računu.
     - Proizvod: roba ili usluga navedena na računu ili ponudi.
-    - Inventar: popis stavki koje subjekt posjeduje za prodaju ili upotrebu. Služi za evidentiranje stvari u vlasništvu subjekta. 
+    - Inventar: popis stavki koje subjekt posjeduje za prodaju ili upotrebu. Služi za evidentiranje stvari u vlasništvu subjekta. Npr alat, materijal, uredski pribor itd.
     - Dobavljač: osoba ili tvrtka od koje subjekt kupuje robu ili usluge.
     - Trošak: izdatak koji subjekt ima, često povezan s dobavljačima.
+    - Tip računa (invoice_type): Maloprodajni (F1) za fizičke osobe, Veleprodajni (F2) za pravne osobe. Važan za fiskalizaciju.
+    - Način plaćanja (payment_method): Gotovina (cash), Kartica (card), Transakcijski račun (bank_transfer), Ostalo (other).
 
     TRENUTNI DATUM JE: {current_date}
     '''
@@ -302,6 +304,14 @@ AI_CHAT_TOOLS = [
                     "product_title": {
                         "type": ["string", "null"],
                         "description": "Naziv proizvoda (djelomično podudaranje)"
+                    },
+                    "invoice_type": {
+                        "type": ["string", "null"],
+                        "description": "Tip računa: 'maloprodajni' (F1 - za fizičke osobe) ili 'veleprodajni' (F2 - za pravne osobe)"
+                    },
+                    "payment_method": {
+                        "type": ["string", "null"],
+                        "description": "Način plaćanja: 'cash' (gotovina), 'card' (kartica), 'bank_transfer' (transakcijski račun), 'other' (ostalo)"
                     }
                 },
                 "required": []
@@ -705,9 +715,19 @@ AI_CHAT_TOOLS = [
                                 }
                             }
                         }
+                    },
+                    "invoice_type": {
+                        "type": "string",
+                        "enum": ["maloprodajni", "veleprodajni"],
+                        "description": "Tip računa (OBAVEZNO): 'maloprodajni' za F1 maloprodaju (fizičke osobe) ili 'veleprodajni' za F2 veleprodaju (pravne osobe)."
+                    },
+                    "payment_method": {
+                        "type": "string",
+                        "enum": ["cash", "card", "bank_transfer", "other"],
+                        "description": "Način plaćanja (OBAVEZNO): 'cash' (gotovina), 'card' (kartica), 'bank_transfer' (transakcijski račun), 'other' (ostalo)."
                     }
                 },
-                "required": ["number", "products"]
+                "required": ["number", "products", "invoice_type", "payment_method"]
             }
         }
     },

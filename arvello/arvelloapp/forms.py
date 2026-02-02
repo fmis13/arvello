@@ -238,6 +238,11 @@ class InvoiceForm(forms.ModelForm):
             'invoice_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_invoice_type'}),
             'payment_method': forms.Select(attrs={'class': 'form-control'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['invoice_type'].required = True
+        self.fields['payment_method'].required = True
 
 class InvoiceProductForm(ModelForm):
     # Forma za stavku računa (proizvod/usluga)
