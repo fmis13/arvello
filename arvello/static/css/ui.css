@@ -466,6 +466,11 @@ body > header + .layout-wrapper {
   border-color: var(--color-border);
 }
 
+.actions-col .btn-outline-secondary.action-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
 .actions-col .btn-success.action-btn {
   padding: 0; /* keep circular feel */
 }
@@ -642,11 +647,6 @@ body > header + .layout-wrapper {
   align-items: center;
   justify-content: center;
   text-decoration: none;
-}
-
-.btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .btn-primary {
@@ -840,8 +840,23 @@ body > header + .layout-wrapper {
 
 /* Focus States */
 *:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: none !important;
+  box-shadow: inset 0 0 0 2px var(--color-primary) !important;
+}
+
+.btn:focus-visible,
+.btn:focus,
+.nav-link:focus-visible,
+.nav-link:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Instant press effect - no animation delay */
+.btn:active,
+.nav-link:active {
+  transform: scale(0.96);
+  filter: brightness(0.9);
 }
 
 /* Utilities */

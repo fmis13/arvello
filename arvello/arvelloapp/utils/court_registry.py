@@ -459,10 +459,18 @@ class CourtRegistryClient:
             return self._access_token
             
         except requests.exceptions.HTTPError as e:
-            status_code = e.response.status_code if e.response else None
-            logger.error(f"Failed to obtain OAuth2 token: HTTP {status_code}")
+            status_code = e.response.status_code if e.response is not None else None
+            response_text = ""
+            try:
+                if e.response is not None:
+                    response_text = e.response.text[:500]
+            except:
+                pass
+            logger.error(f"Failed to obtain OAuth2 token: HTTP {status_code} - {response_text}")
             if status_code == 401:
-                raise CourtRegistryError("Neispravni OAuth2 podaci (client_id/client_secret).")
+                raise CourtRegistryError("Neispravni OAuth2 podaci (client_id/client_secret). Provjerite jeste li ispravno unijeli podatke.")
+            elif status_code is None:
+                raise CourtRegistryError(f"Neuspjeli zahtjev za token bez odgovora: {str(e)}")
             raise CourtRegistryError(f"Greška pri dohvaćanju tokena: HTTP {status_code}")
             
         except requests.exceptions.RequestException as e:
@@ -512,24 +520,32 @@ class CourtRegistryClient:
             logger.error(f"Timeout while accessing court registry API: {url}")
             raise CourtRegistryError("API zahtjev je istekao. Pokušajte ponovo.")
             
-        except requests.exceptions.ConnectionError:
-            logger.error(f"Connection error to court registry API: {url}")
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection error to court registry API: {url} - {e}")
             raise CourtRegistryError("Nije moguće povezati se s API-jem sudskog registra.")
             
         except requests.exceptions.HTTPError as e:
-            status_code = e.response.status_code if e.response else None
-            logger.error(f"HTTP error from court registry API: {status_code} - {e}")
+            status_code = e.response.status_code if e.response is not None else None
+            response_text = ""
+            try:
+                if e.response is not None:
+                    response_text = e.response.text[:500]  # First 500 chars
+            except:
+                pass
+            logger.error(f"HTTP error from court registry API: {status_code} - {e} - Response: {response_text}")
             
             if status_code == 401:
-                raise CourtRegistryError("Neispravni API podaci za autentifikaciju.")
+                raise CourtRegistryError("Neispravni API podaci za autentifikaciju (401). Provjerite Client ID i Client Secret.")
             elif status_code == 403:
-                raise CourtRegistryError("Pristup API-ju nije dozvoljen.")
+                raise CourtRegistryError("Pristup API-ju nije dozvoljen (403).")
             elif status_code == 404:
-                raise CourtRegistryError("Subjekt nije pronađen u registru.")
+                raise CourtRegistryError("Subjekt nije pronađen u registru (404).")
             elif status_code == 429:
-                raise CourtRegistryError("Previše zahtjeva. Pokušajte ponovo kasnije.")
+                raise CourtRegistryError("Previše zahtjeva (429). Pokušajte ponovo kasnije.")
+            elif status_code is None:
+                raise CourtRegistryError(f"Neuspjeli HTTP zahtjev bez odgovora: {str(e)}")
             else:
-                raise CourtRegistryError(f"Greška API-ja: {status_code}")
+                raise CourtRegistryError(f"Greška API-ja: HTTP {status_code}")
                 
         except requests.exceptions.RequestException as e:
             logger.error(f"Request error to court registry API: {e}")

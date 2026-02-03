@@ -235,7 +235,7 @@ AI_CHAT_SYSTEM_PROMPT = '''
     Pojmovnik:
     - Račun: službeni dokument koji zahtijeva plaćanje do datuma dospijeća.
     - Ponuda: cjenovni prijedlog koji se šalje klijentu - sličan računu ali ne zahtijeva plaćanje.
-    - Klijent: osoba ili tvrtka koja prima račun ili ponudu.
+    - Klijent: osoba ili tvrtka koja prima račun ili ponudu. Može biti općenit u slučaju maloprodajnih računa (F1), jer za njih nije obavezno imati klijenta u bazi. Stoga se može napraviti klijent "maloprodaja" sa OIB-om koji su samo nule itd. za sve račune F1 koji nemaju specifičnog klijenta. To je primjer korištenja generičkog klijenta.
     - Subjekt: osoba ili tvrtka koja izdaje račun ili ponudu. Obično po jedna tvrtka po Arvello računu.
     - Proizvod: roba ili usluga navedena na računu ili ponudi.
     - Inventar: popis stavki koje subjekt posjeduje za prodaju ili upotrebu. Služi za evidentiranje stvari u vlasništvu subjekta. Npr alat, materijal, uredski pribor itd.
@@ -802,6 +802,81 @@ AI_CHAT_TOOLS = [
                     }
                 },
                 "required": ["number", "products"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_company_from_court_registry",
+            "description": "Dohvaća podatke o tvrtki iz hrvatskog Sudskog registra. Koristi ovu funkciju za automatsko popunjavanje podataka o novom klijentu ako korisnik navede OIB ili naziv tvrtke. Vraća podatke kao što su naziv, adresa, OIB, županija, koji se mogu koristiti za kreiranje novog klijenta.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "oib": {
+                        "type": ["string", "null"],
+                        "description": "OIB broj (11 znamenki) - preporučeno za točne rezultate"
+                    },
+                    "name": {
+                        "type": ["string", "null"],
+                        "description": "Naziv tvrtke za pretraživanje (minimum 3 znaka)"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "propose_client_add",
+            "description": "PREDLAŽE dodavanje novog klijenta. NE izvršava promjenu odmah - korisnik mora potvrditi akciju. Klijent je osoba ili tvrtka koja prima račune ili ponude. Ako korisnik navede OIB, PRVO koristi get_company_from_court_registry za dohvaćanje podataka iz Sudskog registra, pa tek onda predloži kreiranje klijenta s tim podacima.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "client_name": {
+                        "type": "string",
+                        "description": "Naziv/ime klijenta (OBAVEZNO)"
+                    },
+                    "address": {
+                        "type": "string",
+                        "description": "Ulica i kućni broj (OBAVEZNO)"
+                    },
+                    "province": {
+                        "type": "string",
+                        "description": "Županija - mora odgovarati jednoj od hrvatskih županija, npr. 'GRAD ZAGREB', 'SPLITSKO-DALMATINSKA ŽUPANIJA' (OBAVEZNO)"
+                    },
+                    "postal_code": {
+                        "type": "string",
+                        "description": "Poštanski broj (5 znamenki) (OBAVEZNO)"
+                    },
+                    "email": {
+                        "type": "string",
+                        "description": "Email adresa (OBAVEZNO)"
+                    },
+                    "client_unique_id": {
+                        "type": ["string", "null"],
+                        "description": "4-znamenkasti jedinstveni ID klijenta. Ako nije naveden, automatski se generira na temelju postojećih klijenata."
+                    },
+                    "client_type": {
+                        "type": "string",
+                        "enum": ["Fizička osoba", "Pravna osoba"],
+                        "description": "Vrsta klijenta: 'Fizička osoba' ili 'Pravna osoba' (zadano: 'Pravna osoba')"
+                    },
+                    "oib": {
+                        "type": ["string", "null"],
+                        "description": "OIB broj (11 znamenki) - obavezan za hrvatske pravne osobe"
+                    },
+                    "vat_id": {
+                        "type": "string",
+                        "description": "VAT ID / Porezni broj (13 znakova, npr. 'HR12345678901') (OBAVEZNO). Za hrvatske tvrtke koristi format HR + OIB."
+                    },
+                    "phone": {
+                        "type": ["string", "null"],
+                        "description": "Telefonski broj (opcionalno)"
+                    }
+                },
+                "required": ["client_name", "address", "province", "postal_code", "email", "vat_id"]
             }
         }
     }

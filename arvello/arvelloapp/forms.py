@@ -200,10 +200,29 @@ class InvoiceForm(forms.ModelForm):
     # Forma za kreiranje i uređivanje zaglavlja računa
     dueDate = forms.DateField(required = True, label='Datum dospijeća', widget=DateInput(attrs={'class': 'form-control'}),)
     date = forms.DateField(required = True, label='Datum računa', widget=DateInput(attrs={'class': 'form-control'}),)
+    
+    class Meta:
+        model = Invoice
+        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'date', 'subject', 'invoice_type', 'payment_method']
+        labels = {
+            'title': 'Naslov', 'number': 'Broj računa',
+            'dueDate': 'Datum dospijeća', 'date': 'Datum računa', 'notes': 'Napomene',
+            'client': 'Klijent', 'product': 'Proizvod', 'subject': 'Subjekt',
+            'invoice_type': 'Tip računa', 'payment_method': 'Način plaćanja'
+        }
+        widgets = {
+            'invoice_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_invoice_type'}),
+            'payment_method': forms.Select(attrs={'class': 'form-control'}),
+        }
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Set required fields
+        self.fields['invoice_type'].required = True
+        self.fields['payment_method'].required = True
+        # Setup crispy forms helper
         self.helper = FormHelper()
-        self.helper.form_tag = False # Ne renderiraj <form> tag
+        self.helper.form_tag = False  # Ne renderiraj <form> tag
         # Definicija layouta pomoću Crispy Forms za bolju strukturu
         self.helper.layout = Layout(
             Row(
@@ -225,24 +244,6 @@ class InvoiceForm(forms.ModelForm):
                 css_class='form-row'
             )
         )
-    class Meta:
-        model = Invoice
-        fields = ['title', 'number', 'dueDate', 'notes', 'client', 'date', 'subject', 'invoice_type', 'payment_method']
-        labels = {
-            'title': 'Naslov', 'number': 'Broj računa',
-            'dueDate': 'Datum dospijeća', 'date': 'Datum računa', 'notes': 'Napomene',
-            'client': 'Klijent', 'product': 'Proizvod', 'subject': 'Subjekt',
-            'invoice_type': 'Tip računa', 'payment_method': 'Način plaćanja'
-        }
-        widgets = {
-            'invoice_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_invoice_type'}),
-            'payment_method': forms.Select(attrs={'class': 'form-control'}),
-        }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['invoice_type'].required = True
-        self.fields['payment_method'].required = True
 
 class InvoiceProductForm(ModelForm):
     # Forma za stavku računa (proizvod/usluga)
@@ -373,11 +374,7 @@ OfferProductFormSet = inlineformset_factory(
 class CompanyForm(forms.ModelForm):
     # Forma za kreiranje i uređivanje tvrtke/subjekta
     IBAN = IBANFormField(label="IBAN") # Koristi localflavor za validaciju IBAN-a
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Dodaj 'form-control' klasu svim poljima
-        for field in self.fields.values():
-            field.widget.attrs.update({'class': 'form-control'})
+    
     class Meta:
         model = Company
         fields = ['clientName', 'addressLine1', 'town', 'province', 'postalCode', 'phoneNumber', 'emailAddress', 'clientUniqueId', 'clientType', 'OIB', 'SustavPDVa', 'IBAN']
@@ -391,8 +388,12 @@ class CompanyForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Dodaj 'form-control' klasu svim poljima
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'form-control'})
+        # Setup crispy forms helper
         self.helper = FormHelper()
-        self.helper.form_tag = False # Ne renderiraj <form> tag
+        self.helper.form_tag = False  # Ne renderiraj <form> tag
         # Koristi FloatingField za većinu polja (Bootstrap 5 efekt)
         self.helper.layout = Layout(
             *[FloatingField(field) if field != 'SustavPDVa' else Field(field) for field in self.Meta.fields]

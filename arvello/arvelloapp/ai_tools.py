@@ -638,7 +638,7 @@ def propose_inventory_add(title=None, quantity=None, subject_name=None, subject_
             "subject_id": subject.id,
             "subject_name": subject.clientName
         },
-        "display_message": f"Dodaj '{title}' (količina: {quantity}) u inventar subjekta {subject.clientName}"
+        "display_message": f"Dodaj stavku u inventar - Naziv: '{title}', Količina: {quantity}, Subjekt: {subject.clientName}"
     })
 
 
@@ -692,7 +692,7 @@ def propose_inventory_remove(item_title=None, item_id=None):
             "quantity": item.quantity,
             "subject_name": item.subject.clientName if item.subject else "N/A"
         },
-        "display_message": f"Ukloni '{item.title}' (količina: {item.quantity}) iz inventara"
+        "display_message": f"Ukloni stavku iz inventara - Naziv: '{item.title}', Trenutna količina: {item.quantity}, Subjekt: {item.subject.clientName if item.subject else 'N/A'}"
     })
 
 
@@ -780,7 +780,7 @@ def propose_inventory_update(item_title=None, item_id=None, new_title=None, new_
         "status": "action_required",
         "action_type": "inventory_update",
         "action_data": action_data,
-        "display_message": f"Promijeni {' i '.join(changes)} za stavku '{item.title}'"
+        "display_message": f"Promijeni stavku inventara - Trenutni naziv: '{item.title}', Nova količina: {new_quantity if new_quantity is not None else 'bez promjene'}, Novi naziv: '{new_title if new_title else 'bez promjene'}', Subjekt: {item.subject.clientName if item.subject else 'N/A'}"
     })
 
 
@@ -976,7 +976,7 @@ def propose_invoice_add(number=None, client_name=None, client_id=None, subject_n
             "invoice_type": final_invoice_type,
             "payment_method": final_payment_method
         },
-        "display_message": f"Kreiraj račun br. {number} za klijenta {client.clientName} (subjekt: {subject.clientName}). Proizvodi: {products_summary}"
+        "display_message": f"Kreiraj račun - Broj: {number}, Klijent: {client.clientName}, Subjekt: {subject.clientName}, Datum: {invoice_date}, Datum dospijeća: {invoice_due_date}, Naslov: '{title}', Napomene: '{notes or 'N/A'}', Proizvodi: {products_summary}, Tip: {final_invoice_type or 'N/A'}, Način plaćanja: {final_payment_method}"
     })
 
 
@@ -1165,7 +1165,7 @@ def propose_offer_add(number=None, client_name=None, client_id=None, subject_nam
             "notes": notes,
             "products": product_list
         },
-        "display_message": f"Kreiraj ponudu br. {number} za klijenta {client.clientName} (subjekt: {subject.clientName}). Proizvodi: {products_summary}"
+        "display_message": f"Kreiraj ponudu - Broj: {number}, Klijent: {client.clientName}, Subjekt: {subject.clientName}, Datum: {offer_date}, Datum isteka: {offer_due_date}, Naslov: '{title}', Napomene: '{notes or 'N/A'}', Proizvodi: {products_summary}"
     })
 
 
@@ -1351,4 +1351,288 @@ def execute_offer_action(action_type, action_data):
         return {
             "status": "error",
             "message": f"Greška pri kreiranju ponude: {str(e)}"
+        }
+
+
+def get_company_from_court_registry(oib=None, name=None):
+    """
+    Fetches company data from the Croatian Court Registry (Sudski registar).
+    Returns company data that can be used to populate a new client form.
+    
+    Parameters (at least one is REQUIRED):
+    - oib: OIB number (11 digits) - provide this OR name
+    - name: Company name to search for (minimum 3 characters) - provide this OR oib
+    """
+    import json
+    from .utils.court_registry import (
+        fetch_company_data_by_oib,
+        search_companies_by_name,
+        CourtRegistryError
+    )
+    
+    # Validate at least one parameter
+    if not oib and not name:
+        return json.dumps({
+            "status": "error",
+            "message": "Molimo navedite OIB ili naziv tvrtke za pretraživanje."
+        })
+    
+    try:
+        if oib:
+            # Validate OIB format
+            oib = str(oib).strip()
+            if len(oib) != 11 or not oib.isdigit():
+                return json.dumps({
+                    "status": "error",
+                    "message": "OIB mora sadržavati točno 11 znamenki."
+                })
+            
+            data = fetch_company_data_by_oib(oib, entity_type='client')
+            return json.dumps({
+                "status": "success",
+                "data": data,
+                "message": f"Pronađen subjekt: {data.get('clientName', 'N/A')}"
+            })
+        
+        else:
+            # Search by name
+            name = str(name).strip()
+            if len(name) < 3:
+                return json.dumps({
+                    "status": "error",
+                    "message": "Naziv mora sadržavati najmanje 3 znaka."
+                })
+            
+            results = search_companies_by_name(name, limit=10)
+            if not results:
+                return json.dumps({
+                    "status": "not_found",
+                    "message": f"Nije pronađen nijedan subjekt s nazivom '{name}'."
+                })
+            
+            return json.dumps({
+                "status": "success",
+                "results": results,
+                "count": len(results),
+                "message": f"Pronađeno {len(results)} rezultata. Koristi OIB za dohvaćanje detaljnih podataka."
+            })
+    
+    except CourtRegistryError as e:
+        return json.dumps({
+            "status": "error",
+            "message": str(e)
+        })
+    
+    except Exception as e:
+        return json.dumps({
+            "status": "error",
+            "message": f"Greška pri dohvaćanju podataka: {str(e)}"
+        })
+
+
+def propose_client_add(client_name, address, province, postal_code, email, client_unique_id=None,
+                       client_type="Pravna osoba", oib=None, vat_id=None, phone=None):
+    """
+    Proposes adding a new client. Does NOT execute the change.
+    Returns an action proposal that requires user confirmation.
+    
+    Parameters:
+    - client_name: Name of the client (REQUIRED)
+    - address: Street address (REQUIRED)
+    - province: County/province - must match one of the Croatian counties (REQUIRED)
+    - postal_code: 5-digit postal code (REQUIRED)
+    - email: Email address (REQUIRED)
+    - client_unique_id: 4-digit unique ID. If not provided, will be auto-generated based on existing clients.
+    - client_type: 'Fizička osoba' or 'Pravna osoba' (default: 'Pravna osoba')
+    - oib: 11-digit OIB number (optional for legal entities in Croatia)
+    - vat_id: 13-character VAT ID, e.g. 'HR12345678901' (REQUIRED for Croatian companies)
+    - phone: Phone number (optional)
+    """
+    import json
+    
+    # Validate required fields
+    if not client_name:
+        return json.dumps({
+            "status": "error",
+            "message": "Ime klijenta je obavezno."
+        })
+    
+    if not address:
+        return json.dumps({
+            "status": "error",
+            "message": "Adresa je obavezna."
+        })
+    
+    if not province:
+        return json.dumps({
+            "status": "error",
+            "message": "Županija je obavezna."
+        })
+    
+    if not postal_code:
+        return json.dumps({
+            "status": "error",
+            "message": "Poštanski broj je obavezan."
+        })
+    
+    if not email:
+        return json.dumps({
+            "status": "error",
+            "message": "Email adresa je obavezna."
+        })
+    
+    if not vat_id:
+        return json.dumps({
+            "status": "error",
+            "message": "VAT ID (porezni broj) je obavezan. Za hrvatske tvrtke koristi format HR + 11 znamenki OIB-a."
+        })
+    
+    # Validate postal code format
+    postal_code = str(postal_code).strip()
+    if len(postal_code) != 5 or not postal_code.isdigit():
+        return json.dumps({
+            "status": "error",
+            "message": "Poštanski broj mora sadržavati točno 5 znamenki."
+        })
+    
+    # Validate OIB if provided
+    if oib:
+        oib = str(oib).strip()
+        if len(oib) != 11 or not oib.isdigit():
+            return json.dumps({
+                "status": "error",
+                "message": "OIB mora sadržavati točno 11 znamenki."
+            })
+        # Check if OIB already exists
+        if Client.objects.filter(OIB=oib).exists():
+            return json.dumps({
+                "status": "error",
+                "message": f"Klijent s OIB-om {oib} već postoji u bazi."
+            })
+    
+    # Validate VAT ID format
+    vat_id = str(vat_id).strip().upper()
+    if len(vat_id) != 13:
+        return json.dumps({
+            "status": "error",
+            "message": "VAT ID mora sadržavati točno 13 znakova (npr. HR12345678901)."
+        })
+    # Check if VAT ID already exists
+    if Client.objects.filter(VATID=vat_id).exists():
+        return json.dumps({
+            "status": "error",
+            "message": f"Klijent s VAT ID-om {vat_id} već postoji u bazi."
+        })
+    
+    # Validate client type
+    valid_types = ['Fizička osoba', 'Pravna osoba']
+    if client_type not in valid_types:
+        return json.dumps({
+            "status": "error",
+            "message": f"Tip klijenta mora biti jedan od: {', '.join(valid_types)}"
+        })
+    
+    # Validate province
+    valid_provinces = [
+        'ZAGREBAČKA ŽUPANIJA', 'KRAPINSKO-ZAGORSKA ŽUPANIJA', 'SISAČKO-MOSLAVAČKA ŽUPANIJA',
+        'KARLOVAČKA ŽUPANIJA', 'VARAŽDINSKA ŽUPANIJA', 'KOPRIVNIČKO-KRIŽEVAČKA ŽUPANIJA',
+        'BJELOVARSKO-BILOGORSKA ŽUPANIJA', 'PRIMORSKO-GORANSKA ŽUPANIJA', 'LIČKO-SENJSKA ŽUPANIJA',
+        'VIROVITIČKO-PODRAVSKA ŽUPANIJA', 'POŽEŠKO-SLAVONSKA ŽUPANIJA', 'BRODSKO-POSAVSKA ŽUPANIJA',
+        'ZADARSKA ŽUPANIJA', 'OSJEČKO-BARANJSKA ŽUPANIJA', 'ŠIBENSKO-KNINSKA ŽUPANIJA',
+        'VUKOVARSKO-SRIJEMSKA ŽUPANIJA', 'SPLITSKO-DALMATINSKA ŽUPANIJA', 'ISTARSKA ŽUPANIJA',
+        'DUBROVAČKO-NERETVANSKA ŽUPANIJA', 'MEĐIMURSKA ŽUPANIJA', 'GRAD ZAGREB',
+        'INOZEMSTVO / NIJE PRIMJENJIVO'
+    ]
+    province_upper = province.upper().strip()
+    if province_upper not in valid_provinces:
+        # Try to find a partial match
+        matched = [p for p in valid_provinces if province_upper in p]
+        if matched:
+            province = matched[0]
+        else:
+            return json.dumps({
+                "status": "error",
+                "message": f"Nepoznata županija: {province}. Dostupne županije: {', '.join(valid_provinces[:5])}..."
+            })
+    else:
+        province = province_upper
+    
+    # Generate client_unique_id if not provided
+    if not client_unique_id:
+        existing_ids = Client.objects.values_list('clientUniqueId', flat=True)
+        existing_ids = [int(id) for id in existing_ids if id and id.isdigit()]
+        if existing_ids:
+            next_id = max(existing_ids) + 1
+        else:
+            next_id = 1
+        client_unique_id = str(next_id).zfill(4)
+    else:
+        client_unique_id = str(client_unique_id).strip().zfill(4)
+        if not client_unique_id.isdigit() or len(client_unique_id) != 4:
+            return json.dumps({
+                "status": "error",
+                "message": "ID klijenta mora biti 4-znamenkasti broj."
+            })
+        # Check if ID already exists
+        if Client.objects.filter(clientUniqueId=client_unique_id).exists():
+            return json.dumps({
+                "status": "error",
+                "message": f"Klijent s ID-om {client_unique_id} već postoji. Sljedeći dostupni ID će biti automatski dodijeljen."
+            })
+    
+    return json.dumps({
+        "status": "action_required",
+        "action_type": "client_add",
+        "action_data": {
+            "clientName": client_name,
+            "addressLine1": address,
+            "province": province,
+            "postalCode": postal_code,
+            "emailAddress": email,
+            "clientUniqueId": client_unique_id,
+            "clientType": client_type,
+            "OIB": oib,
+            "VATID": vat_id,
+            "phoneNumber": phone
+        },
+        "display_message": f"Dodaj klijenta - Ime: '{client_name}', Adresa: '{address}', Županija: '{province}', Poštanski broj: {postal_code}, Email: '{email}', ID: {client_unique_id}, Tip: '{client_type}', OIB: '{oib or 'N/A'}', VAT ID: '{vat_id}', Telefon: '{phone or 'N/A'}'"
+    })
+
+
+def execute_client_action(action_type, action_data):
+    """
+    Executes a client action after user confirmation.
+    Returns a result message.
+    """
+    try:
+        if action_type == "client_add":
+            # Create the client
+            client = Client.objects.create(
+                clientName=action_data["clientName"],
+                addressLine1=action_data["addressLine1"],
+                province=action_data["province"],
+                postalCode=action_data["postalCode"],
+                emailAddress=action_data["emailAddress"],
+                clientUniqueId=action_data["clientUniqueId"],
+                clientType=action_data["clientType"],
+                OIB=action_data.get("OIB"),
+                VATID=action_data["VATID"],
+                phoneNumber=action_data.get("phoneNumber")
+            )
+            
+            return {
+                "status": "success",
+                "message": f"Klijent '{client.clientName}' (ID: {client.clientUniqueId}) uspješno kreiran."
+            }
+        
+        else:
+            return {
+                "status": "error",
+                "message": f"Nepoznata vrsta akcije za klijenta: {action_type}"
+            }
+    
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Greška pri kreiranju klijenta: {str(e)}"
         }
