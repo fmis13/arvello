@@ -1496,7 +1496,7 @@
           addMessageBubble('user', message, false, fileInfo);
         }
         
-        const historyToSend = resumeHistory || chatHistory.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({role: m.role, content: m.content}));
+        const historyToSend = resumeHistory || chatHistory.filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'tool').map(m => ({role: m.role === 'tool' ? 'user' : m.role, content: m.content}));
         
         savePendingRequest(message, historyToSend);
         saveState();

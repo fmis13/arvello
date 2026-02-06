@@ -1606,6 +1606,34 @@ def execute_client_action(action_type, action_data):
     """
     try:
         if action_type == "client_add":
+            # Re-validate uniqueness at execution time (important when multiple clients
+            # are proposed in the same AI response — the proposed clientUniqueId, OIB,
+            # or VATID may collide with a client created moments earlier).
+            
+            # Re-generate clientUniqueId if the proposed one is already taken
+            proposed_id = action_data["clientUniqueId"]
+            if Client.objects.filter(clientUniqueId=proposed_id).exists():
+                existing_ids = Client.objects.values_list('clientUniqueId', flat=True)
+                existing_ids = [int(uid) for uid in existing_ids if uid and uid.isdigit()]
+                next_id = max(existing_ids) + 1 if existing_ids else 1
+                proposed_id = str(next_id).zfill(4)
+            
+            # Check OIB uniqueness at execution time
+            oib = action_data.get("OIB")
+            if oib and Client.objects.filter(OIB=oib).exists():
+                return {
+                    "status": "error",
+                    "message": f"Klijent s OIB-om {oib} već postoji u bazi."
+                }
+            
+            # Check VATID uniqueness at execution time
+            vat_id = action_data.get("VATID")
+            if vat_id and Client.objects.filter(VATID=vat_id).exists():
+                return {
+                    "status": "error",
+                    "message": f"Klijent s VAT ID-om {vat_id} već postoji u bazi."
+                }
+            
             # Create the client
             client = Client.objects.create(
                 clientName=action_data["clientName"],
@@ -1613,10 +1641,10 @@ def execute_client_action(action_type, action_data):
                 province=action_data["province"],
                 postalCode=action_data["postalCode"],
                 emailAddress=action_data["emailAddress"],
-                clientUniqueId=action_data["clientUniqueId"],
+                clientUniqueId=proposed_id,
                 clientType=action_data["clientType"],
-                OIB=action_data.get("OIB"),
-                VATID=action_data["VATID"],
+                OIB=oib,
+                VATID=vat_id,
                 phoneNumber=action_data.get("phoneNumber")
             )
             

@@ -39,6 +39,7 @@ THIRD_PARTY_APPS = [
     'localflavor',
     'django_bootstrap5',
     'simple_history',
+    'django_erd_generator',
 ]
 
 LOCAL_APPS = [
