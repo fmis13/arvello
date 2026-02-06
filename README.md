@@ -1,6 +1,6 @@
 # Arvello
 
-[![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
+[![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa] & MIT license
 
 [cc-by-nc-sa]: http://creativecommons.org/licenses/by-nc-sa/4.0/
 [cc-by-nc-sa-image]: https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png
@@ -106,12 +106,12 @@ Nakon uspješne instalacije, možete pristupiti Arvellu putem web preglednika:
 
 ## Doprinošenje
 
-Ako želite doprinijeti projektu, molimo pričekajte do kraja 6. mjeseca 2025.
+Ako želite doprinijeti projektu, molimo pričekajte do kraja 6. mjeseca 2026.
 
 ## Licenca
 
 
-Ovaj je rad prije bio licenciran pod MIT licencom, a sada pod
+Ovaj je rad prije bio licenciran pod MIT licencom, a sada također pod
 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International licencom][cc-by-nc-sa].
 
 [![CC BY-NC-SA 4.0][cc-by-nc-sa-image]][cc-by-nc-sa]
