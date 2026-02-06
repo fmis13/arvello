@@ -100,6 +100,7 @@ class InvoiceFormTest(TestCase):
             'client': self.client.id,
             'subject': self.company.id,
             'notes': 'Test Notes',
+            'invoiceType': 'Maloprodajni račun (F1)',
             'payment_method': 'bank_transfer'
         }
         form = InvoiceForm(data=form_data)

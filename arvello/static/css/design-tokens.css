@@ -16,7 +16,7 @@
   /* Neutral Colors */
   --color-background: #ffffff;
   --color-surface: #f8fafc;
-  --color-surface-secondary: #f1f5f9;
+  --color-surface-secondary: #ebf3fa;
   --color-border: #e2e8f0;
   --color-border-strong: #cbd5e1;
   --color-text-primary: #0f172a;
@@ -85,4 +85,11 @@
   /* Transitions */
   --transition-fast: 150ms ease-in-out;
   --transition-normal: 250ms ease-in-out;
+
+  /* Override Bootstrap focus ring - disable the ugly animated outline */
+  --bs-focus-ring-width: 0;
+  --bs-focus-ring-opacity: 0;
+  --bs-focus-ring-color: transparent;
+  --bs-btn-focus-box-shadow: none;
+  --bs-btn-focus-shadow-rgb: 0, 0, 0;
 }

@@ -2250,6 +2250,8 @@ def ai_chat(request):
                 propose_inventory_update,
                 propose_invoice_add,
                 propose_offer_add,
+                get_company_from_court_registry,
+                propose_client_add,
             )
             
             # Mapiranje naziva funkcija na stvarne funkcije
@@ -2270,6 +2272,8 @@ def ai_chat(request):
                 "propose_inventory_update": propose_inventory_update,
                 "propose_invoice_add": propose_invoice_add,
                 "propose_offer_add": propose_offer_add,
+                "get_company_from_court_registry": get_company_from_court_registry,
+                "propose_client_add": propose_client_add,
             }
             
             # Fallback nazivi alata ako AI ne navede reason
@@ -2290,6 +2294,8 @@ def ai_chat(request):
                 "propose_inventory_update": "prijedlog promjene inventara",
                 "propose_invoice_add": "prijedlog kreiranja računa",
                 "propose_offer_add": "prijedlog kreiranja ponude",
+                "get_company_from_court_registry": "dohvaćanje podataka iz sudskog registra",
+                "propose_client_add": "prijedlog dodavanja klijenta",
             }
             
             # Lista funkcija koje predlažu akcije (ne izvršavaju ih odmah)
@@ -2299,6 +2305,7 @@ def ai_chat(request):
                 "propose_inventory_update",
                 "propose_invoice_add",
                 "propose_offer_add",
+                "propose_client_add",
             }
             
             # Izgradi prompt s poviješću razgovora
@@ -2519,7 +2526,7 @@ def ai_execute_action(request):
                 })
             
             # Importaj funkcije za izvršavanje akcija
-            from .ai_tools import execute_inventory_action, execute_invoice_action, execute_offer_action
+            from .ai_tools import execute_inventory_action, execute_invoice_action, execute_offer_action, execute_client_action
             
             # Izvrši akciju ovisno o tipu
             if action_type.startswith('inventory_'):
@@ -2528,6 +2535,8 @@ def ai_execute_action(request):
                 result = execute_invoice_action(action_type, action_data)
             elif action_type.startswith('offer_'):
                 result = execute_offer_action(action_type, action_data)
+            elif action_type.startswith('client_'):
+                result = execute_client_action(action_type, action_data)
             else:
                 result = {
                     'status': 'error',

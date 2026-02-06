@@ -47,6 +47,13 @@
         color: #dee2e6;
         margin-bottom: 1rem;
     }
+
+    .bi-plus{
+        font-size: 2.2rem;
+        vertical-align: middle;
+        horizontal-align: left;
+        margin-left: -8px;
+    }
 </style>
 {% endblock %}
 
@@ -58,7 +65,7 @@
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createConfigModal">
-            <i class="bi bi-plus-circle me-1"></i>Nova konfiguracija
+            <span class="bi bi-plus"></span> Nova konfiguracija
         </button>
     </div>
 </div>
@@ -576,8 +583,8 @@
         <i class="bi bi-receipt d-block"></i>
         <h4>Nema fiskalnih konfiguracija</h4>
         <p class="text-muted mb-4">Kreirajte prvu konfiguraciju da biste započeli s fiskalizacijom računa.</p>
-        <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#createConfigModal">
-            <i class="bi bi-plus-circle me-2"></i>Kreiraj prvu konfiguraciju
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createConfigModal">
+            <span class="bi bi-plus"></span> Kreiraj prvu konfiguraciju
         </button>
     </div>
 </div>
