@@ -2948,6 +2948,8 @@ def search_kpd_codes(request):
     Query params:
         q: Tekst za pretraživanje (šifra ili naziv)
         limit: Maksimalni broj rezultata (default: 20)
+    
+    Vraća samo šifre najniže razine (leaf nodes) - šifre koje nemaju podkategorije.
     """
     from .models import KPDCode
     
@@ -2957,10 +2959,13 @@ def search_kpd_codes(request):
     if len(q) < 2:
         return JsonResponse({'results': [], 'message': 'Unesite najmanje 2 znaka.'})
     
-    # Search by code or name
+    # Get all codes that are parents (have children)
+    parent_codes = set(KPDCode.objects.exclude(parent_code__isnull=True).exclude(parent_code='').values_list('parent_code', flat=True))
+    
+    # Search by code or name, but only return leaf nodes (codes that are not parents)
     codes = KPDCode.objects.filter(
         Q(code__icontains=q) | Q(name__icontains=q)
-    ).order_by('code')[:limit]
+    ).exclude(code__in=parent_codes).order_by('code')[:limit]
     
     results = []
     for code in codes:

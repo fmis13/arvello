@@ -185,6 +185,21 @@ class ProductForm(forms.ModelForm):
         if 'kpd_code' in self.fields:
             self.fields['kpd_code'].widget = forms.HiddenInput()
             self.fields['kpd_code'].required = False
+
+    def clean_kpd_code(self):
+        """Validate that the selected KPD code is a leaf node (has no children)."""
+        kpd_code = self.cleaned_data.get('kpd_code')
+        if kpd_code:
+            # Check if this code has any children
+            has_children = KPDCode.objects.filter(parent_code=kpd_code.code).exists()
+            if has_children:
+                raise ValidationError(
+                    'Morate odabrati KPD šifru najniže razine. '
+                    'Šifra "%(code)s" ima podkategorije - odaberite jednu od njih.',
+                    code='not_leaf_code',
+                    params={'code': kpd_code.code}
+                )
+        return kpd_code
             
     class Meta:
         model = Product

@@ -1,6 +1,43 @@
+"""
+Tests for model creation and manipulation in arvelloapp.
+
+FISCALIZATION NOTE:
+-------------------
+Tests that save Invoice objects trigger Django's post_save signal, which would
+invoke fiscalization. To prevent this during tests:
+- InvoiceModelTest uses FiscalSafeMixin to disconnect the signal
+- Without this, tests would attempt fiscalization (defaulting to SandboxAdapter)
+
+See: arvelloapp/tests/test_forms.py for FiscalSafeMixin implementation
+"""
 from django.test import TestCase
 from django.utils import timezone
+from django.db.models.signals import post_save
 from arvelloapp.models import Client, Product, Invoice, Company, InvoiceProduct, Offer, OfferProduct, Expense, LocalIncomeTax
+
+
+class FiscalSafeMixin:
+    """
+    Mixin that disconnects the fiscalization signal during tests.
+    
+    Use this for tests that create/save Invoice objects but should not trigger
+    fiscalization.
+    """
+    
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        from arvelloapp.signals import enqueue_invoice_for_fiscalization
+        post_save.disconnect(enqueue_invoice_for_fiscalization, sender=Invoice)
+        cls._fiscal_signal_disconnected = True
+    
+    @classmethod
+    def tearDownClass(cls):
+        if getattr(cls, '_fiscal_signal_disconnected', False):
+            from arvelloapp.signals import enqueue_invoice_for_fiscalization
+            post_save.connect(enqueue_invoice_for_fiscalization, sender=Invoice)
+        super().tearDownClass()
+
 
 class ClientModelTest(TestCase):
     def setUp(self):
@@ -41,7 +78,9 @@ class ProductModelTest(TestCase):
         self.assertEqual(product.price, 100.00)
         self.assertEqual(Product.objects.count(), 1)
 
-class InvoiceModelTest(TestCase):
+class InvoiceModelTest(FiscalSafeMixin, TestCase):
+    """Tests for Invoice model. Uses FiscalSafeMixin to disable fiscalization."""
+    
     def setUp(self):
         self.client = Client.objects.create(
             clientName='Test Client',
