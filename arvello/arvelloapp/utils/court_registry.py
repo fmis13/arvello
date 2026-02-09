@@ -376,8 +376,9 @@ class CourtRegistryClient:
             use_sandbox: Whether to use sandbox/test environment
             config: CourtRegistryConfig model instance for token caching
         """
-        self.client_id = client_id
-        self.client_secret = client_secret
+        # Strip whitespace from credentials (common user error)
+        self.client_id = client_id.strip() if client_id else None
+        self.client_secret = client_secret.strip() if client_secret else None
         self.use_sandbox = use_sandbox
         self.config = config  # For persisting token cache
         self._access_token: Optional[str] = None
@@ -405,19 +406,27 @@ class CourtRegistryClient:
         """Get the token URL based on sandbox setting."""
         return self.SANDBOX_TOKEN_URL if self.use_sandbox else self.TOKEN_URL
     
-    def _get_access_token(self) -> Optional[str]:
+    def _get_access_token(self, force_refresh: bool = False) -> Optional[str]:
         """
         Get a valid OAuth2 access token, refreshing if necessary.
         
+        Args:
+            force_refresh: Force token refresh even if cached token is valid
+        
         Returns:
-            Access token string or None if credentials not configured
+            Access token string
+            
+        Raises:
+            CourtRegistryError: If credentials are missing or invalid
         """
         if not self.client_id or not self.client_secret:
-            logger.debug("No OAuth2 credentials configured")
-            return None
+            raise CourtRegistryError(
+                "API podaci za Sudski registar nisu konfigurirani. "
+                "Molimo postavite Client ID i Client Secret u administraciji."
+            )
         
-        # Check if we have a valid cached token
-        if self._access_token and self._token_expires_at:
+        # Check if we have a valid cached token (unless force refresh requested)
+        if not force_refresh and self._access_token and self._token_expires_at:
             # Refresh if token expires within buffer time
             if self._token_expires_at > timezone.now() + timedelta(seconds=self.TOKEN_REFRESH_BUFFER):
                 return self._access_token
@@ -459,10 +468,21 @@ class CourtRegistryClient:
             return self._access_token
             
         except requests.exceptions.HTTPError as e:
-            status_code = e.response.status_code if e.response else None
-            logger.error(f"Failed to obtain OAuth2 token: HTTP {status_code}")
+            status_code = e.response.status_code if e.response is not None else None
+            response_text = ""
+            try:
+                if e.response is not None:
+                    response_text = e.response.text[:500]
+            except:
+                pass
+            logger.error(f"Failed to obtain OAuth2 token: HTTP {status_code} - {response_text}")
             if status_code == 401:
-                raise CourtRegistryError("Neispravni OAuth2 podaci (client_id/client_secret).")
+                raise CourtRegistryError(
+                    "Neispravni OAuth2 podaci (client_id/client_secret). "
+                    "Provjerite jeste li ispravno unijeli podatke bez razmaka na početku ili kraju."
+                )
+            elif status_code is None:
+                raise CourtRegistryError(f"Neuspjeli zahtjev za token bez odgovora: {str(e)}")
             raise CourtRegistryError(f"Greška pri dohvaćanju tokena: HTTP {status_code}")
             
         except requests.exceptions.RequestException as e:
@@ -474,7 +494,8 @@ class CourtRegistryClient:
         endpoint: str, 
         method: str = 'GET', 
         params: Optional[Dict] = None,
-        data: Optional[Dict] = None
+        data: Optional[Dict] = None,
+        _retry_on_401: bool = True
     ) -> Optional[Dict]:
         """
         Make an API request to the court registry.
@@ -484,6 +505,7 @@ class CourtRegistryClient:
             method: HTTP method
             params: Query parameters
             data: Request body data
+            _retry_on_401: Internal flag to prevent infinite retry loops
             
         Returns:
             Response data as dictionary or None on error
@@ -494,8 +516,7 @@ class CourtRegistryClient:
         # Get OAuth2 token and set Bearer auth header
         headers = {}
         access_token = self._get_access_token()
-        if access_token:
-            headers['Authorization'] = f'Bearer {access_token}'
+        headers['Authorization'] = f'Bearer {access_token}'
         
         try:
             if method.upper() == 'GET':
@@ -512,24 +533,50 @@ class CourtRegistryClient:
             logger.error(f"Timeout while accessing court registry API: {url}")
             raise CourtRegistryError("API zahtjev je istekao. Pokušajte ponovo.")
             
-        except requests.exceptions.ConnectionError:
-            logger.error(f"Connection error to court registry API: {url}")
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection error to court registry API: {url} - {e}")
             raise CourtRegistryError("Nije moguće povezati se s API-jem sudskog registra.")
             
         except requests.exceptions.HTTPError as e:
-            status_code = e.response.status_code if e.response else None
-            logger.error(f"HTTP error from court registry API: {status_code} - {e}")
+            status_code = e.response.status_code if e.response is not None else None
+            response_text = ""
+            try:
+                if e.response is not None:
+                    response_text = e.response.text[:500]  # First 500 chars
+            except:
+                pass
+            logger.error(f"HTTP error from court registry API: {status_code} - {e} - Response: {response_text}")
             
             if status_code == 401:
-                raise CourtRegistryError("Neispravni API podaci za autentifikaciju.")
+                # Token may have expired - attempt refresh and retry once
+                if _retry_on_401:
+                    logger.info("Received 401, attempting token refresh and retry")
+                    # Clear cached token and force refresh
+                    self._access_token = None
+                    self._token_expires_at = None
+                    try:
+                        self._get_access_token(force_refresh=True)
+                        # Retry the request once with new token
+                        return self._make_request(
+                            endpoint, method, params, data, _retry_on_401=False
+                        )
+                    except CourtRegistryError:
+                        # Token refresh failed, raise original error
+                        pass
+                raise CourtRegistryError(
+                    "Neispravni API podaci za autentifikaciju (401). "
+                    "Provjerite Client ID i Client Secret te da su podaci ispravno uneseni bez razmaka."
+                )
             elif status_code == 403:
-                raise CourtRegistryError("Pristup API-ju nije dozvoljen.")
+                raise CourtRegistryError("Pristup API-ju nije dozvoljen (403).")
             elif status_code == 404:
-                raise CourtRegistryError("Subjekt nije pronađen u registru.")
+                raise CourtRegistryError("Subjekt nije pronađen u registru (404).")
             elif status_code == 429:
-                raise CourtRegistryError("Previše zahtjeva. Pokušajte ponovo kasnije.")
+                raise CourtRegistryError("Previše zahtjeva (429). Pokušajte ponovo kasnije.")
+            elif status_code is None:
+                raise CourtRegistryError(f"Neuspjeli HTTP zahtjev bez odgovora: {str(e)}")
             else:
-                raise CourtRegistryError(f"Greška API-ja: {status_code}")
+                raise CourtRegistryError(f"Greška API-ja: HTTP {status_code}")
                 
         except requests.exceptions.RequestException as e:
             logger.error(f"Request error to court registry API: {e}")
@@ -862,31 +909,48 @@ class CourtRegistryError(Exception):
     pass
 
 
-def get_court_registry_client() -> Optional[CourtRegistryClient]:
+def get_court_registry_client() -> CourtRegistryClient:
     """
     Get a configured CourtRegistryClient instance using stored credentials.
     
     Returns:
-        CourtRegistryClient instance or None if not configured
+        CourtRegistryClient instance with valid configuration
+        
+    Raises:
+        CourtRegistryError: If no active configuration exists or credentials are missing
     """
     try:
         from arvelloapp.models import CourtRegistryConfig
         
         config = CourtRegistryConfig.objects.filter(is_active=True).first()
         if not config:
-            logger.debug("No active court registry configuration found")
-            return CourtRegistryClient()  # Return client without auth
+            raise CourtRegistryError(
+                "Konfiguracija Sudskog registra nije pronađena. "
+                "Molimo postavite API podatke u Administracija > Sudski registar."
+            )
+        
+        # Validate that credentials are present
+        if not config.client_id or not config.client_secret:
+            raise CourtRegistryError(
+                "Client ID ili Client Secret nisu postavljeni. "
+                "Molimo unesite ispravne API podatke u Administracija > Sudski registar."
+            )
         
         return CourtRegistryClient(
-            client_id=config.client_id if config.client_id else None,
-            client_secret=config.client_secret if config.client_secret else None,
+            client_id=config.client_id,
+            client_secret=config.client_secret,
             use_sandbox=config.use_sandbox,
             config=config  # Pass config for token caching
         )
         
+    except CourtRegistryError:
+        raise
     except Exception as e:
         logger.error(f"Error getting court registry client: {e}")
-        return CourtRegistryClient()  # Return basic client
+        raise CourtRegistryError(
+            "Došlo je do greške pri učitavanju konfiguracije Sudskog registra. "
+            "Molimo provjerite postavke ili kontaktirajte podršku."
+        )
 
 
 def fetch_company_data_by_oib(oib: str, entity_type: str = 'client') -> Dict[str, Any]:
@@ -899,10 +963,11 @@ def fetch_company_data_by_oib(oib: str, entity_type: str = 'client') -> Dict[str
         
     Returns:
         Dictionary with company data suitable for form population
+        
+    Raises:
+        CourtRegistryError: If configuration is missing or API call fails
     """
-    client = get_court_registry_client()
-    if not client:
-        raise CourtRegistryError("API sudskog registra nije konfiguriran.")
+    client = get_court_registry_client()  # Will raise CourtRegistryError if not configured
     
     company = client.search_by_oib(oib)
     if not company:
@@ -956,10 +1021,11 @@ def search_companies_by_name(name: str, limit: int = 10) -> List[Dict[str, Any]]
         
     Returns:
         List of dictionaries with company data
+        
+    Raises:
+        CourtRegistryError: If configuration is missing or API call fails
     """
-    client = get_court_registry_client()
-    if not client:
-        raise CourtRegistryError("API sudskog registra nije konfiguriran.")
+    client = get_court_registry_client()  # Will raise CourtRegistryError if not configured
     
     companies = client.search_by_name(name, limit)
     
