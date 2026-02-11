@@ -2084,6 +2084,8 @@ def ai_chat(request):
             
             client = Mistral(api_key=settings.MISTRAL_API_KEY)
 
+            file_context = None  # Kontekst iz priložene datoteke
+            
             if 'multipart/form-data' in content_type:
                 # FormData - datoteka je uključena
                 user_message = request.POST.get('message', '').strip()
@@ -2216,10 +2218,10 @@ def ai_chat(request):
                     if file_content and len(file_content) > 50000:
                         file_content = file_content[:50000] + "\n...[skraćeno zbog veličine]..."
 
-                    # Dodaj sadržaj datoteke u poruku
+                    # Spremi sadržaj datoteke za slanje kao zasebni kontekst
                     if file_content:
                         print("DEBUG: File content extracted:", file_content[:500])  # Prvih 500 znakova za debug
-                        user_message = f"{user_message}\n\n--- Priložena datoteka: {uploaded_file.name} ---\n{file_content[:50000]}"  # Ograniči na 50k znakova
+                        file_context = f"--- Priložena datoteka: {uploaded_file.name} ---\n{file_content[:50000]}"
             else:
                 # JSON zahtjev
                 data = json.loads(request.body)
@@ -2317,7 +2319,7 @@ def ai_chat(request):
             
             # Dodaj povijest razgovora (ograniči na zadnjih 20 poruka)
             for msg in chat_history[-20:]:
-                if msg.get('role') in ['user', 'assistant', 'tool'] and msg.get('content'):
+                if msg.get('role') in ['user', 'assistant', 'tool', 'system'] and msg.get('content'):
                     chat_prompt.append({
                         "role": msg['role'],
                         "content": msg['content']
@@ -2325,6 +2327,10 @@ def ai_chat(request):
             
             # Dodaj trenutnu poruku korisnika
             chat_prompt.append({"role": "user", "content": user_message})
+            
+            # Ako je priložena datoteka, dodaj njen sadržaj kao sistemsku poruku
+            if file_context:
+                chat_prompt.append({"role": "system", "content": file_context})
 
             # Lista za praćenje pozvanih alata (za prikaz korisniku)
             tools_called = []
@@ -2483,12 +2489,15 @@ def ai_chat(request):
                 ai_response = "Došlo je do greške - previše iteracija. Pokušajte ponovo s jednostavnijim pitanjem."
             
             # Vrati odgovor s informacijom o pozvanim alatima i akcijama na čekanju
-            return JsonResponse({
+            response_data = {
                 'status': 'success',
                 'response': ai_response,
                 'tools_called': tools_called,
                 'pending_actions': pending_actions
-            })
+            }
+            if file_context:
+                response_data['file_context'] = file_context
+            return JsonResponse(response_data)
             
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Neispravan JSON format'}, status=400)

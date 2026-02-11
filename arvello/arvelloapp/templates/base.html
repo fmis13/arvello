@@ -1496,7 +1496,7 @@
           addMessageBubble('user', message, false, fileInfo);
         }
         
-        const historyToSend = resumeHistory || chatHistory.filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'tool').map(m => ({role: m.role === 'tool' ? 'user' : m.role, content: m.content}));
+        const historyToSend = resumeHistory || chatHistory.filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'tool' || m.role === 'file_context').map(m => ({role: m.role === 'tool' ? 'user' : (m.role === 'file_context' ? 'system' : m.role), content: m.content}));
         
         savePendingRequest(message, historyToSend);
         saveState();
@@ -1551,6 +1551,10 @@
             });
             
             addMessageBubble('assistant', data.response, true);
+            
+            if (data.file_context) {
+              chatHistory.push({ role: 'file_context', content: data.file_context });
+            }
             
             if (data.tools_called && data.tools_called.length > 0) {
               addToolsInfo(data.tools_called);
